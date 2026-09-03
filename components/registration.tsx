@@ -14,15 +14,23 @@ export function Registration({ onRegistered }: { onRegistered: (user: CommunityU
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true); setError('');
-    const data = new FormData(event.currentTarget);
-    const response = await fetch('/api/session', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: data.get('name'), nickname: data.get('nickname'), email: data.get('email') }),
-    });
-    const result = await response.json() as { user?: CommunityUser; error?: string };
-    setSaving(false);
-    if (!response.ok || !result.user) return setError(result.error ?? 'No se pudo completar el registro.');
-    onRegistered(result.user);
+    try {
+      const data = new FormData(event.currentTarget);
+      const response = await fetch('/api/session', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: data.get('name'), nickname: data.get('nickname'), email: data.get('email') }),
+      });
+      const result = await response.json() as { user?: CommunityUser; error?: string };
+      if (!response.ok || !result.user) {
+        setError(result.error ?? 'No se pudo completar el registro.');
+        return;
+      }
+      onRegistered(result.user);
+    } catch {
+      setError('No se pudo conectar con la app. Vuelve a intentarlo en unos segundos.');
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <main className="grid min-h-screen place-items-center bg-[#071527] px-4 py-10">

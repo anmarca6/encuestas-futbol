@@ -40,7 +40,11 @@ export async function POST(request: NextRequest) {
   }
   const response = NextResponse.json({ user });
   response.cookies.set(COOKIE_NAME, user.id, {
-    httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 60 * 60 * 24 * 365,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: request.nextUrl.protocol === 'https:',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
   });
   return response;
 }
