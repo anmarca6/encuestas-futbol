@@ -1,0 +1,9 @@
+import type { ReactNode } from 'react';
+import Image from 'next/image';
+import { getLeagueTeamByName } from '@/lib/laliga-data';
+
+export function Heading({eyebrow,title,description,action}:{eyebrow:string;title:string;description:string;action?:ReactNode}){return <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-2 text-xs font-black uppercase tracking-[.2em] text-[#a91d43]">{eyebrow}</p><h1 className="text-3xl font-black tracking-[-.04em] text-[#071527] sm:text-4xl">{title}</h1><p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">{description}</p></div>{action}</div>}
+
+export function TeamCrest({teamName,size='md',bare=false,className=''}:{teamName:string;size?:'sm'|'md'|'lg'|'xl';bare?:boolean;className?:string}){const team=getLeagueTeamByName(teamName);const sizes={sm:'size-6',md:'size-9',lg:'size-12',xl:'size-16 sm:size-20'};if(!team)return null;return <span className={`grid shrink-0 place-items-center ${bare?'':'rounded-xl bg-white/95 p-1 shadow-sm ring-1 ring-slate-200/70'} ${sizes[size]} ${className}`}><Image src={team.crest} width={80} height={80} alt={`Escudo de ${team.name}`} className="h-full w-full object-contain"/></span>}
+
+export function TeamIdentity({teamName,size='md',bareCrest=false,reverse=false,shortOnMobile=false,className=''}:{teamName:string;size?:'sm'|'md'|'lg'|'xl';bareCrest?:boolean;reverse?:boolean;shortOnMobile?:boolean;className?:string}){const team=getLeagueTeamByName(teamName);return <span className={`flex min-w-0 items-center gap-2 ${reverse?'flex-row-reverse text-right':''} ${className}`}><TeamCrest teamName={teamName} size={size} bare={bareCrest}/><span className={`min-w-0 truncate ${teamName==='Levante UD'?'font-black text-[#a91d43]':'font-bold'}`}><span className={shortOnMobile?'hidden sm:inline':''}>{team?.name??teamName}</span>{shortOnMobile&&<span className="sm:hidden">{team?.shortName??teamName}</span>}</span></span>}
