@@ -181,7 +181,7 @@ export const levanteMatches: LevanteMatch[] = matchSeeds.map(
     competition: LEVANTE_COMPETITION,
     matchday,
     date,
-    kickoffTime: null,
+    kickoffTime: ({ 4: '18:30', 5: '16:15', 6: '21:30', 7: '18:30' } as Record<number, string>)[matchday] ?? null,
     homeTeam,
     awayTeam,
     homeScore,

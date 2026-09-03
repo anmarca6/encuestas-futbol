@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Award,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
-  Crosshair,
+  Clock3,
   Goal,
-  Medal,
+  MessageCircleMore,
   Minus,
   Plus,
   Send,
@@ -58,6 +58,11 @@ import {
 } from '@/lib/laliga-data';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
+import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
+import {
+  formatPredictionDeadline,
+  isPredictionClosed,
+} from '@/lib/prediction-deadline';
 
 const longDate = new Intl.DateTimeFormat('es-ES', {
   day: '2-digit',
@@ -618,6 +623,8 @@ export function PredictSection() {
   const [home, setHome] = useState(0),
     [away, setAway] = useState(0),
     [published, setPublished] = useState(false),
+    [publishing, setPublishing] = useState(false),
+    [publishError, setPublishError] = useState(''),
     [editingLineup, setEditingLineup] = useState(false),
     [playerPicker, setPlayerPicker] = useState<'SCORERS' | 'MVP' | null>(null);
   const [prediction, setPrediction] = useState<PredictionDraft | null>(null);
@@ -672,6 +679,26 @@ export function PredictSection() {
         />
       </>
     );
+  const closed = isPredictionClosed(next);
+  const publishPrediction = async () => {
+    setPublishing(true);
+    setPublishError('');
+    const response = await fetch('/api/predictions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        matchId: next.id,
+        predictedScore: { home, away },
+        lineup: prediction?.lineup ?? null,
+        scorers: prediction?.scorers ?? [],
+        mvp: prediction?.mvp ?? null,
+      } satisfies PredictionDraft),
+    });
+    const result = await response.json() as { error?: string };
+    setPublishing(false);
+    if (!response.ok) return setPublishError(result.error ?? 'No se pudo publicar la previa.');
+    setPublished(true);
+  };
   return (
     <>
       <Heading
@@ -679,6 +706,13 @@ export function PredictSection() {
         title="¿Cómo quedamos?"
         description="Mójate antes del pitido inicial y prepara tu once para el próximo partido."
       />
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+        <Clock3 className="mt-0.5 size-5 shrink-0 text-amber-600" />
+        <div>
+          <strong className="block font-black">Las predicciones cierran 2 horas antes del partido</strong>
+          <p className="mt-1 text-sm">Para esta jornada, el cierre es el {formatPredictionDeadline(next)}.</p>
+        </div>
+      </div>
       <PredictionPointsCard />
       <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
         <div className="space-y-6">
@@ -695,12 +729,14 @@ export function PredictSection() {
             </CardContent>
           </Card>
           <Button
-            onClick={() => setPublished(true)}
+            onClick={publishPrediction}
+            disabled={closed || publishing}
             className="h-12 w-full bg-[#a91d43] font-black text-white"
           >
             <Send />
-            {published ? '¡Previa publicada!' : 'Publicar mi previa'}
+            {closed ? 'Predicciones cerradas' : publishing ? 'Publicando…' : published ? '¡Previa publicada!' : 'Publicar mi previa'}
           </Button>
+          {publishError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{publishError}</p>}
         </div>
         <div className="space-y-4">
           {prediction?.lineup?.players.length === 11 ? (
@@ -857,32 +893,40 @@ export function PredictSection() {
   );
 }
 
-const fans = [
-  ['@rana_del_turia', '2 — 0', 'Carlos y Pablo', 'Carlos'],
-  ['@orriols_1909', '1 — 1', 'Pablo', 'Andrés'],
-  ['@sempre_granota', '3 — 1', 'Carlos (2), Iván', 'Carlos'],
-  ['@levantinista90', '2 — 1', 'Iván y Pablo', 'Iván'],
-];
 export function StandsSection() {
+  const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    void fetch('/api/predictions')
+      .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
+      .then((result) => setPredictions(result.predictions ?? []))
+      .catch(() => setPredictions([]))
+      .finally(() => setLoading(false));
+  }, []);
+  const playerName = (id: string | null) => id ? levantePlayers.find((player) => player.id === id)?.displayName ?? id : 'Sin elegir';
   return (
     <>
       <Heading
-        eyebrow="La comunidad · Datos demo"
+        eyebrow="La comunidad"
         title="La Grada"
-        description="Las previas de la afición antes de que ruede el balón."
+        description="Predicciones reales publicadas por la afición para el próximo partido."
       />
+      {!loading && predictions.length === 0 && (
+        <Card className="border-0 shadow-sm ring-slate-200"><CardContent className="py-12 text-center"><MessageCircleMore className="mx-auto size-10 text-slate-300"/><h2 className="mt-4 text-xl font-black text-[#071527]">La grada está esperando su primera previa</h2><p className="mt-2 text-sm text-slate-500">Cuando un usuario publique una predicción, aparecerá aquí.</p></CardContent></Card>
+      )}
+      {loading && <p className="text-center text-sm font-bold text-slate-400">Cargando predicciones…</p>}
       <div className="grid gap-4 sm:grid-cols-2">
-        {fans.map(([user, result, scorers, mvp]) => (
-          <Card key={user} className="border-0 shadow-sm ring-slate-200">
+        {predictions.map((prediction) => (
+          <Card key={prediction.id} className="border-0 shadow-sm ring-slate-200">
             <CardContent>
               <div className="flex items-center gap-3">
                 <span className="grid size-11 place-items-center rounded-full bg-rose-100 font-black text-[#a91d43]">
-                  {user.slice(1, 3).toUpperCase()}
+                  {prediction.user.nickname.slice(0, 2).toUpperCase()}
                 </span>
-                <b>{user}</b>
+                <div><b className="block">@{prediction.user.nickname}</b><small className="text-slate-400">{prediction.user.name}</small></div>
               </div>
               <div className="my-5 rounded-2xl bg-[#071527] py-4 text-center text-3xl font-black text-white">
-                {result}
+                {prediction.homeScore} — {prediction.awayScore}
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-xl bg-slate-50 p-3">
@@ -890,14 +934,14 @@ export function StandsSection() {
                     <Goal className="size-3" />
                     Goleadores
                   </small>
-                  <b>{scorers}</b>
+                  <b>{prediction.scorers.length ? prediction.scorers.map(playerName).join(', ') : 'Sin elegir'}</b>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3">
                   <small className="flex gap-1 font-black uppercase text-slate-400">
                     <Award className="size-3" />
                     MVP
                   </small>
-                  <b>{mvp}</b>
+                  <b>{playerName(prediction.mvp)}</b>
                 </div>
               </div>
             </CardContent>
@@ -907,16 +951,11 @@ export function StandsSection() {
     </>
   );
 }
-export function ProfileSection() {
-  const stats = [
-    ['Predicciones', '24', Crosshair],
-    ['Aciertos', '9', CheckCircle2],
-    ['Puntos', '1.280', Medal],
-  ] as const;
+export function ProfileSection({ user }: { user: CommunityUser }) {
   return (
     <>
       <Heading
-        eyebrow="Tu espacio · Datos demo"
+        eyebrow="Tu espacio"
         title="Perfil granota"
         description="Tu actividad y tus números de esta temporada."
         action={
@@ -929,25 +968,13 @@ export function ProfileSection() {
       <Card className="border-0 bg-[#071527] text-white ring-0">
         <CardContent className="text-center">
           <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
-            LG
+            {user.nickname.slice(0, 2).toUpperCase()}
           </div>
-          <h2 className="mt-4 text-2xl font-black">@levantinista_granota</h2>
-          <p className="text-sm text-slate-400">En la grada desde 2018</p>
+          <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
+          <p className="mt-1 text-sm text-slate-300">{user.name}</p>
+          <p className="text-sm text-slate-400">{user.email}</p>
         </CardContent>
       </Card>
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        {stats.map(([label, value, Icon]) => (
-          <Card key={label} className="border-0 shadow-sm ring-slate-200">
-            <CardContent>
-              <Icon className="size-6 text-[#a91d43]" />
-              <p className="mt-4 text-3xl font-black">{value}</p>
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                {label}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </>
   );
 }
