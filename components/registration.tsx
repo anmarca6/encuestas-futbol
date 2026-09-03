@@ -53,7 +53,7 @@ export function Registration({ onRegistered }: { onRegistered: (user: CommunityU
               <div className="relative mt-1.5"><Mail className="absolute left-3 top-3 size-4 text-slate-400"/><Input name="email" required type="email" maxLength={160} autoComplete="email" className="pl-9" placeholder="tu@correo.com" /></div>
             </label>
             {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}
-            <Button disabled={saving} className="h-12 w-full bg-[#a91d43] font-black text-white">{saving ? 'Creando tu perfil…' : 'Entrar en Granota App'}</Button>
+            <Button type="submit" disabled={saving} className="h-12 w-full bg-[#a91d43] font-black text-white">{saving ? 'Creando tu perfil…' : 'Entrar en Granota App'}</Button>
           </form>
           <p className="mt-4 text-center text-xs leading-5 text-slate-400">Usaremos estos datos para identificar tus predicciones en La Grada.</p>
         </CardContent>
