@@ -2,13 +2,10 @@ import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqli
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
-  name: text('name').notNull(),
   nickname: text('nickname').notNull(),
-  email: text('email').notNull(),
   createdAt: integer('created_at').notNull(),
 }, (table) => [
   uniqueIndex('idx_users_nickname').on(table.nickname),
-  uniqueIndex('idx_users_email').on(table.email),
 ]);
 
 export const predictions = sqliteTable('predictions', {

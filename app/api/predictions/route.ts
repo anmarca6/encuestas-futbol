@@ -11,7 +11,7 @@ async function currentUser(request: NextRequest) {
   const id = request.cookies.get(COOKIE_NAME)?.value;
   if (!id) return null;
   return getDatabase().prepare(
-    'SELECT id, name, nickname, email, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
   ).bind(id).first<CommunityUser>();
 }
 
@@ -21,12 +21,12 @@ export async function GET() {
   interface PredictionRow {
     id: string; matchId: string; homeScore: number; awayScore: number;
     lineup: string | null; scorers: string; mvp: string | null;
-    publishedAt: number; name: string; nickname: string;
+    publishedAt: number; nickname: string;
   }
   const rows = await getDatabase().prepare(`
     SELECT p.id, p.match_id AS matchId, p.home_score AS homeScore,
       p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
-      p.published_at AS publishedAt, u.name, u.nickname
+      p.published_at AS publishedAt, u.nickname
     FROM predictions p JOIN users u ON u.id = p.user_id
     WHERE p.match_id = ? ORDER BY p.published_at DESC LIMIT 100
   `).bind(match.id).all<PredictionRow>();
@@ -36,7 +36,7 @@ export async function GET() {
     lineup: row.lineup ? JSON.parse(row.lineup) : null,
     scorers: JSON.parse(row.scorers), mvp: row.mvp,
     publishedAt: row.publishedAt,
-    user: { name: row.name, nickname: row.nickname },
+    user: { nickname: row.nickname },
   }));
   return NextResponse.json({ predictions });
 }

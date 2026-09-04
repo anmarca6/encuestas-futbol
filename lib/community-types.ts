@@ -2,9 +2,7 @@ import type { SavedLineup } from '@/lib/formations';
 
 export interface CommunityUser {
   id: string;
-  name: string;
   nickname: string;
-  email: string;
   createdAt: number;
 }
 
@@ -17,5 +15,5 @@ export interface CommunityPrediction {
   scorers: string[];
   mvp: string | null;
   publishedAt: number;
-  user: Pick<CommunityUser, 'name' | 'nickname'>;
+  user: Pick<CommunityUser, 'nickname'>;
 }

@@ -8,7 +8,7 @@ async function findUser(id: string | undefined): Promise<CommunityUser | null> {
   if (!id) return null;
   return getDatabase()
     .prepare(
-      'SELECT id, name, nickname, email, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+      'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
     )
     .bind(id)
     .first<CommunityUser>();
@@ -33,24 +33,26 @@ export async function POST(request: NextRequest) {
   }
   const db = getDatabase();
   const id = crypto.randomUUID();
-  const user = {
-    id,
-    name: nickname,
-    nickname,
-    email: `${id}@granota.invalid`,
-    createdAt: Date.now(),
-  };
-  try {
-    await db
-      .prepare(
-        'INSERT INTO users (id, name, nickname, email, created_at) VALUES (?, ?, ?, ?, ?)',
-      )
-      .bind(user.id, user.name, user.nickname, user.email, user.createdAt)
-      .run();
-  } catch {
+  const user = { id, nickname, createdAt: Date.now() };
+  const existing = await db
+    .prepare('SELECT id FROM users WHERE nickname = ? COLLATE NOCASE LIMIT 1')
+    .bind(nickname)
+    .first<{ id: string }>();
+  if (existing) {
     return NextResponse.json(
       { error: 'Ese apodo ya está en uso. Prueba con otro.' },
       { status: 409 },
+    );
+  }
+  try {
+    await db
+      .prepare('INSERT INTO users (id, nickname, created_at) VALUES (?, ?, ?)')
+      .bind(user.id, user.nickname, user.createdAt)
+      .run();
+  } catch {
+    return NextResponse.json(
+      { error: 'No se pudo guardar el apodo. Inténtalo de nuevo.' },
+      { status: 500 },
     );
   }
   const response = NextResponse.json({ user });
