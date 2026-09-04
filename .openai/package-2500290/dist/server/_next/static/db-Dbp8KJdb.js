@@ -1,1 +1,0 @@
-import{env as e}from"cloudflare:workers";function t(){return e.DB}export{t};
