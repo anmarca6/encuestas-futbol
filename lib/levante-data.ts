@@ -10,12 +10,10 @@ import jeremyToljanImage from '@/JugadoresDelLevante2627/JeremyToljan.webp';
 import manuSanchezImage from '@/JugadoresDelLevante2627/ManuSánchez.webp';
 import nachoPerezImage from '@/JugadoresDelLevante2627/NachoPérez.webp';
 import marcSantosImage from '@/JugadoresDelLevante2627/MarcSantos.webp';
-import xaviGrandeImage from '@/JugadoresDelLevante2627/XaviGrande.webp';
 import axelTapeImage from '@/JugadoresDelLevante2627/AxelTape.webp';
 import hugoSoteloImage from '@/JugadoresDelLevante2627/HugoSotelo.webp';
 import daniRequenaImage from '@/JugadoresDelLevante2627/DaniRequena.webp';
 import olasagastiImage from '@/JugadoresDelLevante2627/Olasagasti.webp';
-import carlosAlvarezImage from '@/JugadoresDelLevante2627/CarlosÁlvarez.webp';
 import enzoBardeliImage from '@/JugadoresDelLevante2627/EnzoBardeli.webp';
 import thiagoFernandezImage from '@/JugadoresDelLevante2627/ThiagoFernández.webp';
 import pacoCortesImage from '@/JugadoresDelLevante2627/PacoCortés.webp';
@@ -304,16 +302,8 @@ export const levantePlayers: LevantePlayer[] = [
     possibleDeparture: false,
   },
   {
-    id: 'xavi-grande',
-    number: null,
-    displayName: 'Xavi Grande',
-    position: 'DEFENDER',
-    image: xaviGrandeImage.src,
-    possibleDeparture: true,
-  },
-  {
     id: 'axel-tape',
-    number: null,
+    number: 16,
     displayName: 'Axel Tape',
     position: 'MIDFIELDER',
     image: axelTapeImage.src,
@@ -342,14 +332,6 @@ export const levantePlayers: LevantePlayer[] = [
     position: 'MIDFIELDER',
     image: olasagastiImage.src,
     possibleDeparture: false,
-  },
-  {
-    id: 'carlos-alvarez',
-    number: 10,
-    displayName: 'Carlos Álvarez',
-    position: 'MIDFIELDER',
-    image: carlosAlvarezImage.src,
-    possibleDeparture: true,
   },
   {
     id: 'enzo-bardeli',
@@ -385,7 +367,7 @@ export const levantePlayers: LevantePlayer[] = [
   },
   {
     id: 'ratkov',
-    number: null,
+    number: 10,
     displayName: 'Ratkov',
     position: 'FORWARD',
     image: ratkovImage.src,
