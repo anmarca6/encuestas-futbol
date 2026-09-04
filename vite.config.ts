@@ -65,5 +65,14 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins,
+    build: useCloudflarePlatform
+      ? undefined
+      : {
+          // lib/db.ts imports the Workers-only `cloudflare:workers` module for
+          // D1 access. Vercel's plain Node build has no such module, so it
+          // must stay external rather than fail bundling; the D1-backed
+          // routes simply aren't functional in that deployment.
+          rolldownOptions: { external: ['cloudflare:workers'] },
+        },
   };
 });
