@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,6 +23,11 @@ export function Registration({
 }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setError('');
+  }, [open]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -42,6 +47,7 @@ export function Registration({
         setError(result.error ?? 'No se pudo completar el registro.');
         return;
       }
+      setError('');
       onRegistered(result.user);
     } catch {
       setError(
@@ -79,6 +85,7 @@ export function Registration({
                 maxLength={30}
                 className="pl-8"
                 placeholder="apodo_granota"
+                onChange={() => setError('')}
               />
             </div>
           </label>
