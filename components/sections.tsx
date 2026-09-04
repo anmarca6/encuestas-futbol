@@ -14,8 +14,10 @@ import {
   Send,
   Settings,
   Shirt,
+  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Registration } from '@/components/registration';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -618,12 +620,19 @@ function PredictionPointsCard() {
   );
 }
 
-export function PredictSection() {
+export function PredictSection({
+  user,
+  onRegistered,
+}: {
+  user: CommunityUser | null;
+  onRegistered: (user: CommunityUser) => void;
+}) {
   const next = getNextLevanteMatch();
   const [home, setHome] = useState(0),
     [away, setAway] = useState(0),
     [published, setPublished] = useState(false),
     [publishing, setPublishing] = useState(false),
+    [registrationOpen, setRegistrationOpen] = useState(false),
     [publishError, setPublishError] = useState(''),
     [editingLineup, setEditingLineup] = useState(false),
     [playerPicker, setPlayerPicker] = useState<'SCORERS' | 'MVP' | null>(null);
@@ -680,7 +689,11 @@ export function PredictSection() {
       </>
     );
   const closed = isPredictionClosed(next);
-  const publishPrediction = async () => {
+  const publishPrediction = async (registered = Boolean(user)) => {
+    if (!registered) {
+      setRegistrationOpen(true);
+      return;
+    }
     setPublishing(true);
     setPublishError('');
     const response = await fetch('/api/predictions', {
@@ -694,13 +707,24 @@ export function PredictSection() {
         mvp: prediction?.mvp ?? null,
       } satisfies PredictionDraft),
     });
-    const result = await response.json() as { error?: string };
+    const result = (await response.json()) as { error?: string };
     setPublishing(false);
-    if (!response.ok) return setPublishError(result.error ?? 'No se pudo publicar la previa.');
+    if (!response.ok)
+      return setPublishError(result.error ?? 'No se pudo publicar la previa.');
     setPublished(true);
+  };
+  const finishRegistration = async (registeredUser: CommunityUser) => {
+    onRegistered(registeredUser);
+    setRegistrationOpen(false);
+    await publishPrediction(true);
   };
   return (
     <>
+      <Registration
+        open={registrationOpen}
+        onOpenChange={setRegistrationOpen}
+        onRegistered={finishRegistration}
+      />
       <Heading
         eyebrow={`Jornada ${next.matchday} · ${formatDate(next.date)}`}
         title="¿Cómo quedamos?"
@@ -709,8 +733,12 @@ export function PredictSection() {
       <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
         <Clock3 className="mt-0.5 size-5 shrink-0 text-amber-600" />
         <div>
-          <strong className="block font-black">Las predicciones cierran 2 horas antes del partido</strong>
-          <p className="mt-1 text-sm">Para esta jornada, el cierre es el {formatPredictionDeadline(next)}.</p>
+          <strong className="block font-black">
+            Las predicciones cierran 2 horas antes del partido
+          </strong>
+          <p className="mt-1 text-sm">
+            Para esta jornada, el cierre es el {formatPredictionDeadline(next)}.
+          </p>
         </div>
       </div>
       <PredictionPointsCard />
@@ -729,14 +757,27 @@ export function PredictSection() {
             </CardContent>
           </Card>
           <Button
-            onClick={publishPrediction}
+            onClick={() => void publishPrediction()}
             disabled={closed || publishing}
             className="h-12 w-full bg-[#a91d43] font-black text-white"
           >
             <Send />
-            {closed ? 'Predicciones cerradas' : publishing ? 'Publicando…' : published ? '¡Previa publicada!' : 'Publicar mi previa'}
+            {closed
+              ? 'Predicciones cerradas'
+              : publishing
+                ? 'Publicando…'
+                : published
+                  ? '¡Previa publicada!'
+                  : 'Publicar mi previa'}
           </Button>
-          {publishError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{publishError}</p>}
+          {publishError && (
+            <p
+              role="alert"
+              className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]"
+            >
+              {publishError}
+            </p>
+          )}
         </div>
         <div className="space-y-4">
           {prediction?.lineup?.players.length === 11 ? (
@@ -898,12 +939,18 @@ export function StandsSection() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     void fetch('/api/predictions')
-      .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
+      .then(
+        async (response) =>
+          (await response.json()) as { predictions?: CommunityPrediction[] },
+      )
       .then((result) => setPredictions(result.predictions ?? []))
       .catch(() => setPredictions([]))
       .finally(() => setLoading(false));
   }, []);
-  const playerName = (id: string | null) => id ? levantePlayers.find((player) => player.id === id)?.displayName ?? id : 'Sin elegir';
+  const playerName = (id: string | null) =>
+    id
+      ? (levantePlayers.find((player) => player.id === id)?.displayName ?? id)
+      : 'Sin elegir';
   return (
     <>
       <Heading
@@ -912,18 +959,38 @@ export function StandsSection() {
         description="Predicciones reales publicadas por la afición para el próximo partido."
       />
       {!loading && predictions.length === 0 && (
-        <Card className="border-0 shadow-sm ring-slate-200"><CardContent className="py-12 text-center"><MessageCircleMore className="mx-auto size-10 text-slate-300"/><h2 className="mt-4 text-xl font-black text-[#071527]">La grada está esperando su primera previa</h2><p className="mt-2 text-sm text-slate-500">Cuando un usuario publique una predicción, aparecerá aquí.</p></CardContent></Card>
+        <Card className="border-0 shadow-sm ring-slate-200">
+          <CardContent className="py-12 text-center">
+            <MessageCircleMore className="mx-auto size-10 text-slate-300" />
+            <h2 className="mt-4 text-xl font-black text-[#071527]">
+              La grada está esperando su primera previa
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Cuando un usuario publique una predicción, aparecerá aquí.
+            </p>
+          </CardContent>
+        </Card>
       )}
-      {loading && <p className="text-center text-sm font-bold text-slate-400">Cargando predicciones…</p>}
+      {loading && (
+        <p className="text-center text-sm font-bold text-slate-400">
+          Cargando predicciones…
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         {predictions.map((prediction) => (
-          <Card key={prediction.id} className="border-0 shadow-sm ring-slate-200">
+          <Card
+            key={prediction.id}
+            className="border-0 shadow-sm ring-slate-200"
+          >
             <CardContent>
               <div className="flex items-center gap-3">
                 <span className="grid size-11 place-items-center rounded-full bg-rose-100 font-black text-[#a91d43]">
                   {prediction.user.nickname.slice(0, 2).toUpperCase()}
                 </span>
-                <div><b className="block">@{prediction.user.nickname}</b><small className="text-slate-400">{prediction.user.name}</small></div>
+                <div>
+                  <b className="block">@{prediction.user.nickname}</b>
+                  <small className="text-slate-400">Afición granota</small>
+                </div>
               </div>
               <div className="my-5 rounded-2xl bg-[#071527] py-4 text-center text-3xl font-black text-white">
                 {prediction.homeScore} — {prediction.awayScore}
@@ -934,7 +1001,11 @@ export function StandsSection() {
                     <Goal className="size-3" />
                     Goleadores
                   </small>
-                  <b>{prediction.scorers.length ? prediction.scorers.map(playerName).join(', ') : 'Sin elegir'}</b>
+                  <b>
+                    {prediction.scorers.length
+                      ? prediction.scorers.map(playerName).join(', ')
+                      : 'Sin elegir'}
+                  </b>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3">
                   <small className="flex gap-1 font-black uppercase text-slate-400">
@@ -951,7 +1022,7 @@ export function StandsSection() {
     </>
   );
 }
-export function ProfileSection({ user }: { user: CommunityUser }) {
+export function ProfileSection({ user }: { user: CommunityUser | null }) {
   return (
     <>
       <Heading
@@ -965,16 +1036,29 @@ export function ProfileSection({ user }: { user: CommunityUser }) {
           </Button>
         }
       />
-      <Card className="border-0 bg-[#071527] text-white ring-0">
-        <CardContent className="text-center">
-          <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
-            {user.nickname.slice(0, 2).toUpperCase()}
-          </div>
-          <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
-          <p className="mt-1 text-sm text-slate-300">{user.name}</p>
-          <p className="text-sm text-slate-400">{user.email}</p>
-        </CardContent>
-      </Card>
+      {!user ? (
+        <Card className="border-0 bg-[#071527] text-white ring-0">
+          <CardContent className="py-10 text-center">
+            <UserRound className="mx-auto size-10 text-sky-300" />
+            <h2 className="mt-4 text-xl font-black">
+              Todavía no tienes perfil
+            </h2>
+            <p className="mt-2 text-sm text-slate-300">
+              Podrás elegir tu apodo cuando publiques tu primera predicción en
+              La Grada.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-0 bg-[#071527] text-white ring-0">
+          <CardContent className="text-center">
+            <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
+              {user.nickname.slice(0, 2).toUpperCase()}
+            </div>
+            <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

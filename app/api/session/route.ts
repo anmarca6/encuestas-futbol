@@ -6,9 +6,12 @@ const COOKIE_NAME = 'granota_user_id';
 
 async function findUser(id: string | undefined): Promise<CommunityUser | null> {
   if (!id) return null;
-  return getDatabase().prepare(
-    'SELECT id, name, nickname, email, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
-  ).bind(id).first<CommunityUser>();
+  return getDatabase()
+    .prepare(
+      'SELECT id, name, nickname, email, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+    )
+    .bind(id)
+    .first<CommunityUser>();
 }
 
 export async function GET(request: NextRequest) {
@@ -17,26 +20,38 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json() as { name?: string; nickname?: string; email?: string };
-  const name = body.name?.trim().slice(0, 80) ?? '';
+  const body = (await request.json()) as { nickname?: string };
   const nickname = body.nickname?.trim().replace(/^@/, '').slice(0, 30) ?? '';
-  const email = body.email?.trim().toLowerCase().slice(0, 160) ?? '';
-  if (name.length < 2 || nickname.length < 2 || !/^\S+@\S+\.\S+$/.test(email)) {
-    return NextResponse.json({ error: 'Revisa el nombre, el apodo y el correo electrónico.' }, { status: 400 });
+  if (nickname.length < 2 || !/^[\p{L}\p{N}_.-]+$/u.test(nickname)) {
+    return NextResponse.json(
+      {
+        error:
+          'El apodo debe tener al menos 2 caracteres y no puede contener espacios.',
+      },
+      { status: 400 },
+    );
   }
   const db = getDatabase();
-  const existing = await db.prepare(
-    'SELECT id, name, nickname, email, created_at AS createdAt FROM users WHERE email = ? LIMIT 1',
-  ).bind(email).first<CommunityUser>();
-  const user = existing ?? { id: crypto.randomUUID(), name, nickname, email, createdAt: Date.now() };
-  if (!existing) {
-    try {
-      await db.prepare(
+  const id = crypto.randomUUID();
+  const user = {
+    id,
+    name: nickname,
+    nickname,
+    email: `${id}@granota.invalid`,
+    createdAt: Date.now(),
+  };
+  try {
+    await db
+      .prepare(
         'INSERT INTO users (id, name, nickname, email, created_at) VALUES (?, ?, ?, ?, ?)',
-      ).bind(user.id, user.name, user.nickname, user.email, user.createdAt).run();
-    } catch {
-      return NextResponse.json({ error: 'Ese apodo ya está en uso. Prueba con otro.' }, { status: 409 });
-    }
+      )
+      .bind(user.id, user.name, user.nickname, user.email, user.createdAt)
+      .run();
+  } catch {
+    return NextResponse.json(
+      { error: 'Ese apodo ya está en uso. Prueba con otro.' },
+      { status: 409 },
+    );
   }
   const response = NextResponse.json({ user });
   response.cookies.set(COOKIE_NAME, user.id, {
