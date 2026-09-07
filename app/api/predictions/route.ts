@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/db';
+import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { getNextLevanteMatch } from '@/lib/levante-services';
 import { isPredictionClosed } from '@/lib/prediction-deadline';
 import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
@@ -10,12 +10,14 @@ const COOKIE_NAME = 'granota_user_id';
 async function currentUser(request: NextRequest) {
   const id = request.cookies.get(COOKIE_NAME)?.value;
   if (!id) return null;
+  await ensureCommunitySchema();
   return getDatabase().prepare(
     'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
   ).bind(id).first<CommunityUser>();
 }
 
 export async function GET(request: NextRequest) {
+  await ensureCommunitySchema();
   const mine = request.nextUrl.searchParams.get('mine') === '1';
   const user = mine ? await currentUser(request) : null;
   if (mine && !user) return NextResponse.json({ predictions: [] });
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureCommunitySchema();
   const user = await currentUser(request);
   if (!user) return NextResponse.json({ error: 'Debes registrarte antes de publicar.' }, { status: 401 });
   const match = getNextLevanteMatch();

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/db';
+import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import type { CommunityUser } from '@/lib/community-types';
 
 const COOKIE_NAME = 'granota_user_id';
 
 async function findUser(id: string | undefined): Promise<CommunityUser | null> {
   if (!id) return null;
+  await ensureCommunitySchema();
   return getDatabase()
     .prepare(
       'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
@@ -31,14 +32,35 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  await ensureCommunitySchema();
   const db = getDatabase();
   const id = crypto.randomUUID();
   const user = { id, nickname, createdAt: Date.now() };
   try {
-    await db
-      .prepare('INSERT INTO users (id, nickname, created_at) VALUES (?, ?, ?)')
-      .bind(user.id, user.nickname, user.createdAt)
-      .run();
+    const columns = await db
+      .prepare('PRAGMA table_info(users)')
+      .bind()
+      .all<{ name: string }>();
+    const legacyColumns = new Set(columns.results.map((column) => column.name));
+    if (legacyColumns.has('name') && legacyColumns.has('email')) {
+      await db
+        .prepare(
+          'INSERT INTO users (id, name, nickname, email, created_at) VALUES (?, ?, ?, ?, ?)',
+        )
+        .bind(
+          user.id,
+          user.nickname,
+          user.nickname,
+          `${user.id}@granota-app.invalid`,
+          user.createdAt,
+        )
+        .run();
+    } else {
+      await db
+        .prepare('INSERT INTO users (id, nickname, created_at) VALUES (?, ?, ?)')
+        .bind(user.id, user.nickname, user.createdAt)
+        .run();
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/unique constraint|unique index|idx_users_nickname/i.test(message)) {
@@ -47,6 +69,7 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+    console.error('No se pudo guardar el apodo en la base de datos', error);
     return NextResponse.json(
       { error: 'No se pudo guardar el apodo. Inténtalo de nuevo.' },
       { status: 500 },

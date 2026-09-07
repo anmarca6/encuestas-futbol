@@ -13,6 +13,7 @@ interface Database {
 }
 
 let client: Client | undefined;
+let schemaReady: Promise<void> | undefined;
 
 function getClient(): Client {
   client ??= createClient({
@@ -44,4 +45,47 @@ export function getDatabase(): Database {
       };
     },
   };
+}
+
+export function ensureCommunitySchema(): Promise<void> {
+  schemaReady ??= (async () => {
+    const db = getDatabase();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY NOT NULL,
+        nickname TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `).bind().run();
+    await db.prepare(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname
+      ON users (nickname)
+    `).bind().run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS predictions (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        match_id TEXT NOT NULL,
+        home_score INTEGER NOT NULL,
+        away_score INTEGER NOT NULL,
+        lineup TEXT,
+        scorers TEXT NOT NULL DEFAULT '[]',
+        mvp TEXT,
+        published_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `).bind().run();
+    await db.prepare(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_predictions_user_match
+      ON predictions (user_id, match_id)
+    `).bind().run();
+    await db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_predictions_match_published
+      ON predictions (match_id, published_at)
+    `).bind().run();
+  })().catch((error) => {
+    schemaReady = undefined;
+    throw error;
+  });
+  return schemaReady;
 }
