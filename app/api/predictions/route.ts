@@ -15,21 +15,35 @@ async function currentUser(request: NextRequest) {
   ).bind(id).first<CommunityUser>();
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const mine = request.nextUrl.searchParams.get('mine') === '1';
+  const user = mine ? await currentUser(request) : null;
+  if (mine && !user) return NextResponse.json({ predictions: [] });
   const match = getNextLevanteMatch();
-  if (!match) return NextResponse.json({ predictions: [] });
+  if (!match && !mine) return NextResponse.json({ predictions: [] });
   interface PredictionRow {
     id: string; matchId: string; homeScore: number; awayScore: number;
     lineup: string | null; scorers: string; mvp: string | null;
     publishedAt: number; nickname: string;
   }
-  const rows = await getDatabase().prepare(`
+  const query = mine
+    ? `
+    SELECT p.id, p.match_id AS matchId, p.home_score AS homeScore,
+      p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
+      p.published_at AS publishedAt, u.nickname
+    FROM predictions p JOIN users u ON u.id = p.user_id
+    WHERE p.user_id = ? ORDER BY p.published_at DESC LIMIT 100
+  `
+    : `
     SELECT p.id, p.match_id AS matchId, p.home_score AS homeScore,
       p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
       p.published_at AS publishedAt, u.nickname
     FROM predictions p JOIN users u ON u.id = p.user_id
     WHERE p.match_id = ? ORDER BY p.published_at DESC LIMIT 100
-  `).bind(match.id).all<PredictionRow>();
+  `;
+  const rows = await getDatabase().prepare(query).bind(
+    mine ? user!.id : match!.id,
+  ).all<PredictionRow>();
   const predictions: CommunityPrediction[] = rows.results.map((row) => ({
     id: row.id, matchId: row.matchId,
     homeScore: row.homeScore, awayScore: row.awayScore,

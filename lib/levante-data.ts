@@ -94,7 +94,7 @@ const matchSeeds: MatchSeed[] = [
       { playerName: 'Olasagasti', team: LEVANTE_TEAM, minute: 95 },
     ],
   ],
-  [4, '2026-09-06', 'Málaga CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
+  [4, '2026-09-06', 'Málaga CF', LEVANTE_TEAM, 0, 0, 'FINISHED', []],
   [5, '2026-09-13', LEVANTE_TEAM, 'FC Barcelona', null, null, 'SCHEDULED'],
   [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'SCHEDULED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],

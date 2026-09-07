@@ -34,22 +34,19 @@ export async function POST(request: NextRequest) {
   const db = getDatabase();
   const id = crypto.randomUUID();
   const user = { id, nickname, createdAt: Date.now() };
-  const existing = await db
-    .prepare('SELECT id FROM users WHERE nickname = ? COLLATE NOCASE LIMIT 1')
-    .bind(nickname)
-    .first<{ id: string }>();
-  if (existing) {
-    return NextResponse.json(
-      { error: 'Ese apodo ya está en uso. Prueba con otro.' },
-      { status: 409 },
-    );
-  }
   try {
     await db
       .prepare('INSERT INTO users (id, nickname, created_at) VALUES (?, ?, ?)')
       .bind(user.id, user.nickname, user.createdAt)
       .run();
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/unique constraint|unique index|idx_users_nickname/i.test(message)) {
+      return NextResponse.json(
+        { error: 'Ese apodo ya está en uso. Prueba con otro.' },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: 'No se pudo guardar el apodo. Inténtalo de nuevo.' },
       { status: 500 },

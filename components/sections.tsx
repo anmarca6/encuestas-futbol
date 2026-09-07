@@ -1054,6 +1054,23 @@ export function StandsSection() {
   );
 }
 export function ProfileSection({ user }: { user: CommunityUser | null }) {
+  const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!user) {
+      setPredictions([]);
+      return;
+    }
+    setLoading(true);
+    void fetch('/api/predictions?mine=1')
+      .then(
+        async (response) =>
+          (await response.json()) as { predictions?: CommunityPrediction[] },
+      )
+      .then((result) => setPredictions(result.predictions ?? []))
+      .catch(() => setPredictions([]))
+      .finally(() => setLoading(false));
+  }, [user]);
   return (
     <>
       <Heading
@@ -1081,14 +1098,63 @@ export function ProfileSection({ user }: { user: CommunityUser | null }) {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-0 bg-[#071527] text-white ring-0">
-          <CardContent className="text-center">
-            <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
-              {user.nickname.slice(0, 2).toUpperCase()}
-            </div>
-            <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card className="border-0 bg-[#071527] text-white ring-0">
+            <CardContent className="text-center">
+              <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
+                {user.nickname.slice(0, 2).toUpperCase()}
+              </div>
+              <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                {predictions.length} {predictions.length === 1 ? 'predicción publicada' : 'predicciones publicadas'}
+              </p>
+            </CardContent>
+          </Card>
+          <div>
+            <h2 className="mb-4 text-xl font-black text-[#071527]">
+              Mis predicciones
+            </h2>
+            {loading ? (
+              <p className="text-sm font-bold text-slate-400">
+                Cargando tus predicciones…
+              </p>
+            ) : predictions.length === 0 ? (
+              <Card className="border-0 shadow-sm ring-slate-200">
+                <CardContent className="py-8 text-center text-sm text-slate-500">
+                  Aún no has publicado ninguna predicción.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {predictions.map((prediction) => {
+                  const match = levanteMatches.find(
+                    (item) => item.id === prediction.matchId,
+                  );
+                  return (
+                    <Card
+                      key={prediction.id}
+                      className="border-0 shadow-sm ring-slate-200"
+                    >
+                      <CardContent>
+                        <small className="font-black uppercase tracking-wider text-[#a91d43]">
+                          {match ? `Jornada ${match.matchday}` : 'Predicción'}
+                        </small>
+                        <p className="mt-2 font-bold text-[#071527]">
+                          {match
+                            ? `${match.homeTeam} — ${match.awayTeam}`
+                            : prediction.matchId}
+                        </p>
+                        <strong className="mt-4 block rounded-2xl bg-slate-50 py-3 text-center text-2xl text-[#071527]">
+                          {prediction.homeScore} — {prediction.awayScore}
+                        </strong>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </>
   );
