@@ -57,7 +57,9 @@ import {
   getLeagueTeamById,
   getLevanteStanding,
   realLeagueStandings,
+  type LeagueStanding,
 } from '@/lib/laliga-data';
+import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
 import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
@@ -104,11 +106,25 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
   );
 }
 
-export function HomeSection({ predict }: { predict: () => void }) {
-  const next = getNextLevanteMatch(),
-    last = getLastLevanteMatch(),
-    stats = getLevanteSeasonStats(),
-    standing = getLevanteStanding();
+export function HomeSection({
+  predict,
+  footballData,
+}: {
+  predict: () => void;
+  footballData: FootballDataPayload | null;
+}) {
+  const matches = footballData?.matches.length
+    ? footballData.matches
+    : levanteMatches;
+  const standings = footballData?.standings.length
+    ? footballData.standings
+    : realLeagueStandings;
+  const next = getNextLevanteMatch(matches),
+    last = getLastLevanteMatch(matches),
+    stats = getLevanteSeasonStats(matches),
+    standing =
+      standings.find((item) => item.teamId === 'levante-ud') ??
+      getLevanteStanding();
   return (
     <>
       <Heading
@@ -173,7 +189,7 @@ export function HomeSection({ predict }: { predict: () => void }) {
                       Situación actual
                     </h3>
                     <p className="text-sm text-slate-500">
-                      LaLiga · tras 3 jornadas
+                      LaLiga · tras {stats.played} jornadas
                     </p>
                   </div>
                 </div>
@@ -217,7 +233,7 @@ export function HomeSection({ predict }: { predict: () => void }) {
                 Últimos resultados
               </h3>
               <div className="space-y-2">
-                {getRecentLevanteMatches().map((match) => (
+                {getRecentLevanteMatches(3, matches).map((match) => (
                   <CompactMatch key={match.id} match={match} />
                 ))}
               </div>
@@ -231,7 +247,7 @@ export function HomeSection({ predict }: { predict: () => void }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {getUpcomingLevanteMatches().map((match) => (
+            {getUpcomingLevanteMatches(5, matches).map((match) => (
               <CompactMatch key={match.id} match={match} />
             ))}
           </CardContent>
@@ -341,7 +357,7 @@ function CalendarMatch({
   );
 }
 
-function StandingsTable() {
+function StandingsTable({ standings }: { standings: ReadonlyArray<LeagueStanding> }) {
   return (
     <Card className="overflow-hidden border-0 shadow-sm ring-slate-200">
       <CardContent className="p-0">
@@ -385,7 +401,7 @@ function StandingsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {realLeagueStandings.map((standing) => {
+            {standings.map((standing) => {
               const team = getLeagueTeamById(standing.teamId);
               const levante = standing.teamId === 'levante-ud';
               const relegation =
@@ -453,11 +469,26 @@ function StandingsTable() {
   );
 }
 
-export function MatchdaySection({ predict }: { predict: () => void }) {
+export function MatchdaySection({
+  predict,
+  footballData,
+}: {
+  predict: () => void;
+  footballData: FootballDataPayload | null;
+}) {
   const [view, setView] = useState<'PARTIDOS' | 'CLASIFICACIÓN'>('PARTIDOS');
   const [filter, setFilter] = useState<CalendarFilter>('CALENDARIO');
-  const nextMatchId = getNextLevanteMatch()?.id;
-  const visible = levanteMatches.filter(
+  const matches = footballData?.matches.length
+    ? footballData.matches
+    : levanteMatches;
+  const standings = footballData?.standings.length
+    ? footballData.standings
+    : realLeagueStandings;
+  const currentMatchday =
+    footballData?.currentMatchday ??
+    Math.max(0, ...matches.filter((match) => match.status === 'FINISHED').map((match) => match.matchday));
+  const nextMatchId = getNextLevanteMatch(matches)?.id;
+  const visible = matches.filter(
     (match) =>
       filter === 'CALENDARIO' ||
       (filter === 'RESULTADOS'
@@ -473,7 +504,7 @@ export function MatchdaySection({ predict }: { predict: () => void }) {
         action={
           <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-500">
             <CalendarDays className="size-4" />
-            Jornada 3
+            Jornada {currentMatchday}
           </span>
         }
       />
@@ -515,7 +546,7 @@ export function MatchdaySection({ predict }: { predict: () => void }) {
           </div>
         </>
       ) : (
-        <StandingsTable />
+        <StandingsTable standings={standings} />
       )}
     </>
   );
