@@ -123,6 +123,21 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+.dark body {
+  background: radial-gradient(circle at 90% 5%, rgb(169 29 67 / 15%), transparent 26rem), #07111f;
+}
+
+.dark .bg-white { background-color: #111e2e; }
+.dark .bg-slate-50 { background-color: #17263a; }
+.dark .bg-slate-100 { background-color: #1e3047; }
+.dark .bg-slate-200\/70 { background-color: rgb(30 48 71 / 70%); }
+.dark [class~="text-[#071527]"] { color: #f1f5f9; }
+.dark .text-slate-500 { color: #aebdd0; }
+.dark .text-slate-400 { color: #93a4ba; }
+.dark .border-slate-200 { border-color: #304158; }
+.dark .ring-slate-200 { --tw-ring-color: #304158; }
+.dark .hover\:bg-slate-100:hover { background-color: #22354d; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

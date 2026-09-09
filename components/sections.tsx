@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import {
   Award,
@@ -770,6 +771,14 @@ function SelectedPlayer({ playerId }: { playerId: string }) {
   );
 }
 
+function CommunityAvatar({ nickname, avatarUrl, size = 'md' }: { nickname: string; avatarUrl?: string | null; size?: 'md' | 'lg' }) {
+  return (
+    <span className={`${size === 'lg' ? 'size-24 text-2xl' : 'size-11 text-sm'} grid shrink-0 place-items-center overflow-hidden rounded-full bg-rose-100 font-black text-[#a91d43]`}>
+      {avatarUrl ? <Image unoptimized src={avatarUrl} width={96} height={96} alt={`Foto de @${nickname}`} className="h-full w-full object-cover" /> : nickname.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
 function PredictionPointsCard() {
   return (
     <Card
@@ -1176,9 +1185,7 @@ export function StandsSection() {
           >
             <CardContent>
               <div className="flex items-center gap-3">
-                <span className="grid size-11 place-items-center rounded-full bg-rose-100 font-black text-[#a91d43]">
-                  {prediction.user.nickname.slice(0, 2).toUpperCase()}
-                </span>
+                <CommunityAvatar nickname={prediction.user.nickname} avatarUrl={prediction.user.avatarUrl} />
                 <div>
                   <b className="block">@{prediction.user.nickname}</b>
                   <small className="text-slate-400">Afición granota</small>
@@ -1282,9 +1289,7 @@ export function CommunityRankingSection() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-100 text-sm font-black text-[#a91d43]">
-                          {entry.nickname.slice(0, 2).toUpperCase()}
-                        </span>
+                        <CommunityAvatar nickname={entry.nickname} avatarUrl={entry.avatarUrl} />
                         <div>
                           <strong className="text-[#071527]">@{entry.nickname}</strong>
                           {index === 0 && (
@@ -1359,8 +1364,8 @@ export function ProfileSection({ user, openSettings }: { user: CommunityUser | n
         <div className="space-y-6">
           <Card className="border-0 bg-[#071527] text-white ring-0">
             <CardContent className="text-center">
-              <div className="mx-auto grid size-24 place-items-center rounded-full bg-white text-2xl font-black text-[#a91d43]">
-                {user.nickname.slice(0, 2).toUpperCase()}
+              <div className="mx-auto w-fit rounded-full ring-4 ring-white/20">
+                <CommunityAvatar nickname={user.nickname} avatarUrl={user.avatarUrl} size="lg" />
               </div>
               <h2 className="mt-4 text-2xl font-black">@{user.nickname}</h2>
               <p className="mt-2 text-sm text-slate-300">

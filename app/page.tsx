@@ -76,6 +76,8 @@ export default function Home() {
       {active === 'perfil' && <ProfileSection user={user} openSettings={() => setActive('ajustes')} />}
       {active === 'ajustes' && (
         <SettingsSection
+          user={user}
+          onUserUpdated={setUser}
           onBack={() => setActive('perfil')}
           onLogout={async () => {
             await fetch('/api/session', { method: 'DELETE' });

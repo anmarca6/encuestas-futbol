@@ -28,20 +28,20 @@ export async function GET(request: NextRequest) {
   interface PredictionRow {
     id: string; matchId: string; homeScore: number; awayScore: number;
     lineup: string | null; scorers: string; mvp: string | null;
-    publishedAt: number; nickname: string;
+    publishedAt: number; nickname: string; avatarUrl: string | null;
   }
   const query = mine
     ? `
     SELECT p.id, p.match_id AS matchId, p.home_score AS homeScore,
       p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
-      p.published_at AS publishedAt, u.nickname
+      p.published_at AS publishedAt, u.nickname, u.avatar_url AS avatarUrl
     FROM predictions p JOIN users u ON u.id = p.user_id
     WHERE p.user_id = ? ORDER BY p.published_at DESC LIMIT 100
   `
     : `
     SELECT p.id, p.match_id AS matchId, p.home_score AS homeScore,
       p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
-      p.published_at AS publishedAt, u.nickname
+      p.published_at AS publishedAt, u.nickname, u.avatar_url AS avatarUrl
     FROM predictions p JOIN users u ON u.id = p.user_id
     WHERE p.match_id = ? ORDER BY p.published_at DESC LIMIT 100
   `;
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     lineup: row.lineup ? JSON.parse(row.lineup) : null,
     scorers: JSON.parse(row.scorers), mvp: row.mvp,
     publishedAt: row.publishedAt,
-    user: { nickname: row.nickname },
+    user: { nickname: row.nickname, avatarUrl: row.avatarUrl },
   }));
   return NextResponse.json({ predictions });
 }

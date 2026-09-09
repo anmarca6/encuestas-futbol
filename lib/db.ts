@@ -61,6 +61,10 @@ export function ensureCommunitySchema(): Promise<void> {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname
       ON users (nickname)
     `).bind().run();
+    const userColumns = await db.prepare('PRAGMA table_info(users)').bind().all<{ name: string }>();
+    if (!userColumns.results.some((column) => column.name === 'avatar_url')) {
+      await db.prepare('ALTER TABLE users ADD COLUMN avatar_url TEXT').bind().run();
+    }
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS predictions (
         id TEXT PRIMARY KEY NOT NULL,

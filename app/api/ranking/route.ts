@@ -7,6 +7,7 @@ import type { SavedLineup } from '@/lib/formations';
 interface RankingPredictionRow {
   userId: string;
   nickname: string;
+  avatarUrl: string | null;
   matchId: string;
   homeScore: number;
   awayScore: number;
@@ -18,7 +19,7 @@ interface RankingPredictionRow {
 export async function GET() {
   await ensureCommunitySchema();
   const rows = await getDatabase().prepare(`
-    SELECT u.id AS userId, u.nickname, p.match_id AS matchId,
+    SELECT u.id AS userId, u.nickname, u.avatar_url AS avatarUrl, p.match_id AS matchId,
       p.home_score AS homeScore, p.away_score AS awayScore,
       p.lineup, p.scorers, p.mvp
     FROM predictions p
@@ -31,6 +32,7 @@ export async function GET() {
     const current = entries.get(row.userId) ?? {
       userId: row.userId,
       nickname: row.nickname,
+      avatarUrl: row.avatarUrl,
       points: 0,
       predictions: 0,
     };

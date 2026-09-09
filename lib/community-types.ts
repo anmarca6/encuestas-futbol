@@ -4,6 +4,7 @@ export interface CommunityUser {
   id: string;
   nickname: string;
   createdAt: number;
+  avatarUrl?: string | null;
 }
 
 export interface CommunityPrediction {
@@ -15,12 +16,13 @@ export interface CommunityPrediction {
   scorers: string[];
   mvp: string | null;
   publishedAt: number;
-  user: Pick<CommunityUser, 'nickname'>;
+  user: Pick<CommunityUser, 'nickname' | 'avatarUrl'>;
 }
 
 export interface CommunityRankingEntry {
   userId: string;
   nickname: string;
+  avatarUrl?: string | null;
   points: number;
   predictions: number;
 }

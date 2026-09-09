@@ -3,12 +3,15 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type AppLanguage = 'es' | 'val';
+export type AppTheme = 'light' | 'dark';
 
 interface AppPreferencesValue {
   language: AppLanguage;
   setLanguage: (language: AppLanguage) => void;
   brightness: number;
   setBrightness: (brightness: number) => void;
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
 }
 
 const AppPreferencesContext = createContext<AppPreferencesValue | null>(null);
@@ -43,6 +46,9 @@ const valencian: Record<string, string> = {
   '¡Predicción publicada!': 'Predicció publicada!', 'Ajustes de la app': 'Configuració de l’app', Idioma: 'Idioma', Español: 'Espanyol',
   Valenciano: 'Valencià', Brillo: 'Brillantor', 'Cerrar sesión': 'Tancar sessió', Cancelar: 'Cancel·lar', '¿Quieres cerrar sesión?': 'Vols tancar la sessió?',
   'Elige el idioma de toda la interfaz.': 'Tria l’idioma de tota la interfície.', 'Ajusta la intensidad visual de la aplicación.': 'Ajusta la intensitat visual de l’aplicació.',
+  'Foto de perfil': 'Foto de perfil', 'Se mostrará en tu perfil, La Grada y la clasificación.': 'Es mostrarà en el teu perfil, La Grada i la classificació.',
+  'Elegir foto': 'Triar foto', Apariencia: 'Aparença', 'Elige cómo quieres ver la aplicación.': 'Tria com vols veure l’aplicació.',
+  'Publica una predicción para crear primero tu perfil.': 'Publica una predicció per a crear primer el teu perfil.',
   'Tu apodo será visible para todos los usuarios en La Grada.': 'El teu malnom serà visible per a tots els usuaris en La Grada.', Apodo: 'Malnom',
 };
 
@@ -80,14 +86,17 @@ function localize(root: Node, language: AppLanguage) {
 export function AppPreferencesProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<AppLanguage>('es');
   const [brightness, setBrightness] = useState(100);
+  const [theme, setTheme] = useState<AppTheme>('light');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const storedLanguage = localStorage.getItem('granota-language');
       const storedBrightness = Number(localStorage.getItem('granota-brightness'));
+      const storedTheme = localStorage.getItem('granota-theme');
       if (storedLanguage === 'val' || storedLanguage === 'es') setLanguage(storedLanguage);
       if (storedBrightness >= 70 && storedBrightness <= 120) setBrightness(storedBrightness);
+      if (storedTheme === 'light' || storedTheme === 'dark') setTheme(storedTheme);
       setReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -117,7 +126,13 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.filter = `brightness(${brightness}%)`;
   }, [brightness, ready]);
 
-  const value = useMemo(() => ({ language, setLanguage, brightness, setBrightness }), [language, brightness]);
+  useEffect(() => {
+    if (!ready) return;
+    localStorage.setItem('granota-theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [ready, theme]);
+
+  const value = useMemo(() => ({ language, setLanguage, brightness, setBrightness, theme, setTheme }), [language, brightness, theme]);
   return <AppPreferencesContext.Provider value={value}>{children}</AppPreferencesContext.Provider>;
 }
 

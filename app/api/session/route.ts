@@ -9,7 +9,7 @@ async function findUser(id: string | undefined): Promise<CommunityUser | null> {
   await ensureCommunitySchema();
   return getDatabase()
     .prepare(
-      'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
+      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl FROM users WHERE id = ? LIMIT 1',
     )
     .bind(id)
     .first<CommunityUser>();
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   await ensureCommunitySchema();
   const db = getDatabase();
   const id = crypto.randomUUID();
-  const user = { id, nickname, createdAt: Date.now() };
+  const user = { id, nickname, createdAt: Date.now(), avatarUrl: null };
   try {
     const columns = await db
       .prepare('PRAGMA table_info(users)')
