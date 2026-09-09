@@ -114,9 +114,11 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
 
 export function HomeSection({
   predict,
+  openRules,
   footballData,
 }: {
   predict: () => void;
+  openRules: () => void;
   footballData: FootballDataPayload | null;
 }) {
   const matches = footballData?.matches.length
@@ -152,6 +154,13 @@ export function HomeSection({
         <p className="mt-6 text-lg font-black text-[#a91d43] sm:text-xl">
           Participa. Acierta. Suma
         </p>
+        <button
+          type="button"
+          onClick={openRules}
+          className="mt-3 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[.16em] text-[#153e72] underline decoration-[#a91d43] decoration-2 underline-offset-4 transition hover:text-[#a91d43]"
+        >
+          Cómo se juega <span aria-hidden="true">→</span>
+        </button>
       </section>
       {next && (
         <section className="relative overflow-hidden rounded-[2rem] bg-[#071527] p-6 text-white shadow-2xl sm:p-9">
@@ -179,51 +188,6 @@ export function HomeSection({
           </div>
         </section>
       )}
-      <section className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[.18em] text-[#a91d43]">
-              Cómo se juega
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-[#071527]">
-              Predice, acierta y suma puntos
-            </h2>
-          </div>
-          <span className="w-fit rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-[#a91d43]">
-            100 puntos por jornada
-          </span>
-        </div>
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <span className="grid size-9 place-items-center rounded-xl bg-sky-100 font-black text-[#153e72]">1</span>
-            <h3 className="mt-3 font-black text-[#071527]">Haz tu predicción</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Elige formación, XI, resultado, goleadores y MVP.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <span className="grid size-9 place-items-center rounded-xl bg-amber-100 font-black text-amber-700">2</span>
-            <h3 className="mt-3 font-black text-[#071527]">Publica a tiempo</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Las predicciones cierran 2 horas antes del partido.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <span className="grid size-9 place-items-center rounded-xl bg-rose-100 font-black text-[#a91d43]">3</span>
-            <h3 className="mt-3 font-black text-[#071527]">Sube en la clasificación</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Tus puntos se acumulan jornada tras jornada.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs font-black text-[#153e72]">
-          <span className="rounded-full bg-sky-50 px-3 py-1.5">Formación · 10</span>
-          <span className="rounded-full bg-sky-50 px-3 py-1.5">XI · 35</span>
-          <span className="rounded-full bg-sky-50 px-3 py-1.5">Resultado · 25</span>
-          <span className="rounded-full bg-sky-50 px-3 py-1.5">Goleadores · 20</span>
-          <span className="rounded-full bg-sky-50 px-3 py-1.5">MVP · 10</span>
-        </div>
-      </section>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-6">
           {last && (
@@ -319,6 +283,57 @@ export function HomeSection({
           </CardContent>
         </Card>
       </div>
+    </>
+  );
+}
+
+export function GameRulesSection({ predict }: { predict: () => void }) {
+  return (
+    <>
+      <Heading
+        eyebrow="Participa · Acierta · Suma"
+        title="Cómo se juega"
+        description="Haz tu predicción antes de cada partido y compite con toda la afición granota."
+        action={
+          <Button onClick={predict} className="bg-[#a91d43] font-black text-white">
+            Participa →
+          </Button>
+        }
+      />
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="text-2xl font-black text-[#071527]">
+            Predice, acierta y suma puntos
+          </h2>
+          <span className="w-fit rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-[#a91d43]">
+            100 puntos por jornada
+          </span>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {[
+            ['1', 'Haz tu predicción', 'Elige formación, XI, resultado, goleadores y MVP.'],
+            ['2', 'Publica a tiempo', 'Las predicciones cierran 2 horas antes del partido.'],
+            ['3', 'Sube en la clasificación', 'Tus puntos se acumulan jornada tras jornada.'],
+          ].map(([number, title, description]) => (
+            <div key={number} className="rounded-2xl bg-slate-50 p-5">
+              <span className="grid size-9 place-items-center rounded-xl bg-sky-100 font-black text-[#153e72]">
+                {number}
+              </span>
+              <h3 className="mt-3 font-black text-[#071527]">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+            </div>
+          ))}
+        </div>
+        <h2 className="mt-8 text-lg font-black text-[#071527]">Así se reparten los puntos</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {predictionPoints.map(([label, points]) => (
+            <div key={label} className="rounded-2xl bg-[#071527] p-4 text-white">
+              <strong className="block text-2xl font-black text-sky-200">+{points}</strong>
+              <span className="mt-1 block text-xs leading-5 text-slate-300">{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   );
 }

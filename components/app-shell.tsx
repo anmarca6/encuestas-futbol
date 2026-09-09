@@ -8,7 +8,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { TeamCrest } from '@/components/shared';
-export type SectionId = 'inicio' | 'jornada' | 'predice' | 'grada' | 'clasificacion' | 'perfil';
+export type SectionId = 'inicio' | 'jornada' | 'predice' | 'grada' | 'clasificacion' | 'reglas' | 'perfil';
 const items = [
   ['inicio', 'Inicio', House],
   ['jornada', 'Jornada', CalendarDays],

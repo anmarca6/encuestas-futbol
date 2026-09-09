@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AppShell, type SectionId } from '@/components/app-shell';
 import {
   HomeSection,
+  GameRulesSection,
   MatchdaySection,
   StandsSection,
   CommunityRankingSection,
@@ -41,13 +42,18 @@ export default function Home() {
     <>
     <AppShell active={active} navigate={navigate}>
       {active === 'inicio' && (
-        <HomeSection predict={predict} footballData={footballData} />
+        <HomeSection
+          predict={predict}
+          openRules={() => setActive('reglas')}
+          footballData={footballData}
+        />
       )}{' '}
       {active === 'jornada' && (
         <MatchdaySection predict={predict} footballData={footballData} />
       )}{' '}
       {active === 'grada' && <StandsSection />}
       {active === 'clasificacion' && <CommunityRankingSection />}
+      {active === 'reglas' && <GameRulesSection predict={predict} />}
       {active === 'perfil' && <ProfileSection user={user} />}
     </AppShell>
     <PredictionWizard
