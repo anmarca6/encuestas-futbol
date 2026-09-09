@@ -10,6 +10,7 @@ import {
   ProfileSection,
 } from '@/components/sections';
 import { PredictionWizard } from '@/components/prediction-wizard';
+import { SettingsSection } from '@/components/settings-section';
 import type { CommunityUser } from '@/lib/community-types';
 import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
@@ -72,7 +73,18 @@ export default function Home() {
       {active === 'grada' && <StandsSection />}
       {active === 'clasificacion' && <CommunityRankingSection />}
       {active === 'reglas' && <GameRulesSection />}
-      {active === 'perfil' && <ProfileSection user={user} />}
+      {active === 'perfil' && <ProfileSection user={user} openSettings={() => setActive('ajustes')} />}
+      {active === 'ajustes' && (
+        <SettingsSection
+          onBack={() => setActive('perfil')}
+          onLogout={async () => {
+            await fetch('/api/session', { method: 'DELETE' });
+            setUser(null);
+            setCurrentPrediction(null);
+            setActive('inicio');
+          }}
+        />
+      )}
     </AppShell>
     <PredictionWizard
       open={predictionOpen}

@@ -1311,7 +1311,7 @@ export function CommunityRankingSection() {
   );
 }
 
-export function ProfileSection({ user }: { user: CommunityUser | null }) {
+export function ProfileSection({ user, openSettings }: { user: CommunityUser | null; openSettings: () => void }) {
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
@@ -1336,7 +1336,7 @@ export function ProfileSection({ user }: { user: CommunityUser | null }) {
         title="Perfil granota"
         description="Tu actividad y tus números de esta temporada."
         action={
-          <Button variant="outline">
+          <Button variant="outline" onClick={openSettings}>
             <Settings />
             Ajustes
           </Button>
