@@ -4,14 +4,15 @@ import { AppShell, type SectionId } from '@/components/app-shell';
 import {
   HomeSection,
   MatchdaySection,
-  PredictSection,
   StandsSection,
   ProfileSection,
 } from '@/components/sections';
+import { PredictionWizard } from '@/components/prediction-wizard';
 import type { CommunityUser } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
+  const [predictionOpen, setPredictionOpen] = useState(false);
   const [user, setUser] = useState<CommunityUser | null>(null);
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   useEffect(() => {
@@ -30,20 +31,33 @@ export default function Home() {
       .then(setFootballData)
       .catch(() => setFootballData(null));
   }, []);
-  const predict = () => setActive('predice');
+  const predict = () => setPredictionOpen(true);
+  const navigate = (section: SectionId) => {
+    if (section === 'predice') return setPredictionOpen(true);
+    setActive(section);
+  };
   return (
-    <AppShell active={active} navigate={setActive}>
+    <>
+    <AppShell active={active} navigate={navigate}>
       {active === 'inicio' && (
         <HomeSection predict={predict} footballData={footballData} />
       )}{' '}
       {active === 'jornada' && (
         <MatchdaySection predict={predict} footballData={footballData} />
       )}{' '}
-      {active === 'predice' && (
-        <PredictSection user={user} onRegistered={setUser} />
-      )}
       {active === 'grada' && <StandsSection />}
       {active === 'perfil' && <ProfileSection user={user} />}
     </AppShell>
+    <PredictionWizard
+      open={predictionOpen}
+      onOpenChange={setPredictionOpen}
+      user={user}
+      onRegistered={setUser}
+      onPublished={() => {
+        setPredictionOpen(false);
+        setActive('grada');
+      }}
+    />
+    </>
   );
 }

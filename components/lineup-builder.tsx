@@ -95,12 +95,16 @@ export function LineupBuilder({
   initialLineup,
   onCancel,
   onSave,
+  fixedFormation,
+  unrestricted = false,
 }: {
   initialLineup: SavedLineup | null;
   onCancel: () => void;
   onSave: (lineup: SavedLineup) => void;
+  fixedFormation?: FormationId;
+  unrestricted?: boolean;
 }) {
-  const initialFormation = initialLineup?.formation ?? DEFAULT_FORMATION;
+  const initialFormation = fixedFormation ?? initialLineup?.formation ?? DEFAULT_FORMATION;
   const [formationId, setFormationId] = useState<FormationId>(initialFormation);
   const [assignments, setAssignments] = useState<Assignments>(() =>
     initialLineup ? assignmentsFromLineup(initialLineup) : {},
@@ -115,7 +119,9 @@ export function LineupBuilder({
     [assignments, formation],
   );
   const candidates = activeSlot
-    ? levantePlayers.filter((player) => player.position === activeSlot.position)
+    ? unrestricted
+      ? levantePlayers
+      : levantePlayers.filter((player) => player.position === activeSlot.position)
     : [];
   const changeFormation = (nextId: FormationId) => {
     if (nextId === formationId) return;
@@ -154,7 +160,7 @@ export function LineupBuilder({
           </strong>
         </div>
       </div>
-      <fieldset className="mb-5 min-w-0">
+      {!fixedFormation && <fieldset className="mb-5 min-w-0">
         <legend className="mb-2 text-sm font-black text-[#071527]">
           Elige la formación
         </legend>
@@ -171,7 +177,7 @@ export function LineupBuilder({
             </button>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section
           aria-label={`Campo de fútbol, formación ${formationId}`}
@@ -222,7 +228,9 @@ export function LineupBuilder({
           <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="font-black text-[#071527]">Jugadores disponibles</h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Toca una posición del campo y elige un jugador de esa línea.
+              {unrestricted
+                ? 'Toca cualquier hueco del campo y coloca al jugador que quieras.'
+                : 'Toca una posición del campo y elige un jugador de esa línea.'}
             </p>
           </div>
           <div className="rounded-2xl bg-sky-50 p-4 text-sm text-[#153e72]">
@@ -251,10 +259,14 @@ export function LineupBuilder({
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle className="text-lg font-black">
-              Elige {activeSlot ? positionNames[activeSlot.position] : ''}
+              {unrestricted
+                ? 'Elige un jugador'
+                : `Elige ${activeSlot ? positionNames[activeSlot.position] : ''}`}
             </DrawerTitle>
             <DrawerDescription>
-              Solo se muestran jugadores disponibles para esta posición.
+              {unrestricted
+                ? 'Todos los jugadores están disponibles para cualquier posición.'
+                : 'Solo se muestran jugadores disponibles para esta posición.'}
             </DrawerDescription>
           </DrawerHeader>
           <div className="grid max-h-[62dvh] gap-2 overflow-y-auto px-4 pb-5 sm:grid-cols-2 lg:grid-cols-3">

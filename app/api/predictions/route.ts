@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { getNextLevanteMatch } from '@/lib/levante-services';
+import { LEVANTE_TEAM, levantePlayers } from '@/lib/levante-data';
+import { formations } from '@/lib/formations';
 import { isPredictionClosed } from '@/lib/prediction-deadline';
 import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
@@ -71,6 +73,22 @@ export async function POST(request: NextRequest) {
   const awayScore = body.predictedScore?.away;
   if (body.matchId !== match.id || !Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore! < 0 || awayScore! < 0 || homeScore! > 20 || awayScore! > 20) {
     return NextResponse.json({ error: 'La predicción no es válida.' }, { status: 400 });
+  }
+  const playerIds = new Set(levantePlayers.map((player) => player.id));
+  const levanteGoals = match.homeTeam === LEVANTE_TEAM ? homeScore! : awayScore!;
+  const validLineup = body.lineup
+    && body.lineup.formation in formations
+    && body.lineup.players.length === 11
+    && new Set(body.lineup.players).size === 11
+    && body.lineup.players.every((playerId) => playerIds.has(playerId));
+  const validScorers = Array.isArray(body.scorers)
+    && body.scorers.length === levanteGoals
+    && body.scorers.every((playerId) => playerIds.has(playerId));
+  if (!validLineup || !validScorers || !body.mvp || !playerIds.has(body.mvp)) {
+    return NextResponse.json(
+      { error: 'Completa el XI, los goleadores y el MVP antes de publicar.' },
+      { status: 400 },
+    );
   }
   const db = getDatabase();
   const id = crypto.randomUUID();

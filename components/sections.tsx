@@ -169,7 +169,7 @@ export function HomeSection({
               onClick={predict}
               className="h-12 bg-[#b51f46] px-5 font-black text-white"
             >
-              Hacer mi predicción →
+              Participa →
             </Button>
           </div>
         </section>
