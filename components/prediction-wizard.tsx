@@ -164,7 +164,10 @@ export function PredictionWizard({
           )}
           {step === 1 && (
             <section>
-              <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm font-bold text-[#153e72]">Todos los jugadores están liberados: puedes colocar a cualquiera en cualquier posición.</p>
+              <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm font-bold text-[#153e72]">
+                Todos los jugadores están liberados: puedes colocar a cualquiera en cualquier posición.
+                <span className="mt-1 block">Pero recuerda: debes coincidir con Luis Castro.</span>
+              </p>
               <LineupBuilder key={formation} fixedFormation={formation} unrestricted saveLabel="Siguiente" initialLineup={lineup} onCancel={() => setStep(0)} onSave={(saved) => { setLineup(saved); setStep(2); }} />
             </section>
           )}
