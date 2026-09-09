@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/drawer';
 import {
   LEVANTE_TEAM,
+  levanteMatchReports,
   levanteMatches,
   levantePlayers,
   type LevanteMatch,
@@ -268,6 +269,7 @@ function CalendarMatch({
   onPredict: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const report = levanteMatchReports[match.matchday];
   const scoringTeams = [match.homeTeam, match.awayTeam].filter((team) =>
     match.goals.some((goal) => goal.team === team),
   );
@@ -316,7 +318,7 @@ function CalendarMatch({
             <button
               onClick={() => setOpen(!open)}
               aria-expanded={open}
-              aria-label={`Ver goleadores de la jornada ${match.matchday}`}
+              aria-label={`Ver estadísticas de la jornada ${match.matchday}`}
               className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"
             >
               <ChevronDown
@@ -327,7 +329,67 @@ function CalendarMatch({
         </div>
         {open && (
           <div className="mt-4 border-t border-slate-100 pt-4 text-sm">
-            {match.goals.length === 0 ? (
+            {report ? (
+              <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-wider text-[#a91d43]">
+                      ⚽ Goleadores Levante
+                    </p>
+                    {report.levanteGoals.length === 0 ? (
+                      <p className="mt-2 font-bold text-slate-600">Ninguno</p>
+                    ) : (
+                      <div className="mt-2 space-y-1 text-slate-700">
+                        {report.levanteGoals.map((goal) => (
+                          <p key={goal.playerName}>
+                            <b>{goal.playerName}</b>{' '}
+                            {goal.minutes.length > 1 ? '⚽⚽' : '⚽'}{' '}
+                            {goal.minutes.map((minute) => `${minute}'`).join(' y ')}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-2xl bg-[#071527] p-4 text-white">
+                    <p className="text-xs font-black uppercase tracking-wider text-sky-200">
+                      📐 Formación
+                    </p>
+                    <p className="mt-2 text-xl font-black">{report.formation}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-[#a91d43]">
+                      📋 Alineación del Levante
+                    </p>
+                    <div className="space-y-2">
+                      {[
+                        ['POR', report.lineup.goalkeeper],
+                        ['DEF', report.lineup.defenders],
+                        ['MED', report.lineup.midfielders],
+                        ['ATA', report.lineup.attackers],
+                      ].map(([position, players]) => (
+                        <p
+                          key={position as string}
+                          className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600"
+                        >
+                          <b className="mr-2 text-[#153e72]">{position}:</b>
+                          {(players as string[]).join(', ')}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                    <p className="text-xs font-black uppercase tracking-wider text-amber-700">
+                      ⭐ MVP Levante
+                    </p>
+                    <p className="mt-2 leading-6">
+                      <b>{report.mvp.playerName}</b> — {report.mvp.reason}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : match.goals.length === 0 ? (
               <p className="text-slate-500">Sin goles.</p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">

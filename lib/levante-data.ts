@@ -49,6 +49,17 @@ export interface LevanteMatch {
   goals: MatchGoal[];
   tags: string[];
 }
+export interface LevanteMatchReport {
+  formation: string;
+  lineup: {
+    goalkeeper: string[];
+    defenders: string[];
+    midfielders: string[];
+    attackers: string[];
+  };
+  levanteGoals: Array<{ playerName: string; minutes: number[] }>;
+  mvp: { playerName: string; reason: string };
+}
 type MatchSeed = [
   number,
   string,
@@ -190,6 +201,65 @@ export const levanteMatches: LevanteMatch[] = matchSeeds.map(
       homeTeam === 'Valencia CF' || awayTeam === 'Valencia CF' ? ['DERBY'] : [],
   }),
 );
+
+const repeatedLineup = {
+  goalkeeper: ['Mathew Ryan'],
+  defenders: ['Nacho Pérez', 'Dela', 'Aïssa Mandi', 'Manu Sánchez'],
+  midfielders: ['Oriol Rey', 'Enzo Bardeli', 'Olasagasti'],
+  attackers: ['Roger Brugué', 'Iván Romero', 'Thiago Fernández'],
+};
+
+export const levanteMatchReports: Record<number, LevanteMatchReport> = {
+  1: {
+    formation: '4-2-3-1',
+    lineup: {
+      goalkeeper: ['Mathew Ryan'],
+      defenders: ['Nacho Pérez', 'Aïssa Mandi', 'Dela', 'Manu Sánchez'],
+      midfielders: ['Oriol Rey', 'Olasagasti', 'Carlos Álvarez'],
+      attackers: ['Víctor García', 'Iván Romero', 'Paco Cortés'],
+    },
+    levanteGoals: [],
+    mvp: {
+      playerName: 'Mathew Ryan',
+      reason:
+        'Pese a encajar tres goles, evitó que la derrota fuera todavía mayor con varias intervenciones.',
+    },
+  },
+  2: {
+    formation: '4-1-4-1',
+    lineup: repeatedLineup,
+    levanteGoals: [],
+    mvp: {
+      playerName: 'Mathew Ryan',
+      reason:
+        'Decisivo con varias paradas ante Osasuna y clave para mantener el 0-0.',
+    },
+  },
+  3: {
+    formation: '4-1-4-1',
+    lineup: repeatedLineup,
+    levanteGoals: [
+      { playerName: 'Dela', minutes: [24] },
+      { playerName: 'Enzo Bardeli', minutes: [46] },
+      { playerName: 'Roger Brugué', minutes: [56, 70] },
+      { playerName: 'Olasagasti', minutes: [95] },
+    ],
+    mvp: {
+      playerName: 'Roger Brugué',
+      reason:
+        'Doblete y pieza fundamental en la segunda parte en la que el Levante rompió el partido.',
+    },
+  },
+  4: {
+    formation: '4-1-4-1',
+    lineup: repeatedLineup,
+    levanteGoals: [],
+    mvp: {
+      playerName: 'Mathew Ryan',
+      reason: 'Paró un penalti a Chupe y volvió a mantener la portería a cero.',
+    },
+  },
+};
 
 export type PlayerPosition =
   | 'GOALKEEPER'
