@@ -11,11 +11,15 @@ import {
 } from '@/components/sections';
 import { PredictionWizard } from '@/components/prediction-wizard';
 import type { CommunityUser } from '@/lib/community-types';
+import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
+import type { PredictionDraft } from '@/lib/prediction-types';
+import { getNextLevanteMatch } from '@/lib/levante-services';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
   const [user, setUser] = useState<CommunityUser | null>(null);
+  const [currentPrediction, setCurrentPrediction] = useState<PredictionDraft | null>(null);
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   useEffect(() => {
     void fetch('/api/session')
@@ -25,6 +29,20 @@ export default function Home() {
       )
       .then((result) => setUser(result.user))
       .catch(() => setUser(null));
+    void fetch('/api/predictions?mine=1')
+      .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
+      .then((result) => {
+        const matchId = getNextLevanteMatch()?.id;
+        const saved = result.predictions?.find((prediction) => prediction.matchId === matchId);
+        setCurrentPrediction(saved ? {
+          matchId: saved.matchId,
+          predictedScore: { home: saved.homeScore, away: saved.awayScore },
+          lineup: saved.lineup,
+          scorers: saved.scorers,
+          mvp: saved.mvp,
+        } : null);
+      })
+      .catch(() => setCurrentPrediction(null));
     void fetch('/api/football')
       .then(async (response) => {
         if (!response.ok) throw new Error('Football data unavailable');
@@ -43,6 +61,7 @@ export default function Home() {
       {active === 'inicio' && (
         <HomeSection
           predict={predict}
+          hasPrediction={currentPrediction?.matchId === getNextLevanteMatch()?.id}
           openRules={() => setActive('reglas')}
           footballData={footballData}
         />
@@ -59,7 +78,9 @@ export default function Home() {
       open={predictionOpen}
       onOpenChange={setPredictionOpen}
       user={user}
+      existingPrediction={currentPrediction}
       onRegistered={setUser}
+      onSaved={setCurrentPrediction}
       onPublished={() => {
         setPredictionOpen(false);
         setActive('grada');

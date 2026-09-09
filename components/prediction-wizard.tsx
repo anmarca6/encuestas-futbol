@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Check, ChevronLeft, ChevronRight, Goal, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,13 +40,17 @@ export function PredictionWizard({
   open,
   onOpenChange,
   user,
+  existingPrediction,
   onRegistered,
+  onSaved,
   onPublished,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: CommunityUser | null;
+  existingPrediction: PredictionDraft | null;
   onRegistered: (user: CommunityUser) => void;
+  onSaved: (prediction: PredictionDraft) => void;
   onPublished: () => void;
 }) {
   const match = getNextLevanteMatch();
@@ -61,6 +65,26 @@ export function PredictionWizard({
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      const saved = existingPrediction?.matchId === match?.id ? existingPrediction : null;
+      setStep(0);
+      setFormation(saved?.lineup?.formation ?? '4-3-3');
+      setLineup(saved?.lineup ?? null);
+      setHome(saved?.predictedScore?.home ?? 0);
+      setAway(saved?.predictedScore?.away ?? 0);
+      setScorerCounts((saved?.scorers ?? []).reduce<Record<string, number>>((counts, playerId) => {
+        counts[playerId] = (counts[playerId] ?? 0) + 1;
+        return counts;
+      }, {}));
+      setMvp(saved?.mvp ?? null);
+      setPublished(false);
+      setError('');
+    }
+    wasOpen.current = open;
+  }, [existingPrediction, match?.id, open]);
 
   const levanteGoals = match?.homeTeam === LEVANTE_TEAM ? home : away;
   const selectedGoals = useMemo(
@@ -101,19 +125,21 @@ export function PredictionWizard({
         currentUser = sessionResult.user;
         onRegistered(currentUser);
       }
+      const draft = {
+        matchId: match.id,
+        predictedScore: { home, away },
+        lineup,
+        scorers,
+        mvp,
+      } satisfies PredictionDraft;
       const response = await fetch('/api/predictions', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          matchId: match.id,
-          predictedScore: { home, away },
-          lineup,
-          scorers,
-          mvp,
-        } satisfies PredictionDraft),
+        body: JSON.stringify(draft),
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? 'No se pudo publicar la predicción.');
+      onSaved(draft);
       setPublished(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No se pudo publicar la predicción.');
@@ -136,7 +162,7 @@ export function PredictionWizard({
           </DialogClose>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <DialogTitle className="text-xl font-black text-[#071527]">Participa</DialogTitle>
+              <DialogTitle className="text-xl font-black text-[#071527]">{existingPrediction ? 'Modificar predicción' : 'Participa'}</DialogTitle>
               <DialogDescription>Paso {step + 1} de 6 · {stepNames[step]}</DialogDescription>
             </div>
             <span className="rounded-full bg-[#a91d43] px-3 py-1 text-xs font-black text-white">J{match.matchday}</span>
@@ -154,7 +180,7 @@ export function PredictionWizard({
               <p className="mt-2 text-slate-500">Selecciona el dibujo táctico de tu once.</p>
               <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {formationOptions.map((option) => (
-                  <button key={option} onClick={() => { setFormation(option); setLineup(null); }} className={`relative min-h-28 rounded-2xl border-2 p-4 text-2xl font-black transition ${formation === option ? 'border-[#a91d43] bg-rose-50 text-[#a91d43]' : 'border-slate-200 bg-white text-[#153e72] hover:border-[#a91d43]/40'}`}>
+                  <button key={option} onClick={() => { if (formation !== option) setLineup(null); setFormation(option); }} className={`relative min-h-28 rounded-2xl border-2 p-4 text-2xl font-black transition ${formation === option ? 'border-[#a91d43] bg-rose-50 text-[#a91d43]' : 'border-slate-200 bg-white text-[#153e72] hover:border-[#a91d43]/40'}`}>
                     {formation === option && <Check className="absolute right-3 top-3 size-5" />}
                     {option}
                   </button>
@@ -209,7 +235,7 @@ export function PredictionWizard({
           )}
           {step === 5 && (
             <section className="mx-auto max-w-xl text-center">
-              {published ? <><span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" /></span><h2 className="mt-5 text-2xl font-black">¡Predicción publicada!</h2><p className="mt-2 text-slate-500">Ya aparece en La Grada y también queda guardada en tu perfil.</p><Button className="mt-7 bg-[#a91d43] text-white" onClick={onPublished}>Ver La Grada</Button></> : <><span className="mx-auto grid size-16 place-items-center rounded-full bg-rose-100 text-[#a91d43]"><Send className="size-7" /></span><p className="mt-5 text-xs font-black uppercase tracking-widest text-[#a91d43]">Paso 6</p><h2 className="mt-1 text-2xl font-black">Publica tu predicción</h2>{user ? <div className="mt-6 rounded-2xl bg-slate-50 p-5"><p className="text-sm text-slate-500">Se publicará en La Grada como</p><strong className="mt-1 block text-xl text-[#153e72]">@{user.nickname}</strong></div> : <div className="mt-6 text-left"><label htmlFor="prediction-nickname" className="text-sm font-black">Elige tu apodo público</label><Input id="prediction-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ej. Leo_Granota" className="mt-2 h-12 bg-white" /><p className="mt-2 text-xs text-slate-500">Lo recordaremos para tus próximas predicciones y será visible en La Grada.</p></div>}{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}<Button disabled={publishing || (!user && nickname.trim().length < 2)} onClick={() => void publish()} className="mt-7 h-12 w-full bg-[#a91d43] font-black text-white">{publishing ? <><Loader2 className="animate-spin" /> Publicando…</> : <><Goal /> Publicar en La Grada</>}</Button></>}
+              {published ? <><span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" /></span><h2 className="mt-5 text-2xl font-black">¡Predicción guardada!</h2><p className="mt-2 text-slate-500">La versión actualizada ya aparece en La Grada y en tu perfil.</p><Button className="mt-7 bg-[#a91d43] text-white" onClick={onPublished}>Ver La Grada</Button></> : <><span className="mx-auto grid size-16 place-items-center rounded-full bg-rose-100 text-[#a91d43]"><Send className="size-7" /></span><p className="mt-5 text-xs font-black uppercase tracking-widest text-[#a91d43]">Paso 6</p><h2 className="mt-1 text-2xl font-black">{existingPrediction ? 'Guarda los cambios' : 'Publica tu predicción'}</h2>{user ? <div className="mt-6 rounded-2xl bg-slate-50 p-5"><p className="text-sm text-slate-500">Se publicará en La Grada como</p><strong className="mt-1 block text-xl text-[#153e72]">@{user.nickname}</strong></div> : <div className="mt-6 text-left"><label htmlFor="prediction-nickname" className="text-sm font-black">Elige tu apodo público</label><Input id="prediction-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ej. Leo_Granota" className="mt-2 h-12 bg-white" /><p className="mt-2 text-xs text-slate-500">Lo recordaremos para tus próximas predicciones y será visible en La Grada.</p></div>}{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}<Button disabled={publishing || (!user && nickname.trim().length < 2)} onClick={() => void publish()} className="mt-7 h-12 w-full bg-[#a91d43] font-black text-white">{publishing ? <><Loader2 className="animate-spin" /> Guardando…</> : <><Goal /> {existingPrediction ? 'Guardar cambios' : 'Publicar en La Grada'}</>}</Button></>}
             </section>
           )}
         </div>

@@ -12,6 +12,7 @@ import {
   MessageCircleMore,
   Minus,
   Plus,
+  Pencil,
   Send,
   Settings,
   Shirt,
@@ -139,10 +140,12 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
 
 export function HomeSection({
   predict,
+  hasPrediction,
   openRules,
   footballData,
 }: {
   predict: () => void;
+  hasPrediction: boolean;
   openRules: () => void;
   footballData: FootballDataPayload | null;
 }) {
@@ -222,7 +225,7 @@ export function HomeSection({
                     onClick={predict}
                     className="mt-4 h-11 w-full bg-[#b51f46] px-5 font-black text-white"
                   >
-                    Participa →
+                    {hasPrediction ? <><Pencil className="size-4" /> Modificar</> : 'Participa →'}
                   </Button>
                 </>
               )}
