@@ -17,3 +17,10 @@ export interface CommunityPrediction {
   publishedAt: number;
   user: Pick<CommunityUser, 'nickname'>;
 }
+
+export interface CommunityRankingEntry {
+  userId: string;
+  nickname: string;
+  points: number;
+  predictions: number;
+}

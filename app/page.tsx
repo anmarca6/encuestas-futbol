@@ -5,6 +5,7 @@ import {
   HomeSection,
   MatchdaySection,
   StandsSection,
+  CommunityRankingSection,
   ProfileSection,
 } from '@/components/sections';
 import { PredictionWizard } from '@/components/prediction-wizard';
@@ -46,6 +47,7 @@ export default function Home() {
         <MatchdaySection predict={predict} footballData={footballData} />
       )}{' '}
       {active === 'grada' && <StandsSection />}
+      {active === 'clasificacion' && <CommunityRankingSection />}
       {active === 'perfil' && <ProfileSection user={user} />}
     </AppShell>
     <PredictionWizard

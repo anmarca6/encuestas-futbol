@@ -14,6 +14,7 @@ import {
   Send,
   Settings,
   Shirt,
+  Trophy,
   UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,11 @@ import {
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
-import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
+import type {
+  CommunityPrediction,
+  CommunityRankingEntry,
+  CommunityUser,
+} from '@/lib/community-types';
 import {
   formatPredictionDeadline,
   isPredictionClosed,
@@ -1130,6 +1135,95 @@ export function StandsSection() {
     </>
   );
 }
+
+export function CommunityRankingSection() {
+  const [ranking, setRanking] = useState<CommunityRankingEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void fetch('/api/ranking')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Ranking unavailable');
+        return (await response.json()) as { ranking?: CommunityRankingEntry[] };
+      })
+      .then((result) => setRanking(result.ranking ?? []))
+      .catch(() => setRanking([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <>
+      <Heading
+        eyebrow="Temporada 2026/27"
+        title="Clasificación"
+        description="Los puntos de cada jornada se acumulan durante toda la temporada. En caso de empate, la clasificación se ordena alfabéticamente."
+      />
+      <Card className="overflow-hidden border-0 shadow-lg ring-slate-200">
+        <CardHeader className="bg-[#071527] text-white">
+          <CardTitle className="flex items-center gap-3 font-black">
+            <span className="grid size-10 place-items-center rounded-xl bg-[#a91d43]">
+              <Trophy className="size-5" />
+            </span>
+            Clasificación granota
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <p className="py-12 text-center text-sm font-bold text-slate-400">
+              Cargando clasificación…
+            </p>
+          ) : ranking.length === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <Trophy className="mx-auto size-10 text-slate-300" />
+              <h2 className="mt-4 text-xl font-black text-[#071527]">
+                La clasificación espera a sus primeros participantes
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Los usuarios aparecerán aquí cuando publiquen su predicción para la nueva jornada.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16 text-center">Pos.</TableHead>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead className="text-center">Predicciones</TableHead>
+                  <TableHead className="text-right">Puntos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ranking.map((entry, index) => (
+                  <TableRow key={entry.userId}>
+                    <TableCell className="text-center font-black text-slate-400">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-100 text-sm font-black text-[#a91d43]">
+                          {entry.nickname.slice(0, 2).toUpperCase()}
+                        </span>
+                        <strong className="text-[#071527]">@{entry.nickname}</strong>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center font-bold">{entry.predictions}</TableCell>
+                    <TableCell className="text-right text-xl font-black text-[#a91d43]">
+                      {entry.points}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+      <p className="mt-4 text-center text-xs text-slate-400">
+        100 puntos disponibles por jornada: formación, XI, resultado, goleadores y MVP.
+      </p>
+    </>
+  );
+}
+
 export function ProfileSection({ user }: { user: CommunityUser | null }) {
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(false);
