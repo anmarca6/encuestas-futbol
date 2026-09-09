@@ -128,11 +128,26 @@ export function HomeSection({
       getLevanteStanding();
   return (
     <>
-      <Heading
-        eyebrow="En clave granota"
-        title="Hola, levantinista"
-        description="La temporada 2026/2027 del Levante UD, partido a partido."
-      />
+      <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
+        <p className="text-xs font-black uppercase tracking-[.2em] text-[#a91d43]">
+          En clave granota
+        </p>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <h1 className="max-w-3xl text-3xl font-black tracking-[-.04em] text-[#071527] sm:text-5xl">
+            Todo el Levante. En un solo sitio.
+          </h1>
+          <span className="w-fit shrink-0 rounded-full bg-[#071527] px-4 py-2 text-xs font-black text-white">
+            Temporada 2026/27
+          </span>
+        </div>
+        <div className="mt-6 space-y-2 text-sm font-bold leading-6 text-slate-600 sm:text-base">
+          <p>📅 Partidos · ⚽ Resultados · 👕 Alineaciones · ⭐ MVP</p>
+          <p>🎯 Pronósticos · 🏆 Puntos para aficionados</p>
+        </div>
+        <p className="mt-6 text-lg font-black text-[#a91d43] sm:text-xl">
+          Participa. Acierta. Suma
+        </p>
+      </section>
       {next && (
         <section className="relative overflow-hidden rounded-[2rem] bg-[#071527] p-6 text-white shadow-2xl sm:p-9">
           <div className="absolute -right-12 -top-20 size-56 rounded-full bg-[#a91d43]/35 blur-3xl" />
