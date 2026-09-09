@@ -72,6 +72,7 @@ import type {
 } from '@/lib/community-types';
 import {
   formatPredictionDeadline,
+  getPredictionDeadline,
   isPredictionClosed,
 } from '@/lib/prediction-deadline';
 
@@ -92,6 +93,28 @@ const formatDate = (date: string, short = false) =>
     .replace('.', '')
     .toUpperCase();
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
+
+function usePredictionCountdown(match: LevanteMatch | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const deadline = match ? getPredictionDeadline(match) : null;
+  const remaining = deadline ? Math.max(0, deadline.getTime() - now) : null;
+  if (remaining === null) return { closed: false, label: 'Horario de cierre pendiente' };
+  const seconds = Math.floor(remaining / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return {
+    closed: remaining === 0,
+    label: days > 0
+      ? `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`
+      : `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`,
+  };
+}
 
 function CompactMatch({ match }: { match: LevanteMatch }) {
   return (
@@ -134,6 +157,7 @@ export function HomeSection({
     standing =
       standings.find((item) => item.teamId === 'levante-ud') ??
       getLevanteStanding();
+  const countdown = usePredictionCountdown(next);
   return (
     <>
       <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
@@ -180,12 +204,28 @@ export function HomeSection({
                 <TeamIdentity teamName={next.awayTeam} size="xl" bareCrest />
               </div>
             </div>
-            <Button
-              onClick={predict}
-              className="h-12 bg-[#b51f46] px-5 font-black text-white"
-            >
-              Participa →
-            </Button>
+            <div className="min-w-64 rounded-2xl bg-white/10 p-4 text-center ring-1 ring-white/10">
+              {countdown.closed ? (
+                <p className="text-sm font-bold leading-6 text-slate-200">
+                  No pasa nada que no hayas podido participar. Podrás intentarlo de nuevo en la predicción de la jornada {next.matchday + 1}.
+                </p>
+              ) : (
+                <>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-sky-200">
+                    Cierre de predicciones en
+                  </p>
+                  <strong className="mt-2 block tabular-nums text-2xl font-black">
+                    {countdown.label}
+                  </strong>
+                  <Button
+                    onClick={predict}
+                    className="mt-4 h-11 w-full bg-[#b51f46] px-5 font-black text-white"
+                  >
+                    Participa →
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </section>
       )}
@@ -288,18 +328,13 @@ export function HomeSection({
   );
 }
 
-export function GameRulesSection({ predict }: { predict: () => void }) {
+export function GameRulesSection() {
   return (
     <>
       <Heading
         eyebrow="Participa · Acierta · Suma"
         title="Cómo se juega"
         description="Haz tu predicción antes de cada partido y compite con toda la afición granota."
-        action={
-          <Button onClick={predict} className="bg-[#a91d43] font-black text-white">
-            Participa →
-          </Button>
-        }
       />
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -342,12 +377,8 @@ export function GameRulesSection({ predict }: { predict: () => void }) {
 type CalendarFilter = 'RESULTADOS' | 'PRÓXIMOS' | 'CALENDARIO';
 function CalendarMatch({
   match,
-  isNext,
-  onPredict,
 }: {
   match: LevanteMatch;
-  isNext: boolean;
-  onPredict: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const report = levanteMatchReports[match.matchday];
@@ -374,15 +405,6 @@ function CalendarMatch({
               <span className="rounded-lg bg-[#071527] px-2 py-1.5 text-center text-xs font-black text-white">
                 {match.homeScore} — {match.awayScore}
               </span>
-            ) : isNext ? (
-              <button
-                type="button"
-                onClick={onPredict}
-                className="rounded-lg bg-[#a91d43] px-2 py-1.5 text-center text-xs font-black text-white transition hover:bg-[#8f1838] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a91d43]"
-                aria-label={`Haz tu predicción para ${match.homeTeam} contra ${match.awayTeam}`}
-              >
-                Haz tu predicción
-              </button>
             ) : (
               <span className="rounded-lg bg-sky-50 px-2 py-1.5 text-center text-xs font-black text-[#153e72]">
                 Programado
@@ -613,10 +635,8 @@ function StandingsTable({ standings }: { standings: ReadonlyArray<LeagueStanding
 }
 
 export function MatchdaySection({
-  predict,
   footballData,
 }: {
-  predict: () => void;
   footballData: FootballDataPayload | null;
 }) {
   const [view, setView] = useState<'PARTIDOS' | 'CLASIFICACIÓN'>('PARTIDOS');
@@ -627,10 +647,8 @@ export function MatchdaySection({
   const standings = footballData?.standings.length
     ? footballData.standings
     : realLeagueStandings;
-  const currentMatchday =
-    footballData?.currentMatchday ??
-    Math.max(0, ...matches.filter((match) => match.status === 'FINISHED').map((match) => match.matchday));
-  const nextMatchId = getNextLevanteMatch(matches)?.id;
+  const currentMatchday = getNextLevanteMatch(matches)?.matchday
+    ?? Math.max(0, ...matches.filter((match) => match.status === 'FINISHED').map((match) => match.matchday));
   const visible = matches.filter(
     (match) =>
       filter === 'CALENDARIO' ||
@@ -679,12 +697,7 @@ export function MatchdaySection({
           </div>
           <div className="space-y-3">
             {visible.map((match) => (
-              <CalendarMatch
-                key={match.id}
-                match={match}
-                isNext={match.id === nextMatchId}
-                onPredict={predict}
-              />
+              <CalendarMatch key={match.id} match={match} />
             ))}
           </div>
         </>

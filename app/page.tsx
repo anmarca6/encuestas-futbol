@@ -35,7 +35,6 @@ export default function Home() {
   }, []);
   const predict = () => setPredictionOpen(true);
   const navigate = (section: SectionId) => {
-    if (section === 'predice') return setPredictionOpen(true);
     setActive(section);
   };
   return (
@@ -49,11 +48,11 @@ export default function Home() {
         />
       )}{' '}
       {active === 'jornada' && (
-        <MatchdaySection predict={predict} footballData={footballData} />
+        <MatchdaySection footballData={footballData} />
       )}{' '}
       {active === 'grada' && <StandsSection />}
       {active === 'clasificacion' && <CommunityRankingSection />}
-      {active === 'reglas' && <GameRulesSection predict={predict} />}
+      {active === 'reglas' && <GameRulesSection />}
       {active === 'perfil' && <ProfileSection user={user} />}
     </AppShell>
     <PredictionWizard

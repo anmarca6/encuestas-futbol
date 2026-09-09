@@ -3,16 +3,14 @@ import {
   CalendarDays,
   House,
   MessageCircleMore,
-  Sparkles,
   Trophy,
   UserRound,
 } from 'lucide-react';
 import { TeamCrest } from '@/components/shared';
-export type SectionId = 'inicio' | 'jornada' | 'predice' | 'grada' | 'clasificacion' | 'reglas' | 'perfil';
+export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil';
 const items = [
   ['inicio', 'Inicio', House],
   ['jornada', 'Jornada', CalendarDays],
-  ['predice', 'Predice', Sparkles],
   ['grada', 'Grada', MessageCircleMore],
   ['clasificacion', 'Clasificación', Trophy],
   ['perfil', 'Perfil', UserRound],
@@ -84,7 +82,7 @@ export function AppShell({
         {children}
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_35px_rgba(7,21,39,.08)] md:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-6">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
           <NavItems active={active} navigate={navigate} mobile />
         </div>
       </nav>
