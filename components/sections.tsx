@@ -64,6 +64,7 @@ import {
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
+import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
 import type {
   CommunityPrediction,
   CommunityRankingEntry,
@@ -306,7 +307,7 @@ export function GameRulesSection({ predict }: { predict: () => void }) {
             Predice, acierta y suma puntos
           </h2>
           <span className="w-fit rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-[#a91d43]">
-            100 puntos por jornada
+            {MAX_POINTS_PER_MATCH} puntos por jornada
           </span>
         </div>
         <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -743,14 +744,6 @@ function SelectedPlayer({ playerId }: { playerId: string }) {
   );
 }
 
-const predictionPoints = [
-  ['Formación correcta', 10],
-  ['XI titular', 35],
-  ['Resultado', 25],
-  ['Goleadores', 20],
-  ['MVP', 10],
-] as const;
-
 function PredictionPointsCard() {
   return (
     <Card
@@ -763,10 +756,10 @@ function PredictionPointsCard() {
             <p className="text-xs font-black uppercase tracking-[.18em] text-sky-200">
               ¿Cuántos puntos puedes conseguir?
             </p>
-            <h2 className="mt-1 text-xl font-black">100 puntos en juego</h2>
+            <h2 className="mt-1 text-xl font-black">{MAX_POINTS_PER_MATCH} puntos en juego</h2>
           </div>
           <span className="shrink-0 rounded-full bg-[#a91d43] px-3 py-1.5 text-xs font-black">
-            Máximo 100
+            Máximo {MAX_POINTS_PER_MATCH}
           </span>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -785,7 +778,7 @@ function PredictionPointsCard() {
           ))}
         </div>
         <p className="mt-4 text-xs leading-5 text-slate-400">
-          Cada acierto suma por separado hasta alcanzar un total máximo de 100
+          Cada acierto suma por separado hasta alcanzar un total máximo de {MAX_POINTS_PER_MATCH}
           puntos.
         </p>
       </CardContent>
@@ -1278,7 +1271,7 @@ export function CommunityRankingSection() {
         </CardContent>
       </Card>
       <p className="mt-4 text-center text-xs text-slate-400">
-        100 puntos disponibles por jornada: formación, XI, resultado, goleadores y MVP.
+        {MAX_POINTS_PER_MATCH} puntos disponibles por jornada: formación, XI, resultado, goleadores y MVP.
       </p>
     </>
   );
