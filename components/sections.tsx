@@ -179,6 +179,51 @@ export function HomeSection({
           </div>
         </section>
       )}
+      <section className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.18em] text-[#a91d43]">
+              Cómo se juega
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-[#071527]">
+              Predice, acierta y suma puntos
+            </h2>
+          </div>
+          <span className="w-fit rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-[#a91d43]">
+            100 puntos por jornada
+          </span>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <span className="grid size-9 place-items-center rounded-xl bg-sky-100 font-black text-[#153e72]">1</span>
+            <h3 className="mt-3 font-black text-[#071527]">Haz tu predicción</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Elige formación, XI, resultado, goleadores y MVP.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <span className="grid size-9 place-items-center rounded-xl bg-amber-100 font-black text-amber-700">2</span>
+            <h3 className="mt-3 font-black text-[#071527]">Publica a tiempo</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Las predicciones cierran 2 horas antes del partido.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <span className="grid size-9 place-items-center rounded-xl bg-rose-100 font-black text-[#a91d43]">3</span>
+            <h3 className="mt-3 font-black text-[#071527]">Sube en la clasificación</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Tus puntos se acumulan jornada tras jornada.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-black text-[#153e72]">
+          <span className="rounded-full bg-sky-50 px-3 py-1.5">Formación · 10</span>
+          <span className="rounded-full bg-sky-50 px-3 py-1.5">XI · 35</span>
+          <span className="rounded-full bg-sky-50 px-3 py-1.5">Resultado · 25</span>
+          <span className="rounded-full bg-sky-50 px-3 py-1.5">Goleadores · 20</span>
+          <span className="rounded-full bg-sky-50 px-3 py-1.5">MVP · 10</span>
+        </div>
+      </section>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-6">
           {last && (
