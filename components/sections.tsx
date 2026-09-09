@@ -227,6 +227,15 @@ export function HomeSection({
                   >
                     {hasPrediction ? <><Pencil className="size-4" /> Modificar</> : 'Participa →'}
                   </Button>
+                  {hasPrediction && (
+                    <Button
+                      disabled
+                      variant="outline"
+                      className="mt-2 h-auto min-h-11 w-full whitespace-normal border-white/15 bg-white/5 px-4 py-2 text-xs font-black text-slate-400 opacity-100"
+                    >
+                      Participa · Disponible de nuevo en la próxima jornada
+                    </Button>
+                  )}
                 </>
               )}
             </div>
