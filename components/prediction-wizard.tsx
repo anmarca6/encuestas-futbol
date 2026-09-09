@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Award, Check, ChevronLeft, ChevronRight, Goal, Loader2, Send, Shirt } from 'lucide-react';
+import { Award, Check, ChevronLeft, ChevronRight, Goal, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -125,8 +126,14 @@ export function PredictionWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
-        <DialogHeader className="sticky top-0 z-20 border-b bg-white px-5 py-4 pr-14">
+      <DialogContent showCloseButton={false} className="max-h-[92dvh] overflow-y-auto p-0 sm:max-w-4xl">
+        <DialogHeader className="sticky top-0 z-20 border-b bg-white px-5 py-4 pr-16">
+          <DialogClose
+            render={<Button variant="outline" size="icon" className="absolute right-4 top-4 rounded-full bg-white shadow-sm" />}
+          >
+            <X />
+            <span className="sr-only">Salir de la predicción</span>
+          </DialogClose>
           <div className="flex items-center justify-between gap-3">
             <div>
               <DialogTitle className="text-xl font-black text-[#071527]">Participa</DialogTitle>
@@ -158,7 +165,7 @@ export function PredictionWizard({
           {step === 1 && (
             <section>
               <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm font-bold text-[#153e72]">Todos los jugadores están liberados: puedes colocar a cualquiera en cualquier posición.</p>
-              <LineupBuilder key={formation} fixedFormation={formation} unrestricted initialLineup={lineup} onCancel={() => setStep(0)} onSave={(saved) => { setLineup(saved); setStep(2); }} />
+              <LineupBuilder key={formation} fixedFormation={formation} unrestricted saveLabel="Siguiente" initialLineup={lineup} onCancel={() => setStep(0)} onSave={(saved) => { setLineup(saved); setStep(2); }} />
             </section>
           )}
           {step === 2 && (

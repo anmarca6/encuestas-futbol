@@ -97,12 +97,14 @@ export function LineupBuilder({
   onSave,
   fixedFormation,
   unrestricted = false,
+  saveLabel = 'Guardar mi XI',
 }: {
   initialLineup: SavedLineup | null;
   onCancel: () => void;
   onSave: (lineup: SavedLineup) => void;
   fixedFormation?: FormationId;
   unrestricted?: boolean;
+  saveLabel?: string;
 }) {
   const initialFormation = fixedFormation ?? initialLineup?.formation ?? DEFAULT_FORMATION;
   const [formationId, setFormationId] = useState<FormationId>(initialFormation);
@@ -245,7 +247,7 @@ export function LineupBuilder({
             className="h-12 w-full bg-[#a91d43] font-black text-white"
           >
             <Save />
-            Guardar mi XI
+            {saveLabel}
           </Button>
         </aside>
       </div>
