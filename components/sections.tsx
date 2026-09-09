@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Crown,
   Goal,
   MessageCircleMore,
   Minus,
@@ -1260,16 +1261,26 @@ export function CommunityRankingSection() {
               </TableHeader>
               <TableBody>
                 {ranking.map((entry, index) => (
-                  <TableRow key={entry.userId}>
-                    <TableCell className="text-center font-black text-slate-400">
-                      {index + 1}
+                  <TableRow
+                    key={entry.userId}
+                    className={index === 0 ? 'bg-amber-50/80 hover:bg-amber-100/80' : undefined}
+                  >
+                    <TableCell className={`text-center font-black ${index === 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                      {index === 0 ? <Crown className="mx-auto size-5 fill-amber-400" aria-label="Líder" /> : index + 1}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-100 text-sm font-black text-[#a91d43]">
                           {entry.nickname.slice(0, 2).toUpperCase()}
                         </span>
-                        <strong className="text-[#071527]">@{entry.nickname}</strong>
+                        <div>
+                          <strong className="text-[#071527]">@{entry.nickname}</strong>
+                          {index === 0 && (
+                            <span className="ml-2 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-900">
+                              Líder
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center font-bold">{entry.predictions}</TableCell>
