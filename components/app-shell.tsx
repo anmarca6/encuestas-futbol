@@ -78,9 +78,16 @@ export function AppShell({
           </span>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-7 sm:px-6 md:pb-12 md:pt-10">
+      <main className="mx-auto max-w-6xl px-4 pt-7 sm:px-6 md:pt-10">
         {children}
       </main>
+      <footer className="mx-auto max-w-6xl px-4 pb-28 pt-10 sm:px-6 md:pb-12">
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 text-center text-sm leading-6 text-slate-500 shadow-sm sm:text-base">
+          👋 ¡Hola! Soy Leo, tengo 14 años. Me gusta el fútbol el Levante UD, la
+          tecnología y estoy aprendiendo a programar. ¡Espero que disfrutes
+          participando! ⚽🚀
+        </div>
+      </footer>
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_35px_rgba(7,21,39,.08)] md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           <NavItems active={active} navigate={navigate} mobile />
