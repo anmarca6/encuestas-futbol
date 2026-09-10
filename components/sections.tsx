@@ -398,7 +398,7 @@ export function HomeSection({
                   <Tooltip key={label as string}>
                     <TooltipTrigger
                       render={
-                        <div className="cursor-help rounded-xl bg-slate-50 p-3 text-center" />
+                        <div className="rounded-xl bg-slate-50 p-3 text-center" />
                       }
                     >
                       <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
