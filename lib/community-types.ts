@@ -1,4 +1,5 @@
 import type { SavedLineup } from '@/lib/formations';
+import type { PredictionScoreBreakdown } from '@/lib/prediction-scoring';
 
 export interface CommunityUser {
   id: string;
@@ -25,4 +26,5 @@ export interface CommunityRankingEntry {
   avatarUrl?: string | null;
   points: number;
   predictions: number;
+  breakdown: PredictionScoreBreakdown;
 }

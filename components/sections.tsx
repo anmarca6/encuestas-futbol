@@ -1493,7 +1493,18 @@ export function CommunityRankingSection() {
                     </TableCell>
                     <TableCell className="text-center font-bold">{entry.predictions}</TableCell>
                     <TableCell className="text-right text-xl font-black text-[#a91d43]">
-                      {entry.points}
+                      <details className="group text-right">
+                        <summary className="cursor-pointer list-none font-black marker:hidden">
+                          {entry.points} <span className="text-xs text-slate-400 group-open:hidden">+</span>
+                        </summary>
+                        <div className="mt-2 space-y-1 text-left text-xs font-bold text-slate-500">
+                          <p>Formación: {entry.breakdown.formation} / 2</p>
+                          <p>XI titular: {entry.breakdown.lineup} / 7</p>
+                          <p>Resultado: {entry.breakdown.result} / 5</p>
+                          <p>Goleadores: {entry.breakdown.scorers} / 4</p>
+                          <p>MVP: {entry.breakdown.mvp} / 2</p>
+                        </div>
+                      </details>
                     </TableCell>
                   </TableRow>
                 ))}

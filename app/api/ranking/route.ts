@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
-import { scorePrediction } from '@/lib/prediction-scoring';
+import { scorePredictionBreakdown } from '@/lib/prediction-scoring';
 import type { CommunityRankingEntry } from '@/lib/community-types';
 import type { SavedLineup } from '@/lib/formations';
 
@@ -35,15 +35,22 @@ export async function GET() {
       avatarUrl: row.avatarUrl,
       points: 0,
       predictions: 0,
+      breakdown: { formation: 0, lineup: 0, result: 0, scorers: 0, mvp: 0 },
     };
     current.predictions += 1;
-    current.points += scorePrediction({
+    const breakdown = scorePredictionBreakdown({
       matchId: row.matchId,
       predictedScore: { home: row.homeScore, away: row.awayScore },
       lineup: row.lineup ? JSON.parse(row.lineup) as SavedLineup : null,
       scorers: JSON.parse(row.scorers) as string[],
       mvp: row.mvp,
     });
+    current.points += breakdown.formation + breakdown.lineup + breakdown.result + breakdown.scorers + breakdown.mvp;
+    current.breakdown.formation += breakdown.formation;
+    current.breakdown.lineup += breakdown.lineup;
+    current.breakdown.result += breakdown.result;
+    current.breakdown.scorers += breakdown.scorers;
+    current.breakdown.mvp += breakdown.mvp;
     entries.set(row.userId, current);
   }
 
