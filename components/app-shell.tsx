@@ -22,15 +22,17 @@ const items = [
 function NavItems({
   active,
   navigate,
+  user,
   mobile = false,
 }: {
   active: SectionId;
   navigate: (s: SectionId) => void;
+  user: CommunityUser | null;
   mobile?: boolean;
 }) {
   return (
     <>
-      {items.map(([id, label, Icon]) => (
+      {items.filter(([id]) => id !== 'perfil' || user).map(([id, label, Icon]) => (
         <button
           key={id}
           onClick={() => navigate(id)}
@@ -80,8 +82,8 @@ export function AppShell({
               <strong className="text-lg font-black">Granota App</strong>
             </span>
           </button>
-          <nav className="hidden gap-1 md:flex">
-            <NavItems active={active} navigate={navigate} />
+            <nav className="hidden gap-1 md:flex">
+            <NavItems active={active} navigate={navigate} user={user} />
           </nav>
           <div className="flex items-center gap-2">
             <span className="hidden rounded-full border border-white/15 px-3 py-1.5 text-xs text-slate-300 lg:block">
@@ -122,7 +124,7 @@ export function AppShell({
       </footer>
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_35px_rgba(7,21,39,.08)] md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
-          <NavItems active={active} navigate={navigate} mobile />
+          <NavItems active={active} navigate={navigate} user={user} mobile />
         </div>
       </nav>
     </div>

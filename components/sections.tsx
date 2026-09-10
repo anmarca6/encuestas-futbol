@@ -12,6 +12,7 @@ import {
   Clock3,
   Crown,
   Goal,
+  KeyRound,
   MessageCircleMore,
   Minus,
   Plus,
@@ -23,6 +24,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Registration } from '@/components/registration';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -1519,6 +1521,11 @@ export function ProfileSection({
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
   useEffect(() => {
     if (!user) {
       setPredictions([]);
@@ -1534,6 +1541,28 @@ export function ProfileSection({
       .catch(() => setPredictions([]))
       .finally(() => setLoading(false));
   }, [user]);
+  const changePassword = async (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    setSavingPassword(true);
+    setPasswordMessage('');
+    try {
+      const response = await fetch('/api/session', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? 'No se pudo cambiar la contraseña.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordMessage('Contraseña cambiada.');
+      setPasswordOpen(false);
+    } catch (error) {
+      setPasswordMessage(error instanceof Error ? error.message : 'No se pudo cambiar la contraseña.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
   return (
     <>
       <Heading
@@ -1587,8 +1616,50 @@ export function ProfileSection({
               <p className="mt-2 text-sm text-slate-300">
                 {predictions.length} {predictions.length === 1 ? 'predicción publicada' : 'predicciones publicadas'}
               </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPasswordOpen((open) => !open);
+                  setPasswordMessage('');
+                }}
+                className="mt-4 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                <KeyRound className="size-4" />
+                Cambiar contraseña
+              </Button>
             </CardContent>
           </Card>
+          {passwordOpen && (
+            <Card className="border-0 shadow-sm ring-slate-200">
+              <CardContent>
+                <form className="space-y-3" onSubmit={(event) => void changePassword(event)}>
+                  <h2 className="font-black text-[#071527]">Cambiar contraseña</h2>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    placeholder="Contraseña actual"
+                    required
+                    minLength={4}
+                    aria-label="Contraseña actual"
+                  />
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Nueva contraseña"
+                    required
+                    minLength={4}
+                    aria-label="Nueva contraseña"
+                  />
+                  {passwordMessage && <p className="text-sm font-bold text-[#a91d43]">{passwordMessage}</p>}
+                  <Button type="submit" disabled={savingPassword} className="bg-[#a91d43] font-black text-white">
+                    {savingPassword ? 'Guardando…' : 'Guardar contraseña'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
           <div>
             <h2 className="mb-4 text-xl font-black text-[#071527]">
               Mis predicciones

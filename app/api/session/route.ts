@@ -145,3 +145,34 @@ export async function DELETE(request: NextRequest) {
   });
   return response;
 }
+
+export async function PATCH(request: NextRequest) {
+  const userId = request.cookies.get(COOKIE_NAME)?.value;
+  if (!userId) {
+    return NextResponse.json({ error: 'Debes iniciar sesión.' }, { status: 401 });
+  }
+  const body = (await request.json()) as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
+  const currentPassword = body.currentPassword ?? '';
+  const newPassword = body.newPassword ?? '';
+  if (newPassword.length < 4) {
+    return NextResponse.json(
+      { error: 'La nueva contraseña debe tener al menos 4 caracteres.' },
+      { status: 400 },
+    );
+  }
+  await ensureCommunitySchema();
+  const db = getDatabase();
+  const existing = await db
+    .prepare('SELECT password_hash AS passwordHash FROM users WHERE id = ? LIMIT 1')
+    .bind(userId)
+    .first<{ passwordHash: string | null }>();
+  if (!existing?.passwordHash || !(await verifyPassword(currentPassword, existing.passwordHash))) {
+    return NextResponse.json({ error: 'La contraseña actual no es correcta.' }, { status: 401 });
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(passwordHash, userId).run();
+  return NextResponse.json({ ok: true });
+}

@@ -71,9 +71,8 @@ export function Registration({
             Inicia sesión o crea tu cuenta
           </DialogTitle>
           <DialogDescription>
-            Tu apodo será visible para todos los usuarios en La Grada. Si es
-            la primera vez, crearemos tu cuenta. Si ya tienes una, inicia
-            sesión con la misma contraseña.
+            La primera vez, crea tu cuenta con una contraseña. La necesitarás
+            para volver a entrar.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
