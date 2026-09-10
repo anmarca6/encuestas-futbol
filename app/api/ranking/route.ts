@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { scorePredictionBreakdown } from '@/lib/prediction-scoring';
+import { levanteMatches } from '@/lib/levante-data';
 import type { CommunityRankingEntry } from '@/lib/community-types';
 import type { SavedLineup } from '@/lib/formations';
 
@@ -36,6 +37,7 @@ export async function GET() {
       points: 0,
       predictions: 0,
       breakdown: { formation: 0, lineup: 0, result: 0, scorers: 0, mvp: 0 },
+      matchBreakdowns: [],
     };
     current.predictions += 1;
     const breakdown = scorePredictionBreakdown({
@@ -51,6 +53,16 @@ export async function GET() {
     current.breakdown.result += breakdown.result;
     current.breakdown.scorers += breakdown.scorers;
     current.breakdown.mvp += breakdown.mvp;
+    const match = levanteMatches.find((item) => item.id === row.matchId);
+    if (match) {
+      current.matchBreakdowns.push({
+        matchday: match.matchday,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        points: breakdown.formation + breakdown.lineup + breakdown.result + breakdown.scorers + breakdown.mvp,
+        breakdown,
+      });
+    }
     entries.set(row.userId, current);
   }
 

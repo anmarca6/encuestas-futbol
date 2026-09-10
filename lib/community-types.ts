@@ -20,6 +20,14 @@ export interface CommunityPrediction {
   user: Pick<CommunityUser, 'id' | 'nickname' | 'avatarUrl'>;
 }
 
+export interface RankingMatchBreakdown {
+  matchday: number;
+  homeTeam: string;
+  awayTeam: string;
+  points: number;
+  breakdown: PredictionScoreBreakdown;
+}
+
 export interface CommunityRankingEntry {
   userId: string;
   nickname: string;
@@ -27,4 +35,5 @@ export interface CommunityRankingEntry {
   points: number;
   predictions: number;
   breakdown: PredictionScoreBreakdown;
+  matchBreakdowns: RankingMatchBreakdown[];
 }

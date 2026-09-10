@@ -1500,14 +1500,22 @@ export function CommunityRankingSection() {
                         <strong>{entry.points} pts</strong>
                         <details className="group text-right">
                           <summary className="mt-1 cursor-pointer list-none text-xs font-bold text-[#153e72] underline marker:hidden">
-                            Ver desglose
+                            Ver cómo se consiguen
                           </summary>
-                          <div className="mt-2 w-44 space-y-1 rounded-xl bg-slate-50 p-3 text-left text-xs font-bold text-slate-600">
-                            <p className="flex justify-between gap-3"><span>Formación</span><span>{entry.breakdown.formation} / 2</span></p>
-                            <p className="flex justify-between gap-3"><span>XI titular</span><span>{entry.breakdown.lineup} / 7</span></p>
-                            <p className="flex justify-between gap-3"><span>Resultado</span><span>{entry.breakdown.result} / 5</span></p>
-                            <p className="flex justify-between gap-3"><span>Goleadores</span><span>{entry.breakdown.scorers} / 4</span></p>
-                            <p className="flex justify-between gap-3"><span>MVP</span><span>{entry.breakdown.mvp} / 2</span></p>
+                          <div className="mt-2 w-64 rounded-xl bg-slate-50 p-3 text-left text-xs text-slate-600">
+                            {entry.matchBreakdowns.map((match) => (
+                              <div key={`${entry.userId}-${match.matchday}`} className="border-b border-slate-200 pb-2 last:border-0 last:pb-0">
+                                <p className="font-black text-[#071527]">Jornada {match.matchday}: {match.homeTeam} - {match.awayTeam}</p>
+                                <p className="mt-1 font-black text-[#a91d43]">{match.points} puntos conseguidos</p>
+                                <ul className="mt-1 space-y-0.5 font-bold">
+                                  <li>{match.breakdown.formation ? `Formación acertada (+${match.breakdown.formation})` : 'Formación no acertada (0)'}</li>
+                                  <li>{match.breakdown.lineup ? `XI titular acertado (+${match.breakdown.lineup})` : 'XI titular no acertado (0)'}</li>
+                                  <li>{match.breakdown.result ? `Resultado acertado (+${match.breakdown.result})` : 'Resultado no acertado (0)'}</li>
+                                  <li>{match.breakdown.scorers ? `Goleadores acertados (+${match.breakdown.scorers})` : 'Goleadores no acertados (0)'}</li>
+                                  <li>{match.breakdown.mvp ? `MVP acertado (+${match.breakdown.mvp})` : 'MVP no acertado (0)'}</li>
+                                </ul>
+                              </div>
+                            ))}
                           </div>
                         </details>
                       </div>
