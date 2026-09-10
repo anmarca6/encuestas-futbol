@@ -126,8 +126,8 @@ function MvpEditor() {
   }, []);
 
   const matches = footballData?.matches.length ? footballData.matches : levanteMatches;
-  const finished = useMemo(
-    () => matches.filter((match) => match.status === 'FINISHED').sort((a, b) => b.matchday - a.matchday),
+  const sortedMatches = useMemo(
+    () => [...matches].sort((a, b) => b.matchday - a.matchday),
     [matches],
   );
 
@@ -163,11 +163,12 @@ function MvpEditor() {
 
   return (
     <div className="space-y-3">
-      {finished.length === 0 && (
-        <p className="text-sm text-slate-500">Todavía no hay jornadas jugadas.</p>
+      {sortedMatches.length === 0 && (
+        <p className="text-sm text-slate-500">Todavía no hay jornadas disponibles.</p>
       )}
-      {finished.map((match) => {
+      {sortedMatches.map((match) => {
         const draft = draftFor(match.matchday);
+        const isFinished = match.status === 'FINISHED';
         return (
           <Card key={match.id} className="border-0 shadow-sm ring-slate-200">
             <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -176,7 +177,7 @@ function MvpEditor() {
                   Jornada {match.matchday}
                 </strong>
                 <p className="text-xs text-slate-500">
-                  {match.homeTeam} {match.homeScore}-{match.awayScore} {match.awayTeam}
+                  {match.homeTeam} {isFinished ? `${match.homeScore}-${match.awayScore}` : 'vs'} {match.awayTeam}
                 </p>
               </div>
               <NativeSelect
