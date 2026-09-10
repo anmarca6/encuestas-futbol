@@ -1428,9 +1428,18 @@ export function CommunityRankingSection() {
   );
 }
 
-export function ProfileSection({ user, openSettings }: { user: CommunityUser | null; openSettings: () => void }) {
+export function ProfileSection({
+  user,
+  openSettings,
+  onUserUpdated,
+}: {
+  user: CommunityUser | null;
+  openSettings: () => void;
+  onUserUpdated: (user: CommunityUser) => void;
+}) {
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   useEffect(() => {
     if (!user) {
       setPredictions([]);
@@ -1460,18 +1469,34 @@ export function ProfileSection({ user, openSettings }: { user: CommunityUser | n
         }
       />
       {!user ? (
-        <Card className="border-0 bg-[#071527] text-white ring-0">
-          <CardContent className="py-10 text-center">
-            <UserRound className="mx-auto size-10 text-sky-300" />
-            <h2 className="mt-4 text-xl font-black">
-              Todavía no tienes perfil
-            </h2>
-            <p className="mt-2 text-sm text-slate-300">
-              Podrás elegir tu apodo cuando publiques tu primera predicción en
-              La Grada.
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <Registration
+            open={loginOpen}
+            onOpenChange={setLoginOpen}
+            onRegistered={(registeredUser) => {
+              onUserUpdated(registeredUser);
+              setLoginOpen(false);
+            }}
+          />
+          <Card className="border-0 bg-[#071527] text-white ring-0">
+            <CardContent className="py-10 text-center">
+              <UserRound className="mx-auto size-10 text-sky-300" />
+              <h2 className="mt-4 text-xl font-black">
+                Todavía no has iniciado sesión
+              </h2>
+              <p className="mt-2 text-sm text-slate-300">
+                Inicia sesión con tu apodo y contraseña para ver tu perfil y
+                publicar predicciones en La Grada.
+              </p>
+              <Button
+                onClick={() => setLoginOpen(true)}
+                className="mt-5 bg-[#a91d43] font-black text-white"
+              >
+                Iniciar sesión
+              </Button>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <div className="space-y-6">
           <Card className="border-0 bg-[#071527] text-white ring-0">

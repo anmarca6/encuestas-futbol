@@ -4,6 +4,8 @@ export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   nickname: text('nickname').notNull(),
   createdAt: integer('created_at').notNull(),
+  avatarUrl: text('avatar_url'),
+  passwordHash: text('password_hash'),
 }, (table) => [
   uniqueIndex('idx_users_nickname').on(table.nickname),
 ]);

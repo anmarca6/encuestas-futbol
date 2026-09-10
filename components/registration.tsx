@@ -37,7 +37,10 @@ export function Registration({
       const response = await fetch('/api/session', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nickname: data.get('nickname') }),
+        body: JSON.stringify({
+          nickname: data.get('nickname'),
+          password: data.get('password'),
+        }),
       });
       const result = (await response.json()) as {
         user?: CommunityUser;
@@ -65,10 +68,12 @@ export function Registration({
             Granota App
           </p>
           <DialogTitle className="text-2xl font-black text-[#071527]">
-            Elige tu apodo para publicar
+            Inicia sesión o crea tu cuenta
           </DialogTitle>
           <DialogDescription>
-            Tu apodo será visible para todos los usuarios en La Grada.
+            Tu apodo será visible para todos los usuarios en La Grada. Si es
+            la primera vez, crearemos tu cuenta. Si ya tienes una, inicia
+            sesión con la misma contraseña.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
@@ -89,6 +94,18 @@ export function Registration({
               />
             </div>
           </label>
+          <label className="block text-sm font-bold text-[#071527]">
+            Contraseña
+            <Input
+              name="password"
+              type="password"
+              required
+              minLength={4}
+              className="mt-1.5"
+              placeholder="••••••"
+              onChange={() => setError('')}
+            />
+          </label>
           {error && (
             <p
               role="alert"
@@ -102,7 +119,7 @@ export function Registration({
             disabled={saving}
             className="h-12 w-full bg-[#a91d43] font-black text-white"
           >
-            {saving ? 'Guardando tu apodo…' : 'Publicar en La Grada'}
+            {saving ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
       </DialogContent>

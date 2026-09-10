@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
+import { hashPassword, verifyPassword } from '@/lib/password';
 import type { CommunityUser } from '@/lib/community-types';
 
 const COOKIE_NAME = 'granota_user_id';
@@ -15,14 +16,25 @@ async function findUser(id: string | undefined): Promise<CommunityUser | null> {
     .first<CommunityUser>();
 }
 
+function setSessionCookie(response: NextResponse, request: NextRequest, userId: string) {
+  response.cookies.set(COOKIE_NAME, userId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: request.nextUrl.protocol === 'https:',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
+
 export async function GET(request: NextRequest) {
   const user = await findUser(request.cookies.get(COOKIE_NAME)?.value);
   return NextResponse.json({ user });
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as { nickname?: string };
+  const body = (await request.json()) as { nickname?: string; password?: string };
   const nickname = body.nickname?.trim().replace(/^@/, '').slice(0, 30) ?? '';
+  const password = body.password ?? '';
   if (nickname.length < 2 || !/^[\p{L}\p{N}_.-]+$/u.test(nickname)) {
     return NextResponse.json(
       {
@@ -32,11 +44,50 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  if (password.length < 4) {
+    return NextResponse.json(
+      { error: 'La contraseña debe tener al menos 4 caracteres.' },
+      { status: 400 },
+    );
+  }
   await ensureCommunitySchema();
   const db = getDatabase();
+
+  const existing = await db
+    .prepare(
+      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl, password_hash AS passwordHash FROM users WHERE nickname = ? LIMIT 1',
+    )
+    .bind(nickname)
+    .first<CommunityUser & { passwordHash: string | null }>();
+
+  if (existing) {
+    if (existing.passwordHash) {
+      const valid = await verifyPassword(password, existing.passwordHash);
+      if (!valid) {
+        return NextResponse.json(
+          { error: 'Esa contraseña no es correcta.' },
+          { status: 401 },
+        );
+      }
+    } else {
+      // Cuenta creada antes de tener contraseña: la reclamamos con la
+      // contraseña indicada ahora, en lugar de dejarla inaccesible.
+      const passwordHash = await hashPassword(password);
+      await db
+        .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        .bind(passwordHash, existing.id)
+        .run();
+    }
+    const { passwordHash: _passwordHash, ...user } = existing;
+    const response = NextResponse.json({ user });
+    setSessionCookie(response, request, existing.id);
+    return response;
+  }
+
   const id = crypto.randomUUID();
   const user = { id, nickname, createdAt: Date.now(), avatarUrl: null };
   try {
+    const passwordHash = await hashPassword(password);
     const columns = await db
       .prepare('PRAGMA table_info(users)')
       .bind()
@@ -45,7 +96,7 @@ export async function POST(request: NextRequest) {
     if (legacyColumns.has('name') && legacyColumns.has('email')) {
       await db
         .prepare(
-          'INSERT INTO users (id, name, nickname, email, created_at) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, name, nickname, email, created_at, password_hash) VALUES (?, ?, ?, ?, ?, ?)',
         )
         .bind(
           user.id,
@@ -53,12 +104,15 @@ export async function POST(request: NextRequest) {
           user.nickname,
           `${user.id}@granota-app.invalid`,
           user.createdAt,
+          passwordHash,
         )
         .run();
     } else {
       await db
-        .prepare('INSERT INTO users (id, nickname, created_at) VALUES (?, ?, ?)')
-        .bind(user.id, user.nickname, user.createdAt)
+        .prepare(
+          'INSERT INTO users (id, nickname, created_at, password_hash) VALUES (?, ?, ?, ?)',
+        )
+        .bind(user.id, user.nickname, user.createdAt, passwordHash)
         .run();
     }
   } catch (error) {
@@ -76,13 +130,7 @@ export async function POST(request: NextRequest) {
     );
   }
   const response = NextResponse.json({ user });
-  response.cookies.set(COOKIE_NAME, user.id, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: request.nextUrl.protocol === 'https:',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  setSessionCookie(response, request, user.id);
   return response;
 }
 

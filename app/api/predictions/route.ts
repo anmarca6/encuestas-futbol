@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   await ensureCommunitySchema();
   const user = await currentUser(request);
-  if (!user) return NextResponse.json({ error: 'Debes registrarte antes de publicar.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Debes iniciar sesión antes de publicar.' }, { status: 401 });
   const match = getNextLevanteMatch();
   if (!match) return NextResponse.json({ error: 'No hay un próximo partido disponible.' }, { status: 409 });
   if (isPredictionClosed(match)) {

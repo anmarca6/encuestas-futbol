@@ -73,7 +73,13 @@ export default function Home() {
       {active === 'grada' && <StandsSection />}
       {active === 'clasificacion' && <CommunityRankingSection />}
       {active === 'reglas' && <GameRulesSection />}
-      {active === 'perfil' && <ProfileSection user={user} openSettings={() => setActive('ajustes')} />}
+      {active === 'perfil' && (
+        <ProfileSection
+          user={user}
+          openSettings={() => setActive('ajustes')}
+          onUserUpdated={setUser}
+        />
+      )}
       {active === 'ajustes' && (
         <SettingsSection
           user={user}

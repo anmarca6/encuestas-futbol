@@ -65,6 +65,9 @@ export function ensureCommunitySchema(): Promise<void> {
     if (!userColumns.results.some((column) => column.name === 'avatar_url')) {
       await db.prepare('ALTER TABLE users ADD COLUMN avatar_url TEXT').bind().run();
     }
+    if (!userColumns.results.some((column) => column.name === 'password_hash')) {
+      await db.prepare('ALTER TABLE users ADD COLUMN password_hash TEXT').bind().run();
+    }
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS predictions (
         id TEXT PRIMARY KEY NOT NULL,

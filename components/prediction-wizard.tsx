@@ -62,6 +62,7 @@ export function PredictionWizard({
   const [scorerCounts, setScorerCounts] = useState<Record<string, number>>({});
   const [mvp, setMvp] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
+  const [password, setPassword] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
@@ -118,10 +119,10 @@ export function PredictionWizard({
         const sessionResponse = await fetch('/api/session', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ nickname }),
+          body: JSON.stringify({ nickname, password }),
         });
         const sessionResult = (await sessionResponse.json()) as { user?: CommunityUser; error?: string };
-        if (!sessionResponse.ok || !sessionResult.user) throw new Error(sessionResult.error ?? 'No se pudo guardar el apodo.');
+        if (!sessionResponse.ok || !sessionResult.user) throw new Error(sessionResult.error ?? 'No se pudo iniciar sesión.');
         currentUser = sessionResult.user;
         onRegistered(currentUser);
       }
@@ -235,7 +236,7 @@ export function PredictionWizard({
           )}
           {step === 5 && (
             <section className="mx-auto max-w-xl text-center">
-              {published ? <><span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" /></span><h2 className="mt-5 text-2xl font-black">¡Predicción guardada!</h2><p className="mt-2 text-slate-500">La versión actualizada ya aparece en La Grada y en tu perfil.</p><Button className="mt-7 bg-[#a91d43] text-white" onClick={onPublished}>Ver La Grada</Button></> : <><span className="mx-auto grid size-16 place-items-center rounded-full bg-rose-100 text-[#a91d43]"><Send className="size-7" /></span><p className="mt-5 text-xs font-black uppercase tracking-widest text-[#a91d43]">Paso 6</p><h2 className="mt-1 text-2xl font-black">{existingPrediction ? 'Guarda los cambios' : 'Publica tu predicción'}</h2>{user ? <div className="mt-6 rounded-2xl bg-slate-50 p-5"><p className="text-sm text-slate-500">Se publicará en La Grada como</p><strong className="mt-1 block text-xl text-[#153e72]">@{user.nickname}</strong></div> : <div className="mt-6 text-left"><label htmlFor="prediction-nickname" className="text-sm font-black">Elige tu apodo público</label><Input id="prediction-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ej. Leo_Granota" className="mt-2 h-12 bg-white" /><p className="mt-2 text-xs text-slate-500">Lo recordaremos para tus próximas predicciones y será visible en La Grada.</p></div>}{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}<Button disabled={publishing || (!user && nickname.trim().length < 2)} onClick={() => void publish()} className="mt-7 h-12 w-full bg-[#a91d43] font-black text-white">{publishing ? <><Loader2 className="animate-spin" /> Guardando…</> : <><Goal /> {existingPrediction ? 'Guardar cambios' : 'Publicar en La Grada'}</>}</Button></>}
+              {published ? <><span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" /></span><h2 className="mt-5 text-2xl font-black">¡Predicción guardada!</h2><p className="mt-2 text-slate-500">La versión actualizada ya aparece en La Grada y en tu perfil.</p><Button className="mt-7 bg-[#a91d43] text-white" onClick={onPublished}>Ver La Grada</Button></> : <><span className="mx-auto grid size-16 place-items-center rounded-full bg-rose-100 text-[#a91d43]"><Send className="size-7" /></span><p className="mt-5 text-xs font-black uppercase tracking-widest text-[#a91d43]">Paso 6</p><h2 className="mt-1 text-2xl font-black">{existingPrediction ? 'Guarda los cambios' : 'Publica tu predicción'}</h2>{user ? <div className="mt-6 rounded-2xl bg-slate-50 p-5"><p className="text-sm text-slate-500">Se publicará en La Grada como</p><strong className="mt-1 block text-xl text-[#153e72]">@{user.nickname}</strong></div> : <div className="mt-6 space-y-3 text-left"><div><label htmlFor="prediction-nickname" className="text-sm font-black">Apodo</label><Input id="prediction-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ej. Leo_Granota" className="mt-2 h-12 bg-white" /></div><div><label htmlFor="prediction-password" className="text-sm font-black">Contraseña</label><Input id="prediction-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••" className="mt-2 h-12 bg-white" /></div><p className="text-xs text-slate-500">Si es la primera vez, crearemos tu cuenta. Si ya tienes una, inicia sesión con la misma contraseña. Tu apodo será visible en La Grada, tu contraseña nunca.</p></div>}{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}<Button disabled={publishing || (!user && (nickname.trim().length < 2 || password.trim().length < 4))} onClick={() => void publish()} className="mt-7 h-12 w-full bg-[#a91d43] font-black text-white">{publishing ? <><Loader2 className="animate-spin" /> Guardando…</> : <><Goal /> {existingPrediction ? 'Guardar cambios' : 'Publicar en La Grada'}</>}</Button></>}
             </section>
           )}
         </div>
