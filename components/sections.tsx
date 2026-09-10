@@ -163,6 +163,17 @@ export function HomeSection({
       standings.find((item) => item.teamId === 'levante-ud') ??
       getLevanteStanding();
   const countdown = usePredictionCountdown(next);
+  const recentMvps = getRecentLevanteMatches(4, matches)
+    .filter((match) => levanteMatchReports[match.matchday])
+    .reverse()
+    .map((match) => {
+      const mvp = levanteMatchReports[match.matchday].mvp;
+      return {
+        matchday: match.matchday,
+        mvp,
+        player: levantePlayers.find((item) => item.displayName === mvp.playerName) ?? null,
+      };
+    });
   return (
     <>
       <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
@@ -325,18 +336,53 @@ export function HomeSection({
             </CardContent>
           </Card>
         </div>
-        <Card className="h-fit border-0 shadow-sm ring-slate-200">
-          <CardHeader>
-            <CardTitle className="font-black text-[#071527]">
-              Próximos partidos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {getUpcomingLevanteMatches(5, matches).map((match) => (
-              <CompactMatch key={match.id} match={match} />
-            ))}
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card className="h-fit border-0 shadow-sm ring-slate-200">
+            <CardHeader>
+              <CardTitle className="font-black text-[#071527]">
+                Próximos partidos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {getUpcomingLevanteMatches(5, matches).map((match) => (
+                <CompactMatch key={match.id} match={match} />
+              ))}
+            </CardContent>
+          </Card>
+          {recentMvps.length > 0 && (
+            <Card className="border-0 shadow-sm ring-slate-200">
+              <CardContent>
+                <h3 className="mb-4 font-black text-[#071527]">
+                  MVP últimas jornadas
+                </h3>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {recentMvps.map(({ matchday, player, mvp }) => (
+                    <div
+                      key={matchday}
+                      className="flex shrink-0 items-center gap-3 rounded-2xl bg-slate-50 p-3"
+                    >
+                      {player ? (
+                        <PlayerPhoto player={player} size="sm" />
+                      ) : (
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-100 text-[#153e72] ring-2 ring-white">
+                          <UserRound className="size-1/2" aria-label="Fotografía no disponible" />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          J{matchday}
+                        </small>
+                        <strong className="block truncate text-sm text-[#071527]">
+                          {mvp.playerName}
+                        </strong>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </>
   );
