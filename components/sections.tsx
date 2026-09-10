@@ -7,6 +7,8 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Crown,
   Goal,
@@ -50,6 +52,7 @@ import {
   levanteMatches,
   levantePlayers,
   type LevanteMatch,
+  type LevantePlayer,
 } from '@/lib/levante-data';
 import {
   getLastLevanteMatch,
@@ -135,6 +138,83 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
           ? `${match.homeScore}-${match.awayScore}`
           : ''}
       </strong>
+    </div>
+  );
+}
+
+function MvpCarousel({
+  items,
+}: {
+  items: Array<{
+    matchday: number;
+    mvp: { playerName: string; reason: string };
+    player: LevantePlayer | null;
+  }>;
+}) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (items.length < 2) return;
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % items.length);
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [items.length]);
+  useEffect(() => {
+    if (index >= items.length) setIndex(0);
+  }, [items.length, index]);
+  if (items.length === 0) return null;
+  const { matchday, mvp, player } = items[index];
+  const goTo = (next: number) => setIndex((next + items.length) % items.length);
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 pr-11">
+        {player ? (
+          <PlayerPhoto player={player} size="sm" />
+        ) : (
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-100 text-[#153e72] ring-2 ring-white">
+            <UserRound className="size-1/2" aria-label="Fotografía no disponible" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+            J{matchday}
+          </small>
+          <strong className="block truncate text-sm text-[#071527]">
+            {mvp.playerName}
+          </strong>
+        </div>
+      </div>
+      {items.length > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="MVP anterior"
+            onClick={() => goTo(index - 1)}
+            className="absolute left-1 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-white text-[#153e72] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="MVP siguiente"
+            onClick={() => goTo(index + 1)}
+            className="absolute right-1 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-white text-[#153e72] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <div className="mt-3 flex justify-center gap-1.5">
+            {items.map((item, dotIndex) => (
+              <button
+                key={item.matchday}
+                type="button"
+                aria-label={`Ir al MVP de la jornada ${item.matchday}`}
+                onClick={() => goTo(dotIndex)}
+                className={`h-1.5 rounded-full transition-all ${dotIndex === index ? 'w-5 bg-[#a91d43]' : 'w-1.5 bg-slate-300'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -254,7 +334,7 @@ export function HomeSection({
           </div>
         </section>
       )}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_.6fr]">
         <div className="space-y-6">
           {last && (
             <Card className="border-0 bg-gradient-to-br from-[#153e72] to-[#071527] text-white ring-0">
@@ -355,30 +435,7 @@ export function HomeSection({
                 <h3 className="mb-4 font-black text-[#071527]">
                   MVP últimas jornadas
                 </h3>
-                <div className="flex gap-3 overflow-x-auto pb-1">
-                  {recentMvps.map(({ matchday, player, mvp }) => (
-                    <div
-                      key={matchday}
-                      className="flex shrink-0 items-center gap-3 rounded-2xl bg-slate-50 p-3"
-                    >
-                      {player ? (
-                        <PlayerPhoto player={player} size="sm" />
-                      ) : (
-                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-100 text-[#153e72] ring-2 ring-white">
-                          <UserRound className="size-1/2" aria-label="Fotografía no disponible" />
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                          J{matchday}
-                        </small>
-                        <strong className="block truncate text-sm text-[#071527]">
-                          {mvp.playerName}
-                        </strong>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <MvpCarousel items={recentMvps} />
               </CardContent>
             </Card>
           )}
