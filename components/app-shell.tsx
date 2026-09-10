@@ -62,7 +62,7 @@ export function AppShell({
             className="flex items-center gap-3"
             aria-label="Ir a inicio"
           >
-            <TeamCrest teamName="Levante UD" size="md" className="rounded-lg" />
+            <TeamCrest teamName="Levante UD" size="lg" />
             <span className="text-left">
               <small className="block text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">
                 Levante UD
