@@ -335,7 +335,7 @@ export function HomeSection({
         </section>
       )}
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_.6fr]">
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {last && (
             <Card className="border-0 bg-gradient-to-br from-[#153e72] to-[#071527] text-white ring-0">
               <CardContent>
@@ -403,8 +403,8 @@ export function HomeSection({
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm ring-slate-200">
-            <CardContent>
+          <Card className="flex flex-1 flex-col border-0 shadow-sm ring-slate-200">
+            <CardContent className="flex flex-1 flex-col">
               <h3 className="mb-4 font-black text-[#071527]">
                 Últimos resultados
               </h3>
@@ -416,7 +416,7 @@ export function HomeSection({
             </CardContent>
           </Card>
         </div>
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <Card className="h-fit border-0 shadow-sm ring-slate-200">
             <CardHeader>
               <CardTitle className="font-black text-[#071527]">
@@ -430,8 +430,8 @@ export function HomeSection({
             </CardContent>
           </Card>
           {recentMvps.length > 0 && (
-            <Card className="border-0 shadow-sm ring-slate-200">
-              <CardContent>
+            <Card className="flex flex-1 flex-col border-0 shadow-sm ring-slate-200">
+              <CardContent className="flex flex-1 flex-col">
                 <h3 className="mb-4 font-black text-[#071527]">
                   MVP últimas jornadas
                 </h3>
