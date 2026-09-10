@@ -1299,7 +1299,13 @@ export function PredictSection({
   );
 }
 
-export function StandsSection() {
+export function StandsSection({
+  user,
+  onEdit,
+}: {
+  user: CommunityUser | null;
+  onEdit: (prediction: PredictionDraft) => void;
+}) {
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -1348,12 +1354,33 @@ export function StandsSection() {
             className="border-0 shadow-sm ring-slate-200"
           >
             <CardContent>
-              <div className="flex items-center gap-3">
-                <CommunityAvatar nickname={prediction.user.nickname} avatarUrl={prediction.user.avatarUrl} />
-                <div>
-                  <b className="block">@{prediction.user.nickname}</b>
-                  <small className="text-slate-400">Afición granota</small>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <CommunityAvatar nickname={prediction.user.nickname} avatarUrl={prediction.user.avatarUrl} />
+                  <div>
+                    <b className="block">@{prediction.user.nickname}</b>
+                    <small className="text-slate-400">Afición granota</small>
+                  </div>
                 </div>
+                {user?.id === prediction.user.id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-8 rounded-full"
+                    aria-label="Editar mi pronóstico"
+                    title="Editar mi pronóstico"
+                    onClick={() => onEdit({
+                      matchId: prediction.matchId,
+                      predictedScore: { home: prediction.homeScore, away: prediction.awayScore },
+                      lineup: prediction.lineup,
+                      scorers: prediction.scorers,
+                      mvp: prediction.mvp,
+                    })}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                )}
               </div>
               <div className="my-5 rounded-2xl bg-[#071527] py-4 text-center text-3xl font-black text-white">
                 {prediction.homeScore} — {prediction.awayScore}

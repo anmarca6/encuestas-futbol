@@ -16,7 +16,7 @@ export interface CommunityPrediction {
   scorers: string[];
   mvp: string | null;
   publishedAt: number;
-  user: Pick<CommunityUser, 'nickname' | 'avatarUrl'>;
+  user: Pick<CommunityUser, 'id' | 'nickname' | 'avatarUrl'>;
 }
 
 export interface CommunityRankingEntry {

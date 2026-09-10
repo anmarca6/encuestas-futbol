@@ -20,6 +20,7 @@ import { getNextLevanteMatch } from '@/lib/levante-services';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
+  const [predictionRevision, setPredictionRevision] = useState(0);
   const [user, setUser] = useState<CommunityUser | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionDraft | null>(null);
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
@@ -77,7 +78,16 @@ export default function Home() {
       {active === 'jornada' && (
         <MatchdaySection footballData={footballData} mvpOverrides={mvpOverrides} />
       )}{' '}
-      {active === 'grada' && <StandsSection />}
+      {active === 'grada' && (
+        <StandsSection
+          key={predictionRevision}
+          user={user}
+          onEdit={(prediction) => {
+            setCurrentPrediction(prediction);
+            setPredictionOpen(true);
+          }}
+        />
+      )}
       {active === 'clasificacion' && <CommunityRankingSection />}
       {active === 'reglas' && <GameRulesSection />}
       {active === 'perfil' && (
@@ -107,7 +117,10 @@ export default function Home() {
       user={user}
       existingPrediction={currentPrediction}
       onRegistered={setUser}
-      onSaved={setCurrentPrediction}
+      onSaved={(prediction) => {
+        setCurrentPrediction(prediction);
+        setPredictionRevision((revision) => revision + 1);
+      }}
       onPublished={() => {
         setPredictionOpen(false);
         setActive('grada');
