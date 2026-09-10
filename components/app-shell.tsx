@@ -14,9 +14,9 @@ import type { CommunityUser } from '@/lib/community-types';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
   ['inicio', 'Inicio', House],
-  ['jornada', 'Jornada', CalendarDays],
+  ['jornada', 'Calendario', CalendarDays],
   ['grada', 'Grada', MessageCircleMore],
-  ['clasificacion', 'Clasificación', Trophy],
+  ['clasificacion', 'El Raconet', Trophy],
   ['perfil', 'Perfil', UserRound],
 ] as const;
 function NavItems({
