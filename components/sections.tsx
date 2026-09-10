@@ -1445,6 +1445,9 @@ export function CommunityRankingSection() {
             </span>
             Clasificación granota
           </CardTitle>
+          <p className="mt-2 text-sm text-slate-300">
+            Cada jornada puede sumar hasta 20 puntos. Pulsa «Ver desglose» para ver de dónde sale cada total.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -1493,18 +1496,21 @@ export function CommunityRankingSection() {
                     </TableCell>
                     <TableCell className="text-center font-bold">{entry.predictions}</TableCell>
                     <TableCell className="text-right text-xl font-black text-[#a91d43]">
-                      <details className="group text-right">
-                        <summary className="cursor-pointer list-none font-black marker:hidden">
-                          {entry.points} <span className="text-xs text-slate-400 group-open:hidden">+</span>
-                        </summary>
-                        <div className="mt-2 space-y-1 text-left text-xs font-bold text-slate-500">
-                          <p>Formación: {entry.breakdown.formation} / 2</p>
-                          <p>XI titular: {entry.breakdown.lineup} / 7</p>
-                          <p>Resultado: {entry.breakdown.result} / 5</p>
-                          <p>Goleadores: {entry.breakdown.scorers} / 4</p>
-                          <p>MVP: {entry.breakdown.mvp} / 2</p>
-                        </div>
-                      </details>
+                      <div className="flex flex-col items-end">
+                        <strong>{entry.points} pts</strong>
+                        <details className="group text-right">
+                          <summary className="mt-1 cursor-pointer list-none text-xs font-bold text-[#153e72] underline marker:hidden">
+                            Ver desglose
+                          </summary>
+                          <div className="mt-2 w-44 space-y-1 rounded-xl bg-slate-50 p-3 text-left text-xs font-bold text-slate-600">
+                            <p className="flex justify-between gap-3"><span>Formación</span><span>{entry.breakdown.formation} / 2</span></p>
+                            <p className="flex justify-between gap-3"><span>XI titular</span><span>{entry.breakdown.lineup} / 7</span></p>
+                            <p className="flex justify-between gap-3"><span>Resultado</span><span>{entry.breakdown.result} / 5</span></p>
+                            <p className="flex justify-between gap-3"><span>Goleadores</span><span>{entry.breakdown.scorers} / 4</span></p>
+                            <p className="flex justify-between gap-3"><span>MVP</span><span>{entry.breakdown.mvp} / 2</span></p>
+                          </div>
+                        </details>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
