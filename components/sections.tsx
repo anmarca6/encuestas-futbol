@@ -47,6 +47,11 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   LEVANTE_TEAM,
   levanteMatchReports,
   levanteMatches,
@@ -382,23 +387,27 @@ export function HomeSection({
               </div>
               <div className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-7">
                 {[
-                  ['PJ', stats.played],
-                  ['G', stats.won],
-                  ['E', stats.drawn],
-                  ['P', stats.lost],
-                  ['GF', stats.goalsFor],
-                  ['GC', stats.goalsAgainst],
-                  ['DG', stats.goalDifference],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="rounded-xl bg-slate-50 p-3 text-center"
-                  >
-                    <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      {label}
-                    </small>
-                    <strong className="mt-1 block text-xl">{value}</strong>
-                  </div>
+                  ['PJ', stats.played, 'Partidos jugados'],
+                  ['G', stats.won, 'Partidos ganados'],
+                  ['E', stats.drawn, 'Partidos empatados'],
+                  ['P', stats.lost, 'Partidos perdidos'],
+                  ['GF', stats.goalsFor, 'Goles a favor'],
+                  ['GC', stats.goalsAgainst, 'Goles en contra'],
+                  ['DG', stats.goalDifference, 'Diferencia de goles'],
+                ].map(([label, value, description]) => (
+                  <Tooltip key={label as string}>
+                    <TooltipTrigger
+                      render={
+                        <div className="cursor-help rounded-xl bg-slate-50 p-3 text-center" />
+                      }
+                    >
+                      <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        {label}
+                      </small>
+                      <strong className="mt-1 block text-xl">{value}</strong>
+                    </TooltipTrigger>
+                    <TooltipContent>{description}</TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             </CardContent>
