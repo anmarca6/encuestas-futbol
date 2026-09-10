@@ -83,7 +83,8 @@ export function AppShell({
       </main>
       <footer className="mx-auto max-w-6xl px-4 pb-28 pt-10 sm:px-6 md:pb-12">
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 text-center text-sm leading-6 text-slate-500 shadow-sm sm:text-base">
-          👋 ¡Hola! Soy Leo, tengo 14 años. Me gusta el fútbol el Levante UD, la
+          👋 ¡Hola! Soy Leo, tengo 14 años. Me gusta{' '}
+          <s className="text-slate-400">el fútbol</s> el Levante UD, la
           tecnología y estoy aprendiendo a programar. ¡Espero que disfrutes
           participando! ⚽🚀
         </div>
