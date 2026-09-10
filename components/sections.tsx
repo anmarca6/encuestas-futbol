@@ -127,6 +127,34 @@ function usePredictionCountdown(match: LevanteMatch | null) {
   };
 }
 
+export interface MvpOverride {
+  matchday: number;
+  playerId: string;
+  reason: string;
+}
+
+export function resolveMvp(
+  matchday: number,
+  overrides: MvpOverride[] | null,
+): { playerName: string; reason: string; player: LevantePlayer | null } | null {
+  const override = overrides?.find((item) => item.matchday === matchday);
+  if (override) {
+    const player = levantePlayers.find((item) => item.id === override.playerId) ?? null;
+    return {
+      playerName: player?.displayName ?? override.playerId,
+      reason: override.reason,
+      player,
+    };
+  }
+  const seed = levanteMatchReports[matchday]?.mvp;
+  if (!seed) return null;
+  return {
+    playerName: seed.playerName,
+    reason: seed.reason,
+    player: levantePlayers.find((item) => item.displayName === seed.playerName) ?? null,
+  };
+}
+
 function CompactMatch({ match }: { match: LevanteMatch }) {
   return (
     <div className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
@@ -229,11 +257,13 @@ export function HomeSection({
   hasPrediction,
   openRules,
   footballData,
+  mvpOverrides,
 }: {
   predict: () => void;
   hasPrediction: boolean;
   openRules: () => void;
   footballData: FootballDataPayload | null;
+  mvpOverrides: MvpOverride[] | null;
 }) {
   const matches = footballData?.matches.length
     ? footballData.matches
@@ -249,16 +279,18 @@ export function HomeSection({
       getLevanteStanding();
   const countdown = usePredictionCountdown(next);
   const recentMvps = getRecentLevanteMatches(4, matches)
-    .filter((match) => levanteMatchReports[match.matchday])
     .reverse()
     .map((match) => {
-      const mvp = levanteMatchReports[match.matchday].mvp;
-      return {
-        matchday: match.matchday,
-        mvp,
-        player: levantePlayers.find((item) => item.displayName === mvp.playerName) ?? null,
-      };
-    });
+      const resolved = resolveMvp(match.matchday, mvpOverrides);
+      return resolved
+        ? {
+            matchday: match.matchday,
+            mvp: { playerName: resolved.playerName, reason: resolved.reason },
+            player: resolved.player,
+          }
+        : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
   return (
     <>
       <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
@@ -502,11 +534,14 @@ export function GameRulesSection() {
 type CalendarFilter = 'RESULTADOS' | 'PRÓXIMOS' | 'CALENDARIO';
 function CalendarMatch({
   match,
+  mvpOverrides,
 }: {
   match: LevanteMatch;
+  mvpOverrides: MvpOverride[] | null;
 }) {
   const [open, setOpen] = useState(false);
   const report = levanteMatchReports[match.matchday];
+  const mvp = resolveMvp(match.matchday, mvpOverrides);
   const scoringTeams = [match.homeTeam, match.awayTeam].filter((team) =>
     match.goals.some((goal) => goal.team === team),
   );
@@ -607,37 +642,53 @@ function CalendarMatch({
                       ))}
                     </div>
                   </div>
+                  {mvp && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                      <p className="text-xs font-black uppercase tracking-wider text-amber-700">
+                        ⭐ MVP Levante
+                      </p>
+                      <p className="mt-2 leading-6">
+                        <b>{mvp.playerName}</b> — {mvp.reason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {mvp && (
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
                     <p className="text-xs font-black uppercase tracking-wider text-amber-700">
                       ⭐ MVP Levante
                     </p>
                     <p className="mt-2 leading-6">
-                      <b>{report.mvp.playerName}</b> — {report.mvp.reason}
+                      <b>{mvp.playerName}</b> — {mvp.reason}
                     </p>
                   </div>
-                </div>
-              </div>
-            ) : match.goals.length === 0 ? (
-              <p className="text-slate-500">Sin goles.</p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {scoringTeams.map((team) => (
-                  <div key={team}>
-                    <p className="mb-2 text-xs font-black uppercase tracking-wider text-[#a91d43]">
-                      {team}
-                    </p>
-                    {match.goals
-                      .filter((goal) => goal.team === team)
-                      .map((goal, index) => (
-                        <p
-                          key={`${goal.playerName}-${goal.minute}-${index}`}
-                          className="py-0.5 text-slate-600"
-                        >
-                          {goal.playerName} <b>{goal.minute}&apos;</b>
+                )}
+                {match.goals.length === 0 ? (
+                  <p className="text-slate-500">Sin goles.</p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {scoringTeams.map((team) => (
+                      <div key={team}>
+                        <p className="mb-2 text-xs font-black uppercase tracking-wider text-[#a91d43]">
+                          {team}
                         </p>
-                      ))}
+                        {match.goals
+                          .filter((goal) => goal.team === team)
+                          .map((goal, index) => (
+                            <p
+                              key={`${goal.playerName}-${goal.minute}-${index}`}
+                              className="py-0.5 text-slate-600"
+                            >
+                              {goal.playerName} <b>{goal.minute}&apos;</b>
+                            </p>
+                          ))}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -761,8 +812,10 @@ function StandingsTable({ standings }: { standings: ReadonlyArray<LeagueStanding
 
 export function MatchdaySection({
   footballData,
+  mvpOverrides,
 }: {
   footballData: FootballDataPayload | null;
+  mvpOverrides: MvpOverride[] | null;
 }) {
   const [view, setView] = useState<'PARTIDOS' | 'CLASIFICACIÓN'>('PARTIDOS');
   const [filter, setFilter] = useState<CalendarFilter>('CALENDARIO');
@@ -822,7 +875,7 @@ export function MatchdaySection({
           </div>
           <div className="space-y-3">
             {visible.map((match) => (
-              <CalendarMatch key={match.id} match={match} />
+              <CalendarMatch key={match.id} match={match} mvpOverrides={mvpOverrides} />
             ))}
           </div>
         </>

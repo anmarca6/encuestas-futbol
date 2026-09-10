@@ -90,6 +90,14 @@ export function ensureCommunitySchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_predictions_match_published
       ON predictions (match_id, published_at)
     `).bind().run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS matchday_mvps (
+        matchday INTEGER PRIMARY KEY NOT NULL,
+        player_id TEXT NOT NULL,
+        reason TEXT NOT NULL DEFAULT '',
+        updated_at INTEGER NOT NULL
+      )
+    `).bind().run();
   })().catch((error) => {
     schemaReady = undefined;
     throw error;

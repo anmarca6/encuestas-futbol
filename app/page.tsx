@@ -15,6 +15,7 @@ import type { CommunityUser } from '@/lib/community-types';
 import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
+import type { MvpOverride } from '@/components/sections';
 import { getNextLevanteMatch } from '@/lib/levante-services';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
@@ -22,6 +23,7 @@ export default function Home() {
   const [user, setUser] = useState<CommunityUser | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionDraft | null>(null);
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
+  const [mvpOverrides, setMvpOverrides] = useState<MvpOverride[] | null>(null);
   useEffect(() => {
     void fetch('/api/session')
       .then(
@@ -51,6 +53,10 @@ export default function Home() {
       })
       .then(setFootballData)
       .catch(() => setFootballData(null));
+    void fetch('/api/mvp')
+      .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
+      .then((result) => setMvpOverrides(result.overrides ?? []))
+      .catch(() => setMvpOverrides([]));
   }, []);
   const predict = () => setPredictionOpen(true);
   const navigate = (section: SectionId) => {
@@ -65,10 +71,11 @@ export default function Home() {
           hasPrediction={currentPrediction?.matchId === getNextLevanteMatch()?.id}
           openRules={() => setActive('reglas')}
           footballData={footballData}
+          mvpOverrides={mvpOverrides}
         />
       )}{' '}
       {active === 'jornada' && (
-        <MatchdaySection footballData={footballData} />
+        <MatchdaySection footballData={footballData} mvpOverrides={mvpOverrides} />
       )}{' '}
       {active === 'grada' && <StandsSection />}
       {active === 'clasificacion' && <CommunityRankingSection />}
