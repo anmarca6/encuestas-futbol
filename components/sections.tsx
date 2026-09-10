@@ -307,9 +307,17 @@ export function HomeSection({
             </div>
             <div className="min-w-64 rounded-2xl bg-white/10 p-4 text-center ring-1 ring-white/10">
               {countdown.closed ? (
-                <p className="text-sm font-bold leading-6 text-slate-200">
-                  No pasa nada que no hayas podido participar. Podrás intentarlo de nuevo en la predicción de la jornada {next.matchday + 1}.
-                </p>
+                <>
+                  <Button
+                    disabled
+                    className="h-11 w-full bg-[#b51f46] px-5 font-black text-white opacity-60"
+                  >
+                    {hasPrediction ? <><Pencil className="size-4" /> Modificar</> : 'Participa →'}
+                  </Button>
+                  <p className="mt-3 text-sm font-bold leading-6 text-slate-200">
+                    Volverá a estar disponible para la siguiente jornada.
+                  </p>
+                </>
               ) : (
                 <>
                   <p className="text-[10px] font-black uppercase tracking-widest text-sky-200">
@@ -324,15 +332,6 @@ export function HomeSection({
                   >
                     {hasPrediction ? <><Pencil className="size-4" /> Modificar</> : 'Participa →'}
                   </Button>
-                  {hasPrediction && (
-                    <Button
-                      disabled
-                      variant="outline"
-                      className="mt-2 h-auto min-h-11 w-full whitespace-normal border-white/15 bg-white/5 px-4 py-2 text-xs font-black text-slate-400 opacity-100"
-                    >
-                      Participa · Disponible de nuevo en la próxima jornada
-                    </Button>
-                  )}
                 </>
               )}
             </div>
