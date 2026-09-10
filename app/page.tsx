@@ -10,6 +10,7 @@ import {
   ProfileSection,
 } from '@/components/sections';
 import { PredictionWizard } from '@/components/prediction-wizard';
+import { Registration } from '@/components/registration';
 import { SettingsSection } from '@/components/settings-section';
 import type { CommunityUser } from '@/lib/community-types';
 import type { CommunityPrediction } from '@/lib/community-types';
@@ -20,6 +21,7 @@ import { getNextLevanteMatch } from '@/lib/levante-services';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [predictionRevision, setPredictionRevision] = useState(0);
   const [user, setUser] = useState<CommunityUser | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionDraft | null>(null);
@@ -65,7 +67,18 @@ export default function Home() {
   };
   return (
     <>
-    <AppShell active={active} navigate={navigate}>
+    <AppShell
+      active={active}
+      navigate={navigate}
+      user={user}
+      onLogin={() => setLoginOpen(true)}
+      onLogout={async () => {
+        await fetch('/api/session', { method: 'DELETE' });
+        setUser(null);
+        setCurrentPrediction(null);
+        setActive('inicio');
+      }}
+    >
       {active === 'inicio' && (
         <HomeSection
           predict={predict}
@@ -124,6 +137,14 @@ export default function Home() {
       onPublished={() => {
         setPredictionOpen(false);
         setActive('grada');
+      }}
+    />
+    <Registration
+      open={loginOpen}
+      onOpenChange={setLoginOpen}
+      onRegistered={(registeredUser) => {
+        setUser(registeredUser);
+        setLoginOpen(false);
       }}
     />
     </>

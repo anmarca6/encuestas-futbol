@@ -2,11 +2,15 @@ import type { ReactNode } from 'react';
 import {
   CalendarDays,
   House,
+  LogIn,
+  LogOut,
   MessageCircleMore,
   Trophy,
   UserRound,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { TeamCrest } from '@/components/shared';
+import type { CommunityUser } from '@/lib/community-types';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
   ['inicio', 'Inicio', House],
@@ -47,10 +51,16 @@ function NavItems({
 export function AppShell({
   active,
   navigate,
+  user,
+  onLogin,
+  onLogout,
   children,
 }: {
   active: SectionId;
   navigate: (s: SectionId) => void;
+  user: CommunityUser | null;
+  onLogin: () => void;
+  onLogout: () => void;
   children: ReactNode;
 }) {
   return (
@@ -73,9 +83,30 @@ export function AppShell({
           <nav className="hidden gap-1 md:flex">
             <NavItems active={active} navigate={navigate} />
           </nav>
-          <span className="hidden rounded-full border border-white/15 px-3 py-1.5 text-xs text-slate-300 lg:block">
-            Temporada 26/27
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="hidden rounded-full border border-white/15 px-3 py-1.5 text-xs text-slate-300 lg:block">
+              Temporada 26/27
+            </span>
+            {user ? (
+              <Button
+                variant="outline"
+                onClick={onLogout}
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                <LogOut className="size-4" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+                <span className="sm:hidden">Salir</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={onLogin}
+                className="bg-[#a91d43] font-black text-white shadow-lg shadow-black/20 hover:bg-[#8f1738]"
+              >
+                <LogIn className="size-4" />
+                <span>Iniciar sesión</span>
+              </Button>
+            )}
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 pt-7 sm:px-6 md:pt-10">
