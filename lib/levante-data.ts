@@ -106,16 +106,7 @@ const matchSeeds: MatchSeed[] = [
     ],
   ],
   [4, '2026-09-06', 'Málaga CF', LEVANTE_TEAM, 0, 0, 'FINISHED', []],
-  [
-    5,
-    '2026-09-13',
-    LEVANTE_TEAM,
-    'FC Barcelona',
-    1,
-    4,
-    'FINISHED',
-    [{ playerName: 'Dela', team: LEVANTE_TEAM, minute: 18 }],
-  ],
+  [5, '2026-09-13', LEVANTE_TEAM, 'FC Barcelona', null, null, 'SCHEDULED'],
   [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'SCHEDULED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [8, '2026-10-11', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
@@ -266,15 +257,6 @@ export const levanteMatchReports: Record<number, LevanteMatchReport> = {
     mvp: {
       playerName: 'Mathew Ryan',
       reason: 'Paró un penalti a Chupe y volvió a mantener la portería a cero.',
-    },
-  },
-  5: {
-    formation: '4-1-4-1',
-    lineup: repeatedLineup,
-    levanteGoals: [{ playerName: 'Dela', minutes: [18] }],
-    mvp: {
-      playerName: 'Dela',
-      reason: 'Marcó el gol del Levante y fue el jugador más destacado del partido.',
     },
   },
 };
