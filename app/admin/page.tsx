@@ -12,6 +12,7 @@ import {
   NativeSelectOption,
 } from '@/components/ui/native-select';
 import { levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 
@@ -230,6 +231,198 @@ function MvpEditor() {
   );
 }
 
+function MatchReportEditor() {
+  type MatchReportDraft = {
+    homeScore: number;
+    awayScore: number;
+    formation: SavedLineup['formation'];
+    lineup: SavedLineup;
+    scorers: string[];
+    mvp: string;
+    reason: string;
+  };
+
+  const [reports, setReports] = useState<Record<number, MatchReportDraft>>({});
+  const [loading, setLoading] = useState(true);
+  const [savingMatchday, setSavingMatchday] = useState<number | null>(null);
+  const [savedMatchday, setSavedMatchday] = useState<number | null>(null);
+
+  const loadReports = async () => {
+    const response = await fetch('/api/admin/matches');
+    const result = (await response.json()) as { reports?: Array<{ matchday: number; homeScore: number; awayScore: number; formation: SavedLineup['formation']; lineup: SavedLineup; scorers: string[]; mvp: string | null; reason: string }> };
+    const next: Record<number, MatchReportDraft> = {};
+    for (const item of result.reports ?? []) {
+      next[item.matchday] = {
+        homeScore: item.homeScore,
+        awayScore: item.awayScore,
+        formation: item.formation,
+        lineup: item.lineup ?? { formation: '4-3-3', players: Array(11).fill('') },
+        scorers: item.scorers ?? [],
+        mvp: item.mvp ?? '',
+        reason: item.reason ?? '',
+      };
+    }
+    setReports(next);
+  };
+
+  useEffect(() => {
+    void loadReports().finally(() => setLoading(false));
+  }, []);
+
+  const draftFor = (matchday: number) => {
+    const match = levanteMatches.find((item) => item.matchday === matchday);
+    const baseFormation: SavedLineup['formation'] = match?.status === 'FINISHED' ? '4-4-2' : '4-3-3';
+    const current = reports[matchday];
+    if (current) return current;
+    const fallbackDraft: MatchReportDraft = {
+      homeScore: match?.homeScore ?? 0,
+      awayScore: match?.awayScore ?? 0,
+      formation: baseFormation,
+      lineup: { formation: baseFormation, players: Array(11).fill('') },
+      scorers: [],
+      mvp: '',
+      reason: '',
+    };
+    return fallbackDraft;
+  };
+
+  const save = async (matchday: number) => {
+    const draft = draftFor(matchday);
+    if (!draft.formation || draft.lineup.players.length !== 11 || !draft.mvp) return;
+    setSavingMatchday(matchday);
+    try {
+      const response = await fetch('/api/admin/matches', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          matchday,
+          homeScore: draft.homeScore,
+          awayScore: draft.awayScore,
+          formation: draft.formation,
+          lineup: draft.lineup,
+          scorers: draft.scorers,
+          mvp: draft.mvp,
+          reason: draft.reason,
+        }),
+      });
+      if (response.ok) {
+        await loadReports();
+        setSavedMatchday(matchday);
+        window.setTimeout(() => setSavedMatchday((current) => (current === matchday ? null : current)), 2000);
+      }
+    } finally {
+      setSavingMatchday(null);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-sm font-bold text-slate-400">Cargando informes oficiales…</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {levanteMatches.map((match) => {
+        const draft = draftFor(match.matchday);
+        const slots = formations[draft.formation as keyof typeof formations]?.slots ?? formations['4-3-3'].slots;
+        return (
+          <Card key={match.id} className="border-0 shadow-sm ring-slate-200">
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <strong className="block text-[#071527]">Jornada {match.matchday}</strong>
+                  <span className="text-sm text-slate-500">{match.homeTeam} vs {match.awayTeam}</span>
+                </div>
+                <Button
+                  onClick={() => void save(match.matchday)}
+                  disabled={savingMatchday === match.matchday || !draft.mvp}
+                  className="bg-[#a91d43] font-black text-white"
+                >
+                  {savingMatchday === match.matchday ? <Loader2 className="animate-spin" /> : savedMatchday === match.matchday ? 'Guardado ✓' : 'Guardar'}
+                </Button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase text-slate-400">Resultado local</label>
+                  <Input type="number" min={0} max={20} value={draft.homeScore} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), homeScore: Number(event.target.value) } }))} className="h-11" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase text-slate-400">Resultado visitante</label>
+                  <Input type="number" min={0} max={20} value={draft.awayScore} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), awayScore: Number(event.target.value) } }))} className="h-11" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase text-slate-400">Formación</label>
+                  <NativeSelect value={draft.formation} onChange={(event) => {
+                    const formation = event.target.value as SavedLineup['formation'];
+                    const nextPlayers = Array(11).fill('');
+                    const slotIds = formations[formation as keyof typeof formations]?.slots ?? formations['4-3-3'].slots;
+                    const existing = draft.lineup?.players ?? [];
+                    slotIds.forEach((slot, index) => {
+                      nextPlayers[index] = existing[index] ?? '';
+                    });
+                    const nextLineup: SavedLineup = { formation, players: nextPlayers };
+                    setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), formation, lineup: nextLineup } }));
+                  }} className="h-11">
+                    {formationOptions.map((option) => (
+                      <NativeSelectOption key={option} value={option}>{option}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {slots.map((slot, index) => (
+                  <div key={`${match.matchday}-${slot.id}`}>
+                    <label className="mb-1 block text-xs font-black uppercase text-slate-400">{slot.label}</label>
+                    <NativeSelect value={draft.lineup.players[index] ?? ''} onChange={(event) => {
+                      const players = [...draft.lineup.players];
+                      players[index] = event.target.value;
+                      const nextLineup: SavedLineup = { formation: draft.formation, players };
+                      setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), lineup: nextLineup } }));
+                    }} className="h-11">
+                      <NativeSelectOption value="">Sin elegir</NativeSelectOption>
+                      {levantePlayers.map((player) => (
+                        <NativeSelectOption key={player.id} value={player.id}>{player.displayName}</NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase text-slate-400">Goleadores</label>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {levantePlayers.map((player) => (
+                    <label key={`${match.matchday}-scorer-${player.id}`} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-sm">
+                      <input type="checkbox" checked={draft.scorers.includes(player.id)} onChange={() => {
+                        const scorers = draft.scorers.includes(player.id)
+                          ? draft.scorers.filter((id) => id !== player.id)
+                          : [...draft.scorers, player.id];
+                        setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), scorers } }));
+                      }} />
+                      {player.displayName}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase text-slate-400">MVP</label>
+                <NativeSelect value={draft.mvp} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), mvp: event.target.value } }))} className="h-11">
+                  <NativeSelectOption value="">Elige MVP</NativeSelectOption>
+                  {levantePlayers.map((player) => (
+                    <NativeSelectOption key={`${match.matchday}-mvp-${player.id}`} value={player.id}>{player.displayName}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase text-slate-400">Nota / motivo</label>
+                <Textarea value={draft.reason} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), reason: event.target.value } }))} rows={2} placeholder="Motivo del MVP o nota del partido" />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 function PredictionsModeration() {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -413,6 +606,20 @@ export default function AdminPage() {
           </Card>
           <div className="mt-4">
             <MvpEditor />
+          </div>
+        </section>
+        <section>
+          <Card className="border-0 shadow-sm ring-slate-200">
+            <CardHeader>
+              <CardTitle className="font-black text-[#071527]">Partidos oficiales</CardTitle>
+              <p className="text-sm text-slate-500">
+                Introduce el resultado, la formación, el once, los goleadores y el MVP de cada partido.
+                Al guardar, la clasificación de la Grada usa esos datos oficiales.
+              </p>
+            </CardHeader>
+          </Card>
+          <div className="mt-4">
+            <MatchReportEditor />
           </div>
         </section>
         <section>

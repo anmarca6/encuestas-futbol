@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { levanteMatchReports, levanteMatches } from '../lib/levante-data.ts';
+import { levanteMatchReports, levanteMatches } from '../lib/levante-data';
 
 test('Levante vs Barcelona matchday 5 must use the official 4-4-2 lineup and the correct 2-4 result', () => {
   const match = levanteMatches.find((item) => item.matchday === 5);

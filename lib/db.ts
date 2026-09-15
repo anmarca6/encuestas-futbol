@@ -98,6 +98,19 @@ export function ensureCommunitySchema(): Promise<void> {
         updated_at INTEGER NOT NULL
       )
     `).bind().run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS official_match_reports (
+        matchday INTEGER PRIMARY KEY NOT NULL,
+        home_score INTEGER NOT NULL,
+        away_score INTEGER NOT NULL,
+        formation TEXT NOT NULL,
+        lineup TEXT NOT NULL,
+        scorers TEXT NOT NULL DEFAULT '[]',
+        mvp TEXT NOT NULL,
+        reason TEXT NOT NULL DEFAULT '',
+        updated_at INTEGER NOT NULL
+      )
+    `).bind().run();
   })().catch((error) => {
     schemaReady = undefined;
     throw error;
