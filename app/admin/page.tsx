@@ -11,7 +11,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@/components/ui/native-select';
-import { levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
@@ -269,11 +269,39 @@ function MatchReportEditor() {
     void loadReports().finally(() => setLoading(false));
   }, []);
 
+  const draftFromStaticReport = (matchday: number): MatchReportDraft | null => {
+    const match = levanteMatches.find((item) => item.matchday === matchday);
+    const report = levanteMatchReports[matchday];
+    if (!match || match.status !== 'FINISHED' || !report) return null;
+
+    const playerIdForName = (name: string) =>
+      levantePlayers.find((player) => player.displayName === name)?.id ?? '';
+    const players = [
+      ...report.lineup.goalkeeper,
+      ...report.lineup.defenders,
+      ...report.lineup.midfielders,
+      ...report.lineup.attackers,
+    ].map(playerIdForName);
+    const formation = report.formation as SavedLineup['formation'];
+
+    return {
+      homeScore: match.homeScore ?? 0,
+      awayScore: match.awayScore ?? 0,
+      formation,
+      lineup: { formation, players },
+      scorers: report.levanteGoals.map((goal) => playerIdForName(goal.playerName)).filter(Boolean),
+      mvp: playerIdForName(report.mvp.playerName),
+      reason: report.mvp.reason,
+    };
+  };
+
   const draftFor = (matchday: number) => {
     const match = levanteMatches.find((item) => item.matchday === matchday);
     const baseFormation: SavedLineup['formation'] = match?.status === 'FINISHED' ? '4-4-2' : '4-3-3';
     const current = reports[matchday];
     if (current) return current;
+    const staticReport = draftFromStaticReport(matchday);
+    if (staticReport) return staticReport;
     const fallbackDraft: MatchReportDraft = {
       homeScore: match?.homeScore ?? 0,
       awayScore: match?.awayScore ?? 0,
