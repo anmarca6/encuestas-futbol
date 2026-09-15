@@ -106,7 +106,23 @@ const matchSeeds: MatchSeed[] = [
     ],
   ],
   [4, '2026-09-06', 'Málaga CF', LEVANTE_TEAM, 0, 0, 'FINISHED', []],
-  [5, '2026-09-13', LEVANTE_TEAM, 'FC Barcelona', null, null, 'SCHEDULED'],
+  [
+    5,
+    '2026-09-13',
+    LEVANTE_TEAM,
+    'FC Barcelona',
+    2,
+    4,
+    'FINISHED',
+    [
+      { playerName: 'Iván Romero', team: LEVANTE_TEAM, minute: 34 },
+      { playerName: 'Roger Brugué', team: LEVANTE_TEAM, minute: 63 },
+      { playerName: 'Robert Lewandowski', team: 'FC Barcelona', minute: 12 },
+      { playerName: 'Lamine Yamal', team: 'FC Barcelona', minute: 21 },
+      { playerName: 'Raphinha', team: 'FC Barcelona', minute: 52 },
+      { playerName: 'Raphinha', team: 'FC Barcelona', minute: 78 },
+    ],
+  ],
   [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'SCHEDULED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [8, '2026-10-11', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
@@ -257,6 +273,23 @@ export const levanteMatchReports: Record<number, LevanteMatchReport> = {
     mvp: {
       playerName: 'Mathew Ryan',
       reason: 'Paró un penalti a Chupe y volvió a mantener la portería a cero.',
+    },
+  },
+  5: {
+    formation: '4-4-2',
+    lineup: {
+      goalkeeper: ['Mathew Ryan'],
+      defenders: ['Jeremy Toljan', 'Aïssa Mandi', 'Dela', 'Manu Sánchez'],
+      midfielders: ['Víctor García', 'Hugo Sotelo', 'Olasagasti', 'Roger Brugué'],
+      attackers: ['Dani Requena', 'Petar Ratkov'],
+    },
+    levanteGoals: [
+      { playerName: 'Iván Romero', minutes: [34] },
+      { playerName: 'Roger Brugué', minutes: [63] },
+    ],
+    mvp: {
+      playerName: 'Roger Brugué',
+      reason: 'Marcó y dio continuidad al ataque del Levante en un partido muy intenso ante el Barça.',
     },
   },
 };
@@ -438,7 +471,7 @@ export const levantePlayers: LevantePlayer[] = [
   {
     id: 'ratkov',
     number: 10,
-    displayName: 'Ratkov',
+    displayName: 'Petar Ratkov',
     position: 'FORWARD',
     image: ratkovImage.src,
     possibleDeparture: false,
