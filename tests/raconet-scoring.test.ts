@@ -16,6 +16,9 @@ test('Levante vs Barcelona matchday 5 must use the official 4-4-2 lineup and the
 
   const homeTeamScorers = report.levanteGoals.map((goal) => goal.playerName);
   assert.deepEqual(homeTeamScorers, ['Iván Romero', 'Roger Brugué']);
+  assert.deepEqual(report.levanteGoals[0].minutes, [79]);
+  assert.deepEqual(report.levanteGoals[1].minutes, [88]);
+  assert.deepEqual(match.goals.filter((goal) => goal.team === 'Levante UD').map((goal) => goal.minute), [79, 88]);
 
   const lineupNames = [
     ...report.lineup.goalkeeper,

@@ -115,8 +115,8 @@ const matchSeeds: MatchSeed[] = [
     4,
     'FINISHED',
     [
-      { playerName: 'Iván Romero', team: LEVANTE_TEAM, minute: 34 },
-      { playerName: 'Roger Brugué', team: LEVANTE_TEAM, minute: 63 },
+      { playerName: 'Iván Romero', team: LEVANTE_TEAM, minute: 79 },
+      { playerName: 'Roger Brugué', team: LEVANTE_TEAM, minute: 88 },
       { playerName: 'Robert Lewandowski', team: 'FC Barcelona', minute: 12 },
       { playerName: 'Lamine Yamal', team: 'FC Barcelona', minute: 21 },
       { playerName: 'Raphinha', team: 'FC Barcelona', minute: 52 },
@@ -284,8 +284,8 @@ export const levanteMatchReports: Record<number, LevanteMatchReport> = {
       attackers: ['Dani Requena', 'Petar Ratkov'],
     },
     levanteGoals: [
-      { playerName: 'Iván Romero', minutes: [34] },
-      { playerName: 'Roger Brugué', minutes: [63] },
+      { playerName: 'Iván Romero', minutes: [79] },
+      { playerName: 'Roger Brugué', minutes: [88] },
     ],
     mvp: {
       playerName: 'Roger Brugué',
