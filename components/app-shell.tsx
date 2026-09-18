@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import {
   CalendarDays,
   House,
@@ -11,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TeamCrest } from '@/components/shared';
 import type { CommunityUser } from '@/lib/community-types';
+import milCromosBanner from '@/public/bannerMilCromos.png';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
   ['inicio', 'Inicio', House],
@@ -115,6 +117,20 @@ export function AppShell({
         {children}
       </main>
       <footer className="mx-auto max-w-6xl px-4 pb-28 pt-10 sm:px-6 md:pb-12">
+        <a
+          href="https://www.milcromos.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="MilCromos: completa tu colección. Abre www.milcromos.com en una pestaña nueva"
+          className="mb-6 block overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+        >
+          <Image
+            src={milCromosBanner}
+            alt="MilCromos: completa tu colección. Encuentra, cambia, disfruta."
+            sizes="(min-width: 1152px) 1088px, 100vw"
+            className="h-auto w-full"
+          />
+        </a>
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 text-center text-sm leading-6 text-slate-500 shadow-sm sm:text-base">
           👋 ¡Hola! Soy Leo, tengo 14 años. Me gusta{' '}
           <s className="text-slate-400">el fútbol</s> el Levante UD, la
