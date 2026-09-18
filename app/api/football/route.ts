@@ -124,13 +124,15 @@ function madridDateParts(utcDate: string) {
   };
 }
 
-// La API puede tardar en marcar un aplazamiento: si el partido está marcado como
-// aplazado en los datos locales y la API sigue dando la fecha original, se respeta.
-function matchStatus(match: ApiMatch, matchday: number, date: string): MatchStatus {
+// Un aplazamiento marcado en los datos locales manda sobre la API (que puede tardar en
+// reflejarlo o dar una fecha provisional) mientras el partido no figure como terminado.
+// Al fijarse la nueva fecha basta con pasar el partido local a SCHEDULED.
+const postponedStatuses = ['POSTPONED', 'SUSPENDED', 'CANCELLED'];
+function matchStatus(match: ApiMatch, matchday: number): MatchStatus {
   if (match.status === 'FINISHED') return 'FINISHED';
-  if (match.status === 'POSTPONED') return 'POSTPONED';
+  if (postponedStatuses.includes(match.status)) return 'POSTPONED';
   const local = levanteMatches.find((item) => item.matchday === matchday);
-  return local?.status === 'POSTPONED' && local.date === date ? 'POSTPONED' : 'SCHEDULED';
+  return local?.status === 'POSTPONED' ? 'POSTPONED' : 'SCHEDULED';
 }
 
 async function footballData<T>(path: string, apiKey: string): Promise<T> {
@@ -188,7 +190,7 @@ export async function GET() {
           awayTeam,
           homeScore: match.score.fullTime.home,
           awayScore: match.score.fullTime.away,
-          status: matchStatus(match, matchday, date),
+          status: matchStatus(match, matchday),
           goals,
           tags:
             homeTeam === 'Valencia CF' || awayTeam === 'Valencia CF'
