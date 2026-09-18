@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { LeagueStanding } from '@/lib/laliga-data';
+import { applyLocalPostponements } from '@/lib/levante-services';
 import {
   LEVANTE_COMPETITION,
   LEVANTE_SEASON,
-  levanteMatches,
   type LevanteMatch,
   type MatchGoal,
   type MatchStatus,
@@ -124,15 +124,10 @@ function madridDateParts(utcDate: string) {
   };
 }
 
-// Un aplazamiento marcado en los datos locales manda sobre la API (que puede tardar en
-// reflejarlo o dar una fecha provisional) mientras el partido no figure como terminado.
-// Al fijarse la nueva fecha basta con pasar el partido local a SCHEDULED.
 const postponedStatuses = ['POSTPONED', 'SUSPENDED', 'CANCELLED'];
-function matchStatus(match: ApiMatch, matchday: number): MatchStatus {
+function matchStatus(match: ApiMatch): MatchStatus {
   if (match.status === 'FINISHED') return 'FINISHED';
-  if (postponedStatuses.includes(match.status)) return 'POSTPONED';
-  const local = levanteMatches.find((item) => item.matchday === matchday);
-  return local?.status === 'POSTPONED' ? 'POSTPONED' : 'SCHEDULED';
+  return postponedStatuses.includes(match.status) ? 'POSTPONED' : 'SCHEDULED';
 }
 
 async function footballData<T>(path: string, apiKey: string): Promise<T> {
@@ -190,7 +185,7 @@ export async function GET() {
           awayTeam,
           homeScore: match.score.fullTime.home,
           awayScore: match.score.fullTime.away,
-          status: matchStatus(match, matchday),
+          status: matchStatus(match),
           goals,
           tags:
             homeTeam === 'Valencia CF' || awayTeam === 'Valencia CF'
@@ -217,7 +212,7 @@ export async function GET() {
       .filter((row) => row.teamId);
 
     const payload: FootballDataPayload = {
-      matches,
+      matches: applyLocalPostponements(matches),
       standings,
       currentMatchday: standingData.season?.currentMatchday ?? null,
       updatedAt: new Date().toISOString(),

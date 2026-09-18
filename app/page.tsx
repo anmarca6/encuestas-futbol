@@ -17,7 +17,7 @@ import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
-import { getNextLevanteMatch } from '@/lib/levante-services';
+import { applyLocalPostponements, getNextLevanteMatch } from '@/lib/levante-services';
 export default function Home() {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
@@ -54,7 +54,7 @@ export default function Home() {
         if (!response.ok) throw new Error('Football data unavailable');
         return (await response.json()) as FootballDataPayload;
       })
-      .then(setFootballData)
+      .then((data) => setFootballData({ ...data, matches: applyLocalPostponements(data.matches) }))
       .catch(() => setFootballData(null));
     void fetch('/api/mvp')
       .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
