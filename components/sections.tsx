@@ -549,7 +549,7 @@ function CalendarMatch({
   );
   return (
     <Card
-      className={`border-0 py-0 shadow-sm ring-1 ${match.status === 'FINISHED' ? 'ring-slate-200' : 'ring-sky-200/80'}`}
+      className={`border-0 py-0 shadow-sm ring-1 ${match.status === 'FINISHED' ? 'ring-slate-200' : match.status === 'POSTPONED' ? 'ring-amber-200' : 'ring-sky-200/80'}`}
     >
       <CardContent className="px-3 py-4 sm:px-5">
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
@@ -566,6 +566,10 @@ function CalendarMatch({
             {match.status === 'FINISHED' ? (
               <span className="rounded-lg bg-[#071527] px-2 py-1.5 text-center text-xs font-black text-white">
                 {match.homeScore} — {match.awayScore}
+              </span>
+            ) : match.status === 'POSTPONED' ? (
+              <span className="rounded-lg bg-amber-50 px-2 py-1.5 text-center text-xs font-black text-amber-700">
+                Aplazado
               </span>
             ) : (
               <span className="rounded-lg bg-sky-50 px-2 py-1.5 text-center text-xs font-black text-[#153e72]">
@@ -834,7 +838,7 @@ export function MatchdaySection({
       filter === 'CALENDARIO' ||
       (filter === 'RESULTADOS'
         ? match.status === 'FINISHED'
-        : match.status === 'SCHEDULED'),
+        : match.status !== 'FINISHED'),
   );
   return (
     <>

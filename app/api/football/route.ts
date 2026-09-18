@@ -4,8 +4,10 @@ import type { LeagueStanding } from '@/lib/laliga-data';
 import {
   LEVANTE_COMPETITION,
   LEVANTE_SEASON,
+  levanteMatches,
   type LevanteMatch,
   type MatchGoal,
+  type MatchStatus,
 } from '@/lib/levante-data';
 
 const API_ROOT = 'https://api.football-data.org/v4';
@@ -122,6 +124,15 @@ function madridDateParts(utcDate: string) {
   };
 }
 
+// La API puede tardar en marcar un aplazamiento: si el partido está marcado como
+// aplazado en los datos locales y la API sigue dando la fecha original, se respeta.
+function matchStatus(match: ApiMatch, matchday: number, date: string): MatchStatus {
+  if (match.status === 'FINISHED') return 'FINISHED';
+  if (match.status === 'POSTPONED') return 'POSTPONED';
+  const local = levanteMatches.find((item) => item.matchday === matchday);
+  return local?.status === 'POSTPONED' && local.date === date ? 'POSTPONED' : 'SCHEDULED';
+}
+
 async function footballData<T>(path: string, apiKey: string): Promise<T> {
   const response = await fetch(`${API_ROOT}${path}`, {
     headers: { 'X-Auth-Token': apiKey, 'X-Unfold-Goals': 'true' },
@@ -158,6 +169,7 @@ export async function GET() {
       .filter((match) => match.matchday !== null)
       .map((match) => {
         const { date, kickoffTime } = madridDateParts(match.utcDate);
+        const matchday = match.matchday!;
         const homeTeam = displayName(match.homeTeam);
         const awayTeam = displayName(match.awayTeam);
         const goals: MatchGoal[] = (match.goals ?? []).map((goal) => ({
@@ -169,17 +181,14 @@ export async function GET() {
           id: `football-data-${match.id}`,
           season: LEVANTE_SEASON,
           competition: LEVANTE_COMPETITION,
-          matchday: match.matchday!,
+          matchday,
           date,
           kickoffTime,
           homeTeam,
           awayTeam,
           homeScore: match.score.fullTime.home,
           awayScore: match.score.fullTime.away,
-          status:
-            match.status === 'FINISHED'
-              ? ('FINISHED' as const)
-              : ('SCHEDULED' as const),
+          status: matchStatus(match, matchday, date),
           goals,
           tags:
             homeTeam === 'Valencia CF' || awayTeam === 'Valencia CF'

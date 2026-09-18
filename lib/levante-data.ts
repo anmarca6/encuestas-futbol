@@ -28,7 +28,7 @@ export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
 export const LEVANTE_COMPETITION = 'LaLiga' as const;
 
-export type MatchStatus = 'FINISHED' | 'SCHEDULED';
+export type MatchStatus = 'FINISHED' | 'SCHEDULED' | 'POSTPONED';
 export interface MatchGoal {
   playerName: string;
   team: string;
@@ -123,7 +123,7 @@ const matchSeeds: MatchSeed[] = [
       { playerName: 'Raphinha', team: 'FC Barcelona', minute: 78 },
     ],
   ],
-  [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'SCHEDULED'],
+  [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'POSTPONED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [8, '2026-10-11', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
   [9, '2026-10-18', 'RC Deportivo', LEVANTE_TEAM, null, null, 'SCHEDULED'],
