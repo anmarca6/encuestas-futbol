@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { TeamCrest } from '@/components/shared';
 import type { CommunityUser } from '@/lib/community-types';
 import milCromosBanner from '@/public/bannerMilCromos.png';
+import type { CommunityIdentity } from '@/lib/community-identity';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
   ['inicio', 'Inicio', House],
@@ -56,6 +57,7 @@ export function AppShell({
   active,
   navigate,
   user,
+  identity,
   onLogin,
   onLogout,
   children,
@@ -63,6 +65,7 @@ export function AppShell({
   active: SectionId;
   navigate: (s: SectionId) => void;
   user: CommunityUser | null;
+  identity: CommunityIdentity;
   onLogin: () => void;
   onLogout: () => void;
   children: ReactNode;
@@ -73,15 +76,26 @@ export function AppShell({
         <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-4 sm:px-6">
           <button
             onClick={() => navigate('inicio')}
-            className="flex items-center gap-3"
+            className="flex min-w-0 items-center gap-3"
             aria-label="Ir a inicio"
           >
-            <TeamCrest teamName="Levante UD" size="lg" />
-            <span className="text-left">
-              <small className="block text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">
-                Levante UD
+            {identity.logoSrc ? (
+              <Image
+                unoptimized
+                src={identity.logoSrc}
+                width={96}
+                height={96}
+                alt=""
+                className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white/20"
+              />
+            ) : (
+              <TeamCrest teamName="Levante UD" size="lg" />
+            )}
+            <span className="min-w-0 text-left">
+              <small className="block truncate text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">
+                {identity.eyebrow}
               </small>
-              <strong className="text-lg font-black">Granota App</strong>
+              <strong className="block truncate text-lg font-black">{identity.title}</strong>
             </span>
           </button>
             <nav className="hidden gap-1 md:flex">

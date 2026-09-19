@@ -6,5 +6,5 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
   const { community: slug } = await params;
   const community = await findCommunity(decodeURIComponent(slug).toLowerCase());
   if (!community) notFound();
-  return <CommunityApp />;
+  return <CommunityApp communitySlug={community.slug} />;
 }
