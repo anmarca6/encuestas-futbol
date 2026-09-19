@@ -501,25 +501,29 @@ function CommunityHeaderEditor({
   const current = resolveCommunityIdentity(community.slug, community);
   const [title, setTitle] = useState(current.title);
   const [subtitle, setSubtitle] = useState(current.eyebrow);
-  // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
+  // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva (se sigue mostrando tras guardar)
   const [newImage, setNewImage] = useState<string | undefined>(undefined);
+  const [sentImage, setSentImage] = useState<string | undefined>(undefined);
+  // Vista previa inmediata mientras la imagen elegida se procesa
+  const [pendingLogo, setPendingLogo] = useState<string | null>(null);
   const [color, setColor] = useState(current.color ?? DEFAULT_HEADER_COLOR);
   // Portada de Inicio. Título vacío = portada estándar.
   const [heroTitle, setHeroTitle] = useState(community.heroTitle ?? '');
   const [heroSubtitle, setHeroSubtitle] = useState(community.heroSubtitle ?? '');
-  // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
   const [newHeroImage, setNewHeroImage] = useState<string | undefined>(undefined);
+  const [sentHeroImage, setSentHeroImage] = useState<string | undefined>(undefined);
+  const [pendingHero, setPendingHero] = useState<string | null>(null);
   const [processingHero, setProcessingHero] = useState(false);
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<unknown[] | null>(null);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const logoSrc = newImage === undefined ? current.logoSrc : newImage || undefined;
+  const logoSrc = pendingLogo ?? (newImage === undefined ? current.logoSrc : newImage || undefined);
   const colorReadable = isReadableHeaderColor(color);
   // El aviso de guardado desaparece en cuanto se vuelve a editar algo.
-  const saved =
-    savedSnapshot === JSON.stringify([title, subtitle, color, heroTitle, heroSubtitle, newImage === undefined, newHeroImage === undefined]);
+  const snapshot = [title, subtitle, color, heroTitle, heroSubtitle, newImage, newHeroImage];
+  const saved = savedSnapshot !== null && savedSnapshot.every((value, index) => value === snapshot[index]);
   const heroLines = heroTitle.split('\n').map((line) => line.trim()).filter(Boolean);
   const heroTooLong = heroLines.length > 2 || heroLines.join('\n').length > HERO_TITLE_MAX;
   const heroPreview = (() => {
@@ -530,7 +534,7 @@ function CommunityHeaderEditor({
       headerColor: colorReadable && color !== DEFAULT_HEADER_COLOR ? color : null,
     });
     if (!base) return null;
-    return { ...base, imageUrl: newHeroImage === undefined ? base.imageUrl : newHeroImage || undefined };
+    return { ...base, imageUrl: pendingHero ?? (newHeroImage === undefined ? base.imageUrl : newHeroImage || undefined) };
   })();
   const canSave =
     title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !heroTooLong &&
@@ -538,6 +542,8 @@ function CommunityHeaderEditor({
 
   const chooseImage = async (file: File | undefined) => {
     if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setPendingLogo(previewUrl);
     setProcessing(true);
     setError('');
     try {
@@ -545,12 +551,16 @@ function CommunityHeaderEditor({
     } catch {
       setError('No se pudo procesar la imagen. Prueba con otra (JPG, PNG o WebP).');
     } finally {
+      setPendingLogo(null);
+      URL.revokeObjectURL(previewUrl);
       setProcessing(false);
     }
   };
 
   const chooseHeroImage = async (file: File | undefined) => {
     if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setPendingHero(previewUrl);
     setProcessingHero(true);
     setError('');
     try {
@@ -558,6 +568,8 @@ function CommunityHeaderEditor({
     } catch {
       setError('No se pudo procesar la imagen de la portada. Prueba con otra (JPG, PNG o WebP).');
     } finally {
+      setPendingHero(null);
+      URL.revokeObjectURL(previewUrl);
       setProcessingHero(false);
     }
   };
@@ -577,8 +589,8 @@ function CommunityHeaderEditor({
           headerColor: color === DEFAULT_HEADER_COLOR ? '' : color,
           heroTitle,
           heroSubtitle,
-          ...(newHeroImage === undefined ? {} : { heroImage: newHeroImage }),
-          ...(newImage === undefined ? {} : { headerImage: newImage }),
+          ...(newHeroImage === undefined || newHeroImage === sentHeroImage ? {} : { heroImage: newHeroImage }),
+          ...(newImage === undefined || newImage === sentImage ? {} : { headerImage: newImage }),
         }),
       });
       if (!response.ok) {
@@ -587,10 +599,10 @@ function CommunityHeaderEditor({
         return;
       }
       await onSaved();
-      // Las imágenes ya están guardadas: a partir de aquí se muestran las del servidor.
-      setNewImage(undefined);
-      setNewHeroImage(undefined);
-      setSavedSnapshot(JSON.stringify([title, subtitle, color, heroTitle, heroSubtitle, true, true]));
+      // Las imágenes guardadas se siguen mostrando tal cual (sin recargarlas del servidor) y no se reenvían.
+      setSentImage(newImage);
+      setSentHeroImage(newHeroImage);
+      setSavedSnapshot(snapshot);
     } catch {
       setError('No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
     } finally {
@@ -676,15 +688,22 @@ function CommunityHeaderEditor({
             Bloque de bienvenida de la comunidad. Deja el título vacío para usar la portada estándar.
           </p>
         </div>
-        <div>
+        <div className="z-10 bg-white pb-1 lg:sticky lg:top-2">
           <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
             Así se verá en Inicio{heroPreview ? '' : ' (portada estándar: escribe un título para personalizarla)'}
           </p>
-          <div className="pointer-events-none select-none" aria-hidden="true">
-            {heroPreview ? (
-              <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
-            ) : (
-              <StandardHeroCard onRules={() => undefined} />
+          <div className="relative">
+            <div className="pointer-events-none select-none" aria-hidden="true">
+              {heroPreview ? (
+                <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
+              ) : (
+                <StandardHeroCard onRules={() => undefined} />
+              )}
+            </div>
+            {processingHero && (
+              <span className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-[#071527]/85 px-3 py-1.5 text-xs font-bold text-white">
+                <Loader2 className="size-3.5 animate-spin" /> Optimizando imagen…
+              </span>
             )}
           </div>
         </div>
@@ -861,7 +880,7 @@ function CommunitiesPanel() {
       ) : (
         <div className="space-y-2">
           {communities.map((community) => (
-            <Card key={community.slug} className="border-0 shadow-sm ring-slate-200">
+            <Card key={community.slug} className="overflow-visible border-0 shadow-sm ring-slate-200">
               <CardContent className="space-y-4">
                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
