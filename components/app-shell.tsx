@@ -122,12 +122,12 @@ export function AppShell({
           target="_blank"
           rel="noopener noreferrer"
           aria-label="MilCromos: completa tu colección. Abre www.milcromos.com en una pestaña nueva"
-          className="mb-6 block overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+          className="mx-auto mb-6 block max-w-3xl overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
         >
           <Image
             src={milCromosBanner}
             alt="MilCromos: completa tu colección. Encuentra, cambia, disfruta."
-            sizes="(min-width: 1152px) 1088px, 100vw"
+            sizes="(min-width: 832px) 768px, 100vw"
             className="h-auto w-full"
           />
         </a>
