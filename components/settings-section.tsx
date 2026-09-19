@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { CommunityUser } from '@/lib/community-types';
+import { communityFetch } from '@/lib/community-client';
 
 export function SettingsSection({ user, onUserUpdated, onBack, onLogout }: { user: CommunityUser | null; onUserUpdated: (user: CommunityUser) => void; onBack: () => void; onLogout: () => Promise<void> }) {
   const { language, setLanguage, brightness, setBrightness, theme, setTheme } = useAppPreferences();
@@ -52,7 +53,7 @@ export function SettingsSection({ user, onUserUpdated, onBack, onLogout }: { use
       context.drawImage(bitmap, (256 - width) / 2, (256 - height) / 2, width, height);
       bitmap.close();
       const avatarUrl = canvas.toDataURL('image/webp', 0.78);
-      const response = await fetch('/api/profile/avatar', {
+      const response = await communityFetch('/api/profile/avatar', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ avatarUrl }),

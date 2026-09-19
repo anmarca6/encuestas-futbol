@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
+import { resolveCommunity } from '@/lib/community';
 import { scorePredictionBreakdown } from '@/lib/prediction-scoring';
 import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import type { CommunityRankingEntry } from '@/lib/community-types';
@@ -49,16 +50,19 @@ function reportFromOfficialInput(row: OfficialReportRow) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   await ensureCommunitySchema();
+  const community = await resolveCommunity(request);
+  if (!community) return NextResponse.json({ ranking: [] });
   const rows = await getDatabase().prepare(`
     SELECT u.id AS userId, u.nickname, u.avatar_url AS avatarUrl, p.match_id AS matchId,
       p.home_score AS homeScore, p.away_score AS awayScore,
       p.lineup, p.scorers, p.mvp
     FROM predictions p
     JOIN users u ON u.id = p.user_id
+    WHERE u.community_slug = ?
     ORDER BY u.nickname COLLATE NOCASE ASC
-  `).bind().all<RankingPredictionRow>();
+  `).bind(community.slug).all<RankingPredictionRow>();
   const officialRows = await getDatabase().prepare(`
     SELECT matchday, home_score AS homeScore, away_score AS awayScore,
       formation, lineup, scorers, mvp, reason

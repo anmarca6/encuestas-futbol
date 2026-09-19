@@ -1,4 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
+import { DEFAULT_COMMUNITY_SLUG } from '@/lib/community-shared';
 
 interface PreparedStatement {
   bind(...args: unknown[]): {
@@ -57,10 +58,6 @@ export function ensureCommunitySchema(): Promise<void> {
         created_at INTEGER NOT NULL
       )
     `).bind().run();
-    await db.prepare(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname
-      ON users (nickname)
-    `).bind().run();
     const userColumns = await db.prepare('PRAGMA table_info(users)').bind().all<{ name: string }>();
     if (!userColumns.results.some((column) => column.name === 'avatar_url')) {
       await db.prepare('ALTER TABLE users ADD COLUMN avatar_url TEXT').bind().run();
@@ -68,6 +65,24 @@ export function ensureCommunitySchema(): Promise<void> {
     if (!userColumns.results.some((column) => column.name === 'password_hash')) {
       await db.prepare('ALTER TABLE users ADD COLUMN password_hash TEXT').bind().run();
     }
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS communities (
+        slug TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `).bind().run();
+    await db.prepare('INSERT OR IGNORE INTO communities (slug, name, created_at) VALUES (?, ?, ?)')
+      .bind(DEFAULT_COMMUNITY_SLUG, 'Granota App', Date.now()).run();
+    // Los usuarios existentes pasan a la comunidad principal y el apodo pasa a ser único por comunidad.
+    if (!userColumns.results.some((column) => column.name === 'community_slug')) {
+      await db.prepare(`ALTER TABLE users ADD COLUMN community_slug TEXT NOT NULL DEFAULT '${DEFAULT_COMMUNITY_SLUG}'`).bind().run();
+    }
+    await db.prepare('DROP INDEX IF EXISTS idx_users_nickname').bind().run();
+    await db.prepare(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_community_nickname
+      ON users (community_slug, nickname)
+    `).bind().run();
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS predictions (
         id TEXT PRIMARY KEY NOT NULL,

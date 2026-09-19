@@ -18,7 +18,8 @@ import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
 import { applyLocalPostponements, getNextLevanteMatch } from '@/lib/levante-services';
-export default function Home() {
+import { communityFetch } from '@/lib/community-client';
+export function CommunityApp() {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -28,14 +29,14 @@ export default function Home() {
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   const [mvpOverrides, setMvpOverrides] = useState<MvpOverride[] | null>(null);
   useEffect(() => {
-    void fetch('/api/session')
+    void communityFetch('/api/session')
       .then(
         async (response) =>
           (await response.json()) as { user: CommunityUser | null },
       )
       .then((result) => setUser(result.user))
       .catch(() => setUser(null));
-    void fetch('/api/predictions?mine=1')
+    void communityFetch('/api/predictions?mine=1')
       .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
       .then((result) => {
         const matchId = getNextLevanteMatch()?.id;
@@ -73,7 +74,7 @@ export default function Home() {
       user={user}
       onLogin={() => setLoginOpen(true)}
       onLogout={async () => {
-        await fetch('/api/session', { method: 'DELETE' });
+        await communityFetch('/api/session', { method: 'DELETE' });
         setUser(null);
         setCurrentPrediction(null);
         setActive('inicio');
@@ -116,7 +117,7 @@ export default function Home() {
           onUserUpdated={setUser}
           onBack={() => setActive('perfil')}
           onLogout={async () => {
-            await fetch('/api/session', { method: 'DELETE' });
+            await communityFetch('/api/session', { method: 'DELETE' });
             setUser(null);
             setCurrentPrediction(null);
             setActive('inicio');

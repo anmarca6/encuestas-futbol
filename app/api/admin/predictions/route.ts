@@ -11,6 +11,7 @@ interface AdminPredictionRow {
   publishedAt: number;
   nickname: string;
   avatarUrl: string | null;
+  communitySlug: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
     .prepare(`
       SELECT p.id, p.user_id AS userId, p.match_id AS matchId,
         p.home_score AS homeScore, p.away_score AS awayScore,
-        p.published_at AS publishedAt, u.nickname, u.avatar_url AS avatarUrl
+        p.published_at AS publishedAt, u.nickname, u.avatar_url AS avatarUrl,
+        u.community_slug AS communitySlug
       FROM predictions p JOIN users u ON u.id = p.user_id
       ORDER BY p.published_at DESC
       LIMIT 300

@@ -2,22 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import type { CommunityUser } from '@/lib/community-types';
+import { resolveCommunity } from '@/lib/community';
+import { sessionCookieName } from '@/lib/community-shared';
 
-const COOKIE_NAME = 'granota_user_id';
+const unknownCommunity = () => NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
 
-async function findUser(id: string | undefined): Promise<CommunityUser | null> {
+async function findUser(id: string | undefined, communitySlug: string): Promise<CommunityUser | null> {
   if (!id) return null;
   await ensureCommunitySchema();
   return getDatabase()
     .prepare(
-      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl FROM users WHERE id = ? LIMIT 1',
+      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl FROM users WHERE id = ? AND community_slug = ? LIMIT 1',
     )
-    .bind(id)
+    .bind(id, communitySlug)
     .first<CommunityUser>();
 }
 
-function setSessionCookie(response: NextResponse, request: NextRequest, userId: string) {
-  response.cookies.set(COOKIE_NAME, userId, {
+function setSessionCookie(response: NextResponse, request: NextRequest, communitySlug: string, userId: string) {
+  response.cookies.set(sessionCookieName(communitySlug), userId, {
     httpOnly: true,
     sameSite: 'lax',
     secure: request.nextUrl.protocol === 'https:',
@@ -27,11 +29,15 @@ function setSessionCookie(response: NextResponse, request: NextRequest, userId: 
 }
 
 export async function GET(request: NextRequest) {
-  const user = await findUser(request.cookies.get(COOKIE_NAME)?.value);
+  const community = await resolveCommunity(request);
+  if (!community) return unknownCommunity();
+  const user = await findUser(request.cookies.get(sessionCookieName(community.slug))?.value, community.slug);
   return NextResponse.json({ user });
 }
 
 export async function POST(request: NextRequest) {
+  const community = await resolveCommunity(request);
+  if (!community) return unknownCommunity();
   const body = (await request.json()) as { nickname?: string; password?: string };
   const nickname = body.nickname?.trim().replace(/^@/, '').slice(0, 30) ?? '';
   const password = body.password ?? '';
@@ -55,9 +61,9 @@ export async function POST(request: NextRequest) {
 
   const existing = await db
     .prepare(
-      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl, password_hash AS passwordHash FROM users WHERE nickname = ? LIMIT 1',
+      'SELECT id, nickname, created_at AS createdAt, avatar_url AS avatarUrl, password_hash AS passwordHash FROM users WHERE nickname = ? AND community_slug = ? LIMIT 1',
     )
-    .bind(nickname)
+    .bind(nickname, community.slug)
     .first<CommunityUser & { passwordHash: string | null }>();
 
   if (existing) {
@@ -80,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
     const { passwordHash: _passwordHash, ...user } = existing;
     const response = NextResponse.json({ user });
-    setSessionCookie(response, request, existing.id);
+    setSessionCookie(response, request, community.slug, existing.id);
     return response;
   }
 
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
     if (legacyColumns.has('name') && legacyColumns.has('email')) {
       await db
         .prepare(
-          'INSERT INTO users (id, name, nickname, email, created_at, password_hash) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, name, nickname, email, created_at, password_hash, community_slug) VALUES (?, ?, ?, ?, ?, ?, ?)',
         )
         .bind(
           user.id,
@@ -105,14 +111,15 @@ export async function POST(request: NextRequest) {
           `${user.id}@granota-app.invalid`,
           user.createdAt,
           passwordHash,
+          community.slug,
         )
         .run();
     } else {
       await db
         .prepare(
-          'INSERT INTO users (id, nickname, created_at, password_hash) VALUES (?, ?, ?, ?)',
+          'INSERT INTO users (id, nickname, created_at, password_hash, community_slug) VALUES (?, ?, ?, ?, ?)',
         )
-        .bind(user.id, user.nickname, user.createdAt, passwordHash)
+        .bind(user.id, user.nickname, user.createdAt, passwordHash, community.slug)
         .run();
     }
   } catch (error) {
@@ -130,13 +137,15 @@ export async function POST(request: NextRequest) {
     );
   }
   const response = NextResponse.json({ user });
-  setSessionCookie(response, request, user.id);
+  setSessionCookie(response, request, community.slug, user.id);
   return response;
 }
 
 export async function DELETE(request: NextRequest) {
+  const community = await resolveCommunity(request);
+  if (!community) return unknownCommunity();
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(COOKIE_NAME, '', {
+  response.cookies.set(sessionCookieName(community.slug), '', {
     httpOnly: true,
     sameSite: 'lax',
     secure: request.nextUrl.protocol === 'https:',
@@ -147,7 +156,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const userId = request.cookies.get(COOKIE_NAME)?.value;
+  const community = await resolveCommunity(request);
+  if (!community) return unknownCommunity();
+  const userId = request.cookies.get(sessionCookieName(community.slug))?.value;
   if (!userId) {
     return NextResponse.json({ error: 'Debes iniciar sesión.' }, { status: 401 });
   }
@@ -166,13 +177,13 @@ export async function PATCH(request: NextRequest) {
   await ensureCommunitySchema();
   const db = getDatabase();
   const existing = await db
-    .prepare('SELECT password_hash AS passwordHash FROM users WHERE id = ? LIMIT 1')
-    .bind(userId)
+    .prepare('SELECT password_hash AS passwordHash FROM users WHERE id = ? AND community_slug = ? LIMIT 1')
+    .bind(userId, community.slug)
     .first<{ passwordHash: string | null }>();
   if (!existing?.passwordHash || !(await verifyPassword(currentPassword, existing.passwordHash))) {
     return NextResponse.json({ error: 'La contraseña actual no es correcta.' }, { status: 401 });
   }
   const passwordHash = await hashPassword(newPassword);
-  await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(passwordHash, userId).run();
+  await db.prepare('UPDATE users SET password_hash = ? WHERE id = ? AND community_slug = ?').bind(passwordHash, userId, community.slug).run();
   return NextResponse.json({ ok: true });
 }

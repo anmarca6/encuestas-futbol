@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
+import { resolveCommunity } from '@/lib/community';
+import { sessionCookieName } from '@/lib/community-shared';
 import { getNextLevanteMatch } from '@/lib/levante-services';
 import { LEVANTE_TEAM, levantePlayers } from '@/lib/levante-data';
 import { formations } from '@/lib/formations';
@@ -7,21 +9,21 @@ import { isPredictionClosed } from '@/lib/prediction-deadline';
 import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 
-const COOKIE_NAME = 'granota_user_id';
-
-async function currentUser(request: NextRequest) {
-  const id = request.cookies.get(COOKIE_NAME)?.value;
+async function currentUser(request: NextRequest, communitySlug: string) {
+  const id = request.cookies.get(sessionCookieName(communitySlug))?.value;
   if (!id) return null;
   await ensureCommunitySchema();
   return getDatabase().prepare(
-    'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? LIMIT 1',
-  ).bind(id).first<CommunityUser>();
+    'SELECT id, nickname, created_at AS createdAt FROM users WHERE id = ? AND community_slug = ? LIMIT 1',
+  ).bind(id, communitySlug).first<CommunityUser>();
 }
 
 export async function GET(request: NextRequest) {
   await ensureCommunitySchema();
+  const community = await resolveCommunity(request);
+  if (!community) return NextResponse.json({ predictions: [] });
   const mine = request.nextUrl.searchParams.get('mine') === '1';
-  const user = mine ? await currentUser(request) : null;
+  const user = mine ? await currentUser(request, community.slug) : null;
   if (mine && !user) return NextResponse.json({ predictions: [] });
   const match = getNextLevanteMatch();
   if (!match && !mine) return NextResponse.json({ predictions: [] });
@@ -43,10 +45,10 @@ export async function GET(request: NextRequest) {
       p.away_score AS awayScore, p.lineup, p.scorers, p.mvp,
       p.published_at AS publishedAt, u.id AS userId, u.nickname, u.avatar_url AS avatarUrl
     FROM predictions p JOIN users u ON u.id = p.user_id
-    WHERE p.match_id = ? ORDER BY p.published_at DESC LIMIT 100
+    WHERE p.match_id = ? AND u.community_slug = ? ORDER BY p.published_at DESC LIMIT 100
   `;
   const rows = await getDatabase().prepare(query).bind(
-    mine ? user!.id : match!.id,
+    ...(mine ? [user!.id] : [match!.id, community.slug]),
   ).all<PredictionRow>();
   const predictions: CommunityPrediction[] = rows.results.map((row) => ({
     id: row.id, matchId: row.matchId,
@@ -61,7 +63,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   await ensureCommunitySchema();
-  const user = await currentUser(request);
+  const community = await resolveCommunity(request);
+  if (!community) return NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
+  const user = await currentUser(request, community.slug);
   if (!user) return NextResponse.json({ error: 'Debes iniciar sesión antes de publicar.' }, { status: 401 });
   const match = getNextLevanteMatch();
   if (!match) return NextResponse.json({ error: 'No hay un próximo partido disponible.' }, { status: 409 });

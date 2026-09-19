@@ -78,6 +78,7 @@ import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
 import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
+import { communityFetch } from '@/lib/community-client';
 import type {
   CommunityPrediction,
   CommunityRankingEntry,
@@ -1067,7 +1068,7 @@ export function PredictSection({
     }
     setPublishing(true);
     setPublishError('');
-    const response = await fetch('/api/predictions', {
+    const response = await communityFetch('/api/predictions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -1315,7 +1316,7 @@ export function StandsSection({
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    void fetch('/api/predictions')
+    void communityFetch('/api/predictions')
       .then(
         async (response) =>
           (await response.json()) as { predictions?: CommunityPrediction[] },
@@ -1424,7 +1425,7 @@ export function CommunityRankingSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void fetch('/api/ranking')
+    void communityFetch('/api/ranking')
       .then(async (response) => {
         if (!response.ok) throw new Error('Ranking unavailable');
         return (await response.json()) as { ranking?: CommunityRankingEntry[] };
@@ -1561,7 +1562,7 @@ export function ProfileSection({
       return;
     }
     setLoading(true);
-    void fetch('/api/predictions?mine=1')
+    void communityFetch('/api/predictions?mine=1')
       .then(
         async (response) =>
           (await response.json()) as { predictions?: CommunityPrediction[] },
@@ -1575,7 +1576,7 @@ export function ProfileSection({
     setSavingPassword(true);
     setPasswordMessage('');
     try {
-      const response = await fetch('/api/session', {
+      const response = await communityFetch('/api/session', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword }),

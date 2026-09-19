@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Loader2, Shield, Trash2 } from 'lucide-react';
+import { Check, Copy, Loader2, Plus, Shield, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,8 @@ import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levan
 import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
+import type { AdminCommunity } from '@/lib/community-types';
+import { DEFAULT_COMMUNITY_SLUG, isValidCommunitySlug, slugifyCommunityName } from '@/lib/community-shared';
 
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -30,6 +32,7 @@ interface AdminPrediction {
   publishedAt: number;
   nickname: string;
   avatarUrl: string | null;
+  communitySlug: string;
 }
 
 function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
@@ -451,6 +454,132 @@ function MatchReportEditor() {
   );
 }
 
+function CommunitiesPanel() {
+  const [communities, setCommunities] = useState<AdminCommunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState<string | null>(null);
+  const [origin, setOrigin] = useState('');
+
+  const load = () =>
+    fetch('/api/admin/communities')
+      .then(async (response) => (await response.json()) as { communities?: AdminCommunity[] })
+      .then((result) => setCommunities(result.communities ?? []))
+      .catch(() => setCommunities([]));
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    void load().finally(() => setLoading(false));
+  }, []);
+
+  const slug = slugifyCommunityName(name);
+  const preview = name.trim() && isValidCommunitySlug(slug) ? `${origin}/${slug}` : null;
+
+  const create = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setCreating(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/communities', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? 'No se pudo crear la comunidad.');
+        return;
+      }
+      setName('');
+      await load();
+    } catch {
+      setError('No se pudo conectar. Inténtalo de nuevo.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const copy = async (communitySlug: string) => {
+    try {
+      await navigator.clipboard.writeText(`${origin}/${communitySlug}`);
+      setCopied(communitySlug);
+      window.setTimeout(() => setCopied((current) => (current === communitySlug ? null : current)), 1800);
+    } catch {
+      setError('No se pudo copiar el enlace.');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-0 shadow-sm ring-slate-200">
+        <CardContent>
+          <form onSubmit={(event) => void create(event)} className="space-y-3">
+            <label className="block text-xs font-black uppercase text-slate-400">Nombre de la nueva comunidad</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={40}
+                placeholder="Por ejemplo: Ismaelete"
+              />
+              <Button type="submit" disabled={creating || !preview} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
+                {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                Crear comunidad
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">
+              {preview ? (
+                <>La dirección será <b className="text-[#071527]">{preview}</b></>
+              ) : name.trim() ? (
+                'Ese nombre no genera una dirección válida.'
+              ) : (
+                'La dirección se genera a partir del nombre, en minúsculas y sin espacios ni tildes.'
+              )}
+            </p>
+            {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
+          </form>
+        </CardContent>
+      </Card>
+      {loading ? (
+        <p className="text-sm font-bold text-slate-400">Cargando comunidades…</p>
+      ) : (
+        <div className="space-y-2">
+          {communities.map((community) => (
+            <Card key={community.slug} className="border-0 shadow-sm ring-slate-200">
+              <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <strong className="text-[#071527]">{community.name}</strong>
+                  {community.slug === DEFAULT_COMMUNITY_SLUG && (
+                    <span className="ml-2 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#153e72]">
+                      Principal
+                    </span>
+                  )}
+                  <p className="truncate text-sm text-slate-500">
+                    <a href={`/${community.slug}`} target="_blank" rel="noopener noreferrer" className="underline decoration-slate-300 hover:text-[#a91d43]">
+                      {origin}/{community.slug}
+                    </a>
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {community.users} {community.users === 1 ? 'usuario' : 'usuarios'} · {community.predictions}{' '}
+                    {community.predictions === 1 ? 'predicción' : 'predicciones'} · creada el{' '}
+                    {dateFormatter.format(new Date(community.createdAt))}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => void copy(community.slug)} className="shrink-0">
+                  {copied === community.slug ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  {copied === community.slug ? 'Copiado' : 'Copiar enlace'}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PredictionsModeration() {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -489,11 +618,12 @@ function PredictionsModeration() {
   };
 
   const grouped = useMemo(() => {
-    const byUser = new Map<string, { nickname: string; avatarUrl: string | null; predictions: AdminPrediction[] }>();
+    const byUser = new Map<string, { nickname: string; avatarUrl: string | null; communitySlug: string; predictions: AdminPrediction[] }>();
     for (const prediction of predictions) {
       const entry = byUser.get(prediction.userId) ?? {
         nickname: prediction.nickname,
         avatarUrl: prediction.avatarUrl,
+        communitySlug: prediction.communitySlug,
         predictions: [],
       };
       entry.predictions.push(prediction);
@@ -525,6 +655,9 @@ function PredictionsModeration() {
                   )}
                 </span>
                 <strong className="text-[#071527]">@{group.nickname}</strong>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  /{group.communitySlug}
+                </span>
                 <span className="text-xs font-bold text-slate-400">
                   {group.predictions.length} {group.predictions.length === 1 ? 'predicción' : 'predicciones'}
                 </span>
@@ -625,6 +758,20 @@ export default function AdminPage() {
         <section>
           <Card className="border-0 shadow-sm ring-slate-200">
             <CardHeader>
+              <CardTitle className="font-black text-[#071527]">Comunidades</CardTitle>
+              <p className="text-sm text-slate-500">
+                Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus
+                propios usuarios, predicciones y clasificación.
+              </p>
+            </CardHeader>
+          </Card>
+          <div className="mt-4">
+            <CommunitiesPanel />
+          </div>
+        </section>
+        <section>
+          <Card className="border-0 shadow-sm ring-slate-200">
+            <CardHeader>
               <CardTitle className="font-black text-[#071527]">MVP por jornada</CardTitle>
               <p className="text-sm text-slate-500">
                 Elige el MVP de cada jornada jugada. Se muestra en Inicio y en el
@@ -655,7 +802,7 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle className="font-black text-[#071527]">Moderación de La Grada</CardTitle>
               <p className="text-sm text-slate-500">
-                Predicciones publicadas por los usuarios. Borra una predicción o
+                Predicciones publicadas por los usuarios de todas las comunidades. Borra una predicción o
                 todas las de un usuario si el apodo falta al respeto.
               </p>
             </CardHeader>

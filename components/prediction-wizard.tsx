@@ -19,6 +19,7 @@ import { getNextLevanteMatch } from '@/lib/levante-services';
 import { formationOptions, type FormationId, type SavedLineup } from '@/lib/formations';
 import type { CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
+import { communityFetch } from '@/lib/community-client';
 
 const stepNames = ['Formación', 'Tu XI', 'Resultado', 'Goleadores', 'MVP', 'Publicar'];
 
@@ -116,7 +117,7 @@ export function PredictionWizard({
     try {
       let currentUser = user;
       if (!currentUser) {
-        const sessionResponse = await fetch('/api/session', {
+        const sessionResponse = await communityFetch('/api/session', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ nickname, password }),
@@ -133,7 +134,7 @@ export function PredictionWizard({
         scorers,
         mvp,
       } satisfies PredictionDraft;
-      const response = await fetch('/api/predictions', {
+      const response = await communityFetch('/api/predictions', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(draft),

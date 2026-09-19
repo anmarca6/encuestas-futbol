@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CommunityUser } from '@/lib/community-types';
+import { communityFetch } from '@/lib/community-client';
 
 export function Registration({
   open,
@@ -34,7 +35,7 @@ export function Registration({
     setError('');
     try {
       const data = new FormData(event.currentTarget);
-      const response = await fetch('/api/session', {
+      const response = await communityFetch('/api/session', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

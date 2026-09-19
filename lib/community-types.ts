@@ -37,3 +37,11 @@ export interface CommunityRankingEntry {
   breakdown: PredictionScoreBreakdown;
   matchBreakdowns: RankingMatchBreakdown[];
 }
+
+export interface AdminCommunity {
+  slug: string;
+  name: string;
+  createdAt: number;
+  users: number;
+  predictions: number;
+}

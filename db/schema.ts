@@ -1,13 +1,20 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const communities = sqliteTable('communities', {
+  slug: text('slug').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   nickname: text('nickname').notNull(),
   createdAt: integer('created_at').notNull(),
   avatarUrl: text('avatar_url'),
   passwordHash: text('password_hash'),
+  communitySlug: text('community_slug').notNull().default('granota').references(() => communities.slug),
 }, (table) => [
-  uniqueIndex('idx_users_nickname').on(table.nickname),
+  uniqueIndex('idx_users_community_nickname').on(table.communitySlug, table.nickname),
 ]);
 
 export const predictions = sqliteTable('predictions', {
