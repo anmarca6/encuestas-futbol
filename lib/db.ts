@@ -187,7 +187,7 @@ export function ensureCommunitySchema(): Promise<void> {
       `).bind(DEFAULT_COMMUNITY_SLUG).run();
     }
 
-    // Cuentas de administración: los super administradores (por defecto leo y angel) se crean la primera
+    // Cuentas de administración: los super administradores (por defecto leo y angel_cavero) se crean la primera
     // vez con la contraseña de ADMIN_PASSWORD, que pueden cambiar después; los de comunidad los crea un super.
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS admin_accounts (
@@ -202,7 +202,7 @@ export function ensureCommunitySchema(): Promise<void> {
     await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_accounts_username ON admin_accounts (username)').bind().run();
     const initialPassword = process.env.ADMIN_PASSWORD;
     if (initialPassword) {
-      const superAdmins = (process.env.SUPER_ADMINS ?? 'leo,angel')
+      const superAdmins = (process.env.SUPER_ADMINS ?? 'leo,angel_cavero')
         .split(',')
         .map((name) => name.trim().toLowerCase())
         .filter(Boolean);
