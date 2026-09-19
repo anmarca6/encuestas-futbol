@@ -73,7 +73,7 @@ export function ensureCommunitySchema(): Promise<void> {
       )
     `).bind().run();
     const communityColumns = await db.prepare('PRAGMA table_info(communities)').bind().all<{ name: string }>();
-    for (const column of ['header_title', 'header_subtitle', 'header_image', 'header_color']) {
+    for (const column of ['header_title', 'header_subtitle', 'header_image', 'header_color', 'hero_title', 'hero_subtitle', 'hero_image', 'hero_image_version']) {
       if (!communityColumns.results.some((item) => item.name === column)) {
         await db.prepare(`ALTER TABLE communities ADD COLUMN ${column} TEXT`).bind().run();
       }

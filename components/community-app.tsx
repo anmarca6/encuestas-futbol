@@ -19,8 +19,8 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
 import { applyLocalPostponements, getNextLevanteMatch } from '@/lib/levante-services';
 import { communityFetch } from '@/lib/community-client';
-import type { CommunityIdentity } from '@/lib/community-identity';
-export function CommunityApp({ identity }: { identity: CommunityIdentity }) {
+import type { CommunityHero, CommunityIdentity } from '@/lib/community-identity';
+export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; hero: CommunityHero | null }) {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -87,6 +87,7 @@ export function CommunityApp({ identity }: { identity: CommunityIdentity }) {
           predict={predict}
           hasPrediction={currentPrediction?.matchId === getNextLevanteMatch()?.id}
           openRules={() => setActive('reglas')}
+          hero={hero}
           footballData={footballData}
           mvpOverrides={mvpOverrides}
         />

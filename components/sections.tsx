@@ -79,6 +79,8 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
 import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
 import { communityFetch } from '@/lib/community-client';
+import { CommunityHeroCard } from '@/components/community-hero';
+import type { CommunityHero } from '@/lib/community-identity';
 import type {
   CommunityPrediction,
   CommunityRankingEntry,
@@ -259,12 +261,14 @@ export function HomeSection({
   predict,
   hasPrediction,
   openRules,
+  hero,
   footballData,
   mvpOverrides,
 }: {
   predict: () => void;
   hasPrediction: boolean;
   openRules: () => void;
+  hero: CommunityHero | null;
   footballData: FootballDataPayload | null;
   mvpOverrides: MvpOverride[] | null;
 }) {
@@ -296,6 +300,9 @@ export function HomeSection({
     .filter((item): item is NonNullable<typeof item> => item !== null);
   return (
     <>
+      {hero ? (
+        <CommunityHeroCard hero={hero} onPredict={predict} onRules={openRules} />
+      ) : (
       <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
         <p className="text-xs font-black uppercase tracking-[.2em] text-[#a91d43]">
           En clave granota
@@ -323,6 +330,7 @@ export function HomeSection({
           Cómo se juega <span aria-hidden="true">→</span>
         </button>
       </section>
+      )}
       {next && (
         <section className="relative overflow-hidden rounded-[2rem] bg-[#071527] p-6 text-white shadow-2xl sm:p-9">
           <div className="absolute -right-12 -top-20 size-56 rounded-full bg-[#a91d43]/35 blur-3xl" />

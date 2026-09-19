@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { COMMUNITY_HEADER, DEFAULT_COMMUNITY_SLUG, SLUG_PATTERN } from '@/lib/community-shared';
-import type { CommunityHeaderFields } from '@/lib/community-identity';
+import type { CommunityHeaderFields, CommunityHeroFields } from '@/lib/community-identity';
 
 export interface Community {
   slug: string;
@@ -19,18 +19,19 @@ export async function findCommunity(slug: string): Promise<Community | null> {
 }
 
 // Igual que findCommunity, pero con los datos de la cabecera (la imagen puede pesar, así que solo se pide donde hace falta).
-export async function findCommunityWithHeader(slug: string): Promise<(Community & CommunityHeaderFields) | null> {
+export async function findCommunityWithHeader(slug: string): Promise<(Community & CommunityHeaderFields & CommunityHeroFields) | null> {
   if (!SLUG_PATTERN.test(slug)) return null;
   await ensureCommunitySchema();
   return getDatabase()
     .prepare(`
       SELECT slug, name, created_at AS createdAt, header_title AS headerTitle,
         header_subtitle AS headerSubtitle, header_image AS headerImage,
-        header_color AS headerColor
+        header_color AS headerColor, hero_title AS heroTitle, hero_subtitle AS heroSubtitle,
+        hero_image_version AS heroImageVersion
       FROM communities WHERE slug = ? LIMIT 1
     `)
     .bind(slug)
-    .first<Community & CommunityHeaderFields>();
+    .first<Community & CommunityHeaderFields & CommunityHeroFields>();
 }
 
 // La comunidad la indica el cliente con una cabecera (la toma de la URL). Sin cabecera

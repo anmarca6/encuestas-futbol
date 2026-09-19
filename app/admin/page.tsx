@@ -22,12 +22,16 @@ import {
   HEADER_COLOR_PRESETS,
   HEADER_SUBTITLE_MAX,
   HEADER_TITLE_MAX,
+  HERO_SUBTITLE_MAX,
+  HERO_TITLE_MAX,
   headerColorWithAlpha,
   isReadableHeaderColor,
+  resolveCommunityHero,
   resolveCommunityIdentity,
   type CommunityIdentity,
 } from '@/lib/community-identity';
-import { resizeImageToDataUrl } from '@/lib/image-resize';
+import { fitImageToDataUrl, resizeImageToDataUrl } from '@/lib/image-resize';
+import { CommunityHeroCard } from '@/components/community-hero';
 
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -500,13 +504,33 @@ function CommunityHeaderEditor({
   // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
   const [newImage, setNewImage] = useState<string | undefined>(undefined);
   const [color, setColor] = useState(current.color ?? DEFAULT_HEADER_COLOR);
+  // Portada de Inicio. Título vacío = portada estándar.
+  const [heroTitle, setHeroTitle] = useState(community.heroTitle ?? '');
+  const [heroSubtitle, setHeroSubtitle] = useState(community.heroSubtitle ?? '');
+  // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
+  const [newHeroImage, setNewHeroImage] = useState<string | undefined>(undefined);
+  const [processingHero, setProcessingHero] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const logoSrc = newImage === undefined ? current.logoSrc : newImage || undefined;
   const colorReadable = isReadableHeaderColor(color);
-  const canSave = title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !processing && !saving;
+  const heroLines = heroTitle.split('\n').map((line) => line.trim()).filter(Boolean);
+  const heroTooLong = heroLines.length > 2 || heroLines.join('\n').length > HERO_TITLE_MAX;
+  const heroPreview = (() => {
+    const base = resolveCommunityHero(community, {
+      heroTitle: heroLines.join('\n') || null,
+      heroSubtitle: heroSubtitle.trim(),
+      heroImageVersion: community.heroImageVersion,
+      headerColor: colorReadable && color !== DEFAULT_HEADER_COLOR ? color : null,
+    });
+    if (!base) return null;
+    return { ...base, imageUrl: newHeroImage === undefined ? base.imageUrl : newHeroImage || undefined };
+  })();
+  const canSave =
+    title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !heroTooLong &&
+    !processing && !processingHero && !saving;
 
   const chooseImage = async (file: File | undefined) => {
     if (!file) return;
@@ -518,6 +542,19 @@ function CommunityHeaderEditor({
       setError('No se pudo procesar la imagen. Prueba con otra (JPG, PNG o WebP).');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const chooseHeroImage = async (file: File | undefined) => {
+    if (!file) return;
+    setProcessingHero(true);
+    setError('');
+    try {
+      setNewHeroImage(await fitImageToDataUrl(file));
+    } catch {
+      setError('No se pudo procesar la imagen de la portada. Prueba con otra (JPG, PNG o WebP).');
+    } finally {
+      setProcessingHero(false);
     }
   };
 
@@ -534,12 +571,15 @@ function CommunityHeaderEditor({
           headerTitle: title,
           headerSubtitle: subtitle,
           headerColor: color === DEFAULT_HEADER_COLOR ? '' : color,
+          heroTitle,
+          heroSubtitle,
+          ...(newHeroImage === undefined ? {} : { heroImage: newHeroImage }),
           ...(newImage === undefined ? {} : { headerImage: newImage }),
         }),
       });
       if (!response.ok) {
         const result = (await response.json()) as { error?: string };
-        setError(result.error ?? 'No se pudo guardar la cabecera.');
+        setError(result.error ?? 'No se pudieron guardar los cambios.');
         return;
       }
       await onSaved();
@@ -621,11 +661,79 @@ function CommunityHeaderEditor({
           </p>
         )}
       </div>
+      <div className="space-y-4 border-t border-slate-100 pt-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wider text-[#a91d43]">Portada de Inicio</p>
+          <p className="text-xs text-slate-500">
+            Bloque de bienvenida de la comunidad. Deja el título vacío para usar la portada estándar.
+          </p>
+        </div>
+        {heroPreview && (
+          <div className="pointer-events-none select-none" aria-hidden="true">
+            <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
+          </div>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
+            <Textarea
+              value={heroTitle}
+              onChange={(event) => setHeroTitle(event.target.value)}
+              rows={2}
+              placeholder={'La porra de\nIsmaelete13'}
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Hasta 2 líneas. La segunda sale destacada con el color de la comunidad.
+            </p>
+            {heroTooLong && (
+              <p className="mt-1 text-xs font-bold text-[#a91d43]">
+                El título admite como máximo 2 líneas y {HERO_TITLE_MAX} caracteres.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-black uppercase text-slate-400">Subtítulo</label>
+            <Textarea
+              value={heroSubtitle}
+              onChange={(event) => setHeroSubtitle(event.target.value)}
+              maxLength={HERO_SUBTITLE_MAX}
+              rows={2}
+              placeholder="Haz tu pronóstico en cada partido del Levante y suma puntos durante toda la temporada."
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-black uppercase text-slate-400">Imagen (a la derecha)</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              {processingHero ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+              {heroPreview?.imageUrl ? 'Cambiar imagen' : 'Añadir imagen'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(event) => {
+                  void chooseHeroImage(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+            </label>
+            {heroPreview?.imageUrl && (
+              <Button type="button" variant="outline" onClick={() => setNewHeroImage('')}>
+                Quitar imagen
+              </Button>
+            )}
+            <span className="text-xs text-slate-400">
+              Se reduce sin recortarla. Necesita un título para mostrarse.
+            </span>
+          </div>
+        </div>
+      </div>
       {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={!canSave} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
           {saving && <Loader2 className="size-4 animate-spin" />}
-          Guardar cabecera
+          Guardar cambios
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar

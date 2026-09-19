@@ -9,6 +9,10 @@ import {
   HEADER_IMAGE_PATTERN,
   HEADER_SUBTITLE_MAX,
   HEADER_TITLE_MAX,
+  HERO_IMAGE_MAX_LENGTH,
+  HERO_SUBTITLE_MAX,
+  HERO_TITLE_MAX,
+  heroImageVersionOf,
   isReadableHeaderColor,
 } from '@/lib/community-identity';
 
@@ -21,7 +25,8 @@ export async function GET(request: NextRequest) {
     .prepare(`
       SELECT c.slug, c.name, c.created_at AS createdAt,
         c.header_title AS headerTitle, c.header_subtitle AS headerSubtitle, c.header_image AS headerImage,
-        c.header_color AS headerColor,
+        c.header_color AS headerColor, c.hero_title AS heroTitle, c.hero_subtitle AS heroSubtitle,
+        c.hero_image_version AS heroImageVersion,
         (SELECT COUNT(*) FROM users u WHERE u.community_slug = c.slug) AS users,
         (SELECT COUNT(*) FROM predictions p JOIN users u ON u.id = p.user_id WHERE u.community_slug = c.slug) AS predictions
       FROM communities c
@@ -53,6 +58,7 @@ export async function POST(request: NextRequest) {
   const community: AdminCommunity = {
     slug, name, createdAt: Date.now(), users: 0, predictions: 0,
     headerTitle: null, headerSubtitle: null, headerImage: null, headerColor: null,
+    heroTitle: null, heroSubtitle: null, heroImageVersion: null,
   };
   await getDatabase()
     .prepare('INSERT INTO communities (slug, name, created_at) VALUES (?, ?, ?)')
@@ -62,7 +68,8 @@ export async function POST(request: NextRequest) {
 }
 
 // Edita la cabecera de una comunidad. headerImage / headerColor: omitido = sin cambios, '' = por defecto
-// (escudo del Levante / azul marino).
+// (escudo del Levante / azul marino). Portada: heroTitle omitido = sin cambios, '' = portada estándar (borra todo);
+// heroImage omitido = sin cambios, '' = sin imagen.
 export async function PATCH(request: NextRequest) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;
@@ -73,6 +80,9 @@ export async function PATCH(request: NextRequest) {
     headerSubtitle?: string;
     headerImage?: string;
     headerColor?: string;
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroImage?: string;
   };
   const title = body.headerTitle?.trim().replace(/\s+/g, ' ') ?? '';
   const subtitle = body.headerSubtitle?.trim().replace(/\s+/g, ' ') ?? '';
@@ -92,6 +102,25 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'El color no es válido o es demasiado claro para el texto blanco de la cabecera.' }, { status: 400 });
   }
 
+  // Portada de Inicio
+  let heroTitle: string | null | undefined;
+  let heroSubtitle: string | null = null;
+  if (body.heroTitle !== undefined) {
+    const lines = body.heroTitle.split('\n').map((line) => line.trim().replace(/\s+/g, ' ')).filter(Boolean);
+    heroTitle = lines.join('\n') || null;
+    heroSubtitle = body.heroSubtitle?.trim().replace(/\s+/g, ' ') || null;
+    if (heroTitle && (lines.length > 2 || heroTitle.length > HERO_TITLE_MAX)) {
+      return NextResponse.json({ error: `El título de la portada admite hasta 2 líneas y ${HERO_TITLE_MAX} caracteres.` }, { status: 400 });
+    }
+    if (heroSubtitle && heroSubtitle.length > HERO_SUBTITLE_MAX) {
+      return NextResponse.json({ error: `El subtítulo de la portada admite hasta ${HERO_SUBTITLE_MAX} caracteres.` }, { status: 400 });
+    }
+  }
+  const heroImage = body.heroImage;
+  if (heroImage !== undefined && heroImage !== '' && (!HEADER_IMAGE_PATTERN.test(heroImage) || heroImage.length > HERO_IMAGE_MAX_LENGTH)) {
+    return NextResponse.json({ error: 'La imagen de la portada no es válida o es demasiado grande.' }, { status: 400 });
+  }
+
   await ensureCommunitySchema();
   if (!body.slug || !(await findCommunity(body.slug))) {
     return NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
@@ -105,6 +134,17 @@ export async function PATCH(request: NextRequest) {
   if (color !== undefined) {
     assignments.push('header_color = ?');
     values.push(color || null);
+  }
+  if (heroTitle === null) {
+    // Sin título de portada se vuelve a la portada estándar y se descarta lo demás.
+    assignments.push('hero_title = NULL', 'hero_subtitle = NULL', 'hero_image = NULL', 'hero_image_version = NULL');
+  } else if (heroTitle !== undefined) {
+    assignments.push('hero_title = ?', 'hero_subtitle = ?');
+    values.push(heroTitle, heroSubtitle);
+    if (heroImage !== undefined) {
+      assignments.push('hero_image = ?', 'hero_image_version = ?');
+      values.push(heroImage || null, heroImage ? heroImageVersionOf(heroImage) : null);
+    }
   }
   await getDatabase()
     .prepare(`UPDATE communities SET ${assignments.join(', ')} WHERE slug = ?`)

@@ -74,3 +74,58 @@ export function resolveCommunityIdentity(
     color: header?.headerColor && isReadableHeaderColor(header.headerColor) ? header.headerColor : undefined,
   };
 }
+
+// ---- Portada de Inicio (hero) ----
+// Lo que el admin guarda. heroTitle vacío/null = se usa la portada estándar. La imagen no viaja en los datos
+// de la página: se sirve por /api/community-image y aquí solo se guarda su versión (para la caché).
+export interface CommunityHeroFields {
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroImageVersion: string | null;
+}
+
+export interface CommunityHero {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  imageUrl?: string;
+  accentColor: string;
+}
+
+export const HERO_TITLE_MAX = 60;
+export const HERO_SUBTITLE_MAX = 160;
+export const HERO_IMAGE_MAX_LENGTH = 300_000;
+export const DEFAULT_ACCENT_COLOR = '#a91d43';
+
+// Lista fija de la portada.
+export const HERO_FEATURES = [
+  { emoji: '⚽', label: 'Resultado' },
+  { emoji: '👕', label: 'Once inicial' },
+  { emoji: '🥅', label: 'Goleadores' },
+  { emoji: '⭐', label: 'MVP' },
+] as const;
+
+// Hash corto del contenido de la imagen: cambia al cambiarla y permite cachear la URL sin caducidad.
+export function heroImageVersionOf(image: string): string {
+  let hash = 5381;
+  for (let index = 0; index < image.length; index += 1) hash = ((hash << 5) + hash + image.charCodeAt(index)) >>> 0;
+  return `${hash.toString(36)}${image.length.toString(36)}`;
+}
+
+export function heroImageUrl(slug: string, version: string | null): string | undefined {
+  return version ? `/api/community-image?slug=${encodeURIComponent(slug)}&v=${version}` : undefined;
+}
+
+export function resolveCommunityHero(
+  community: { slug: string; name: string },
+  fields: Partial<CommunityHeroFields> & Partial<CommunityHeaderFields>,
+): CommunityHero | null {
+  if (!fields.heroTitle) return null;
+  return {
+    eyebrow: community.slug === DEFAULT_COMMUNITY_SLUG ? 'En clave granota' : `${community.name} × Granota App`,
+    title: fields.heroTitle,
+    subtitle: fields.heroSubtitle ?? '',
+    imageUrl: heroImageUrl(community.slug, fields.heroImageVersion ?? null),
+    accentColor: fields.headerColor && isReadableHeaderColor(fields.headerColor) ? fields.headerColor : DEFAULT_ACCENT_COLOR,
+  };
+}
