@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 // Edita la cabecera de una comunidad. headerImage / headerColor: omitido = sin cambios, '' = por defecto
 // (escudo del Levante / azul marino). Portada: heroTitle omitido = sin cambios, '' = portada estándar (borra todo);
 // heroImage omitido = sin cambios, '' = sin imagen.
-export async function PATCH(request: NextRequest) {
+async function updateCommunity(request: NextRequest) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;
 
@@ -151,4 +151,14 @@ export async function PATCH(request: NextRequest) {
     .bind(...values, body.slug)
     .run();
   return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    return await updateCommunity(request);
+  } catch (error) {
+    console.error('No se pudo guardar la comunidad', error);
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: `No se pudo guardar en la base de datos: ${detail}` }, { status: 500 });
+  }
 }

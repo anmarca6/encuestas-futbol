@@ -75,7 +75,10 @@ export function ensureCommunitySchema(): Promise<void> {
     const communityColumns = await db.prepare('PRAGMA table_info(communities)').bind().all<{ name: string }>();
     for (const column of ['header_title', 'header_subtitle', 'header_image', 'header_color', 'hero_title', 'hero_subtitle', 'hero_image', 'hero_image_version']) {
       if (!communityColumns.results.some((item) => item.name === column)) {
-        await db.prepare(`ALTER TABLE communities ADD COLUMN ${column} TEXT`).bind().run();
+        // Si otra instancia acaba de crear la columna, el ALTER falla con "duplicate column": no es un error.
+        await db.prepare(`ALTER TABLE communities ADD COLUMN ${column} TEXT`).bind().run().catch((error: unknown) => {
+          if (!/duplicate column/i.test(error instanceof Error ? error.message : String(error))) throw error;
+        });
       }
     }
     await db.prepare('INSERT OR IGNORE INTO communities (slug, name, created_at) VALUES (?, ?, ?)')

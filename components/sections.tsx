@@ -79,7 +79,7 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 import type { SavedLineup } from '@/lib/formations';
 import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
 import { communityFetch } from '@/lib/community-client';
-import { CommunityHeroCard } from '@/components/community-hero';
+import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
 import type { CommunityHero } from '@/lib/community-identity';
 import type {
   CommunityPrediction,
@@ -303,33 +303,7 @@ export function HomeSection({
       {hero ? (
         <CommunityHeroCard hero={hero} onPredict={predict} onRules={openRules} />
       ) : (
-      <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
-        <p className="text-xs font-black uppercase tracking-[.2em] text-[#a91d43]">
-          En clave granota
-        </p>
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="max-w-3xl text-3xl font-black tracking-[-.04em] text-[#071527] sm:text-5xl">
-            Todo el Levante. En un solo sitio.
-          </h1>
-          <span className="w-fit shrink-0 rounded-full bg-[#071527] px-4 py-2 text-xs font-black text-white">
-            Temporada 2026/27
-          </span>
-        </div>
-        <div className="mt-6 space-y-2 text-sm font-bold leading-6 text-slate-600 sm:text-base">
-          <p>📅 Partidos · ⚽ Resultados · 👕 Alineaciones · ⭐ MVP</p>
-          <p>🎯 Pronósticos · 🏆 Puntos para aficionados</p>
-        </div>
-        <p className="mt-6 text-lg font-black text-[#a91d43] sm:text-xl">
-          Participa. Acierta. Suma
-        </p>
-        <button
-          type="button"
-          onClick={openRules}
-          className="mt-3 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[.16em] text-[#153e72] underline decoration-[#a91d43] decoration-2 underline-offset-4 transition hover:text-[#a91d43]"
-        >
-          Cómo se juega <span aria-hidden="true">→</span>
-        </button>
-      </section>
+        <StandardHeroCard onRules={openRules} />
       )}
       {next && (
         <section className="relative overflow-hidden rounded-[2rem] bg-[#071527] p-6 text-white shadow-2xl sm:p-9">

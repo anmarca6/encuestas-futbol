@@ -31,7 +31,7 @@ import {
   type CommunityIdentity,
 } from '@/lib/community-identity';
 import { fitImageToDataUrl, resizeImageToDataUrl } from '@/lib/image-resize';
-import { CommunityHeroCard } from '@/components/community-hero';
+import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
 
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -495,7 +495,7 @@ function CommunityHeaderEditor({
   onCancel,
 }: {
   community: AdminCommunity;
-  onSaved: () => Promise<void>;
+  onSaved: () => Promise<unknown>;
   onCancel: () => void;
 }) {
   const current = resolveCommunityIdentity(community.slug, community);
@@ -510,12 +510,16 @@ function CommunityHeaderEditor({
   // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
   const [newHeroImage, setNewHeroImage] = useState<string | undefined>(undefined);
   const [processingHero, setProcessingHero] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const logoSrc = newImage === undefined ? current.logoSrc : newImage || undefined;
   const colorReadable = isReadableHeaderColor(color);
+  // El aviso de guardado desaparece en cuanto se vuelve a editar algo.
+  const saved =
+    savedSnapshot === JSON.stringify([title, subtitle, color, heroTitle, heroSubtitle, newImage === undefined, newHeroImage === undefined]);
   const heroLines = heroTitle.split('\n').map((line) => line.trim()).filter(Boolean);
   const heroTooLong = heroLines.length > 2 || heroLines.join('\n').length > HERO_TITLE_MAX;
   const heroPreview = (() => {
@@ -578,13 +582,17 @@ function CommunityHeaderEditor({
         }),
       });
       if (!response.ok) {
-        const result = (await response.json()) as { error?: string };
-        setError(result.error ?? 'No se pudieron guardar los cambios.');
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(result?.error ?? `No se pudieron guardar los cambios (error ${response.status} del servidor).`);
         return;
       }
       await onSaved();
+      // Las imágenes ya están guardadas: a partir de aquí se muestran las del servidor.
+      setNewImage(undefined);
+      setNewHeroImage(undefined);
+      setSavedSnapshot(JSON.stringify([title, subtitle, color, heroTitle, heroSubtitle, true, true]));
     } catch {
-      setError('No se pudo conectar. Inténtalo de nuevo.');
+      setError('No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -668,11 +676,18 @@ function CommunityHeaderEditor({
             Bloque de bienvenida de la comunidad. Deja el título vacío para usar la portada estándar.
           </p>
         </div>
-        {heroPreview && (
+        <div>
+          <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+            Así se verá en Inicio{heroPreview ? '' : ' (portada estándar: escribe un título para personalizarla)'}
+          </p>
           <div className="pointer-events-none select-none" aria-hidden="true">
-            <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
+            {heroPreview ? (
+              <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
+            ) : (
+              <StandardHeroCard onRules={() => undefined} />
+            )}
           </div>
-        )}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
@@ -736,9 +751,18 @@ function CommunityHeaderEditor({
           Guardar cambios
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
+          Cerrar
         </Button>
       </div>
+      {saved && (
+        <p className="text-sm font-bold text-emerald-700">
+          <Check className="mr-1 inline size-4" />
+          Cambios guardados.{' '}
+          <a href={`/${community.slug}`} target="_blank" rel="noopener noreferrer" className="underline">
+            Ver /{community.slug}
+          </a>
+        </p>
+      )}
     </form>
   );
 }
@@ -878,10 +902,7 @@ function CommunitiesPanel() {
                 <CommunityHeaderEditor
                   community={community}
                   onCancel={() => setEditing(null)}
-                  onSaved={async () => {
-                    await load();
-                    setEditing(null);
-                  }}
+                  onSaved={load}
                 />
                )}
               </CardContent>
