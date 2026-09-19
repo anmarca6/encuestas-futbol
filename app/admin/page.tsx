@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Check, Copy, Loader2, Plus, Shield, Trash2 } from 'lucide-react';
+import { Check, Copy, ImagePlus, Loader2, Pencil, Plus, Shield, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,13 @@ import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { AdminCommunity } from '@/lib/community-types';
 import { DEFAULT_COMMUNITY_SLUG, isValidCommunitySlug, slugifyCommunityName } from '@/lib/community-shared';
+import {
+  HEADER_SUBTITLE_MAX,
+  HEADER_TITLE_MAX,
+  resolveCommunityIdentity,
+  type CommunityIdentity,
+} from '@/lib/community-identity';
+import { resizeImageToDataUrl } from '@/lib/image-resize';
 
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -454,6 +461,137 @@ function MatchReportEditor() {
   );
 }
 
+// Vista previa de la cabecera tal como la verán los usuarios de la comunidad.
+function HeaderPreview({ identity }: { identity: CommunityIdentity }) {
+  return (
+    <div className="flex h-18 items-center gap-3 rounded-xl bg-[#071527] px-4 text-white">
+      {identity.logoSrc ? (
+        <Image unoptimized src={identity.logoSrc} width={96} height={96} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white/20" />
+      ) : (
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white/95 text-[10px] font-black text-slate-500">Levante</span>
+      )}
+      <span className="min-w-0 text-left">
+        <small className="block truncate text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">{identity.eyebrow}</small>
+        <strong className="block truncate text-lg font-black">{identity.title}</strong>
+      </span>
+    </div>
+  );
+}
+
+function CommunityHeaderEditor({
+  community,
+  onSaved,
+  onCancel,
+}: {
+  community: AdminCommunity;
+  onSaved: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const current = resolveCommunityIdentity(community.slug, community);
+  const [title, setTitle] = useState(current.title);
+  const [subtitle, setSubtitle] = useState(current.eyebrow);
+  // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
+  const [newImage, setNewImage] = useState<string | undefined>(undefined);
+  const [processing, setProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const logoSrc = newImage === undefined ? current.logoSrc : newImage || undefined;
+  const canSave = title.trim().length > 0 && subtitle.trim().length > 0 && !processing && !saving;
+
+  const chooseImage = async (file: File | undefined) => {
+    if (!file) return;
+    setProcessing(true);
+    setError('');
+    try {
+      setNewImage(await resizeImageToDataUrl(file));
+    } catch {
+      setError('No se pudo procesar la imagen. Prueba con otra (JPG, PNG o WebP).');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/communities', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          slug: community.slug,
+          headerTitle: title,
+          headerSubtitle: subtitle,
+          ...(newImage === undefined ? {} : { headerImage: newImage }),
+        }),
+      });
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        setError(result.error ?? 'No se pudo guardar la cabecera.');
+        return;
+      }
+      await onSaved();
+    } catch {
+      setError('No se pudo conectar. Inténtalo de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={(event) => void save(event)} className="space-y-4 border-t border-slate-100 pt-4">
+      <p className="text-xs font-black uppercase tracking-wider text-[#a91d43]">Cabecera</p>
+      <HeaderPreview identity={{ eyebrow: subtitle.trim() || current.eyebrow, title: title.trim() || current.title, logoSrc }} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
+          <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={HEADER_TITLE_MAX} placeholder="Texto grande de la cabecera" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-black uppercase text-slate-400">Subtítulo</label>
+          <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={HEADER_SUBTITLE_MAX} placeholder="Texto pequeño sobre el título" />
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-black uppercase text-slate-400">Imagen</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            {processing ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+            {logoSrc ? 'Cambiar imagen' : 'Añadir imagen'}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(event) => {
+                void chooseImage(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          {logoSrc && (
+            <Button type="button" variant="outline" onClick={() => setNewImage('')}>
+              Quitar imagen
+            </Button>
+          )}
+          <span className="text-xs text-slate-400">Se recorta en cuadrado. Sin imagen se muestra el escudo del Levante.</span>
+        </div>
+      </div>
+      {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={!canSave} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
+          {saving && <Loader2 className="size-4 animate-spin" />}
+          Guardar cabecera
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function CommunitiesPanel() {
   const [communities, setCommunities] = useState<AdminCommunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -461,6 +599,7 @@ function CommunitiesPanel() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
 
   const load = () =>
@@ -548,7 +687,8 @@ function CommunitiesPanel() {
         <div className="space-y-2">
           {communities.map((community) => (
             <Card key={community.slug} className="border-0 shadow-sm ring-slate-200">
-              <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardContent className="space-y-4">
+               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <strong className="text-[#071527]">{community.name}</strong>
                   {community.slug === DEFAULT_COMMUNITY_SLUG && (
@@ -567,10 +707,32 @@ function CommunitiesPanel() {
                     {dateFormatter.format(new Date(community.createdAt))}
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => void copy(community.slug)} className="shrink-0">
-                  {copied === community.slug ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  {copied === community.slug ? 'Copiado' : 'Copiar enlace'}
-                </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button variant="outline" onClick={() => void copy(community.slug)}>
+                    {copied === community.slug ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    {copied === community.slug ? 'Copiado' : 'Copiar enlace'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={`Editar la comunidad ${community.name}`}
+                    aria-expanded={editing === community.slug}
+                    onClick={() => setEditing((current) => (current === community.slug ? null : community.slug))}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                </div>
+               </div>
+               {editing === community.slug && (
+                <CommunityHeaderEditor
+                  community={community}
+                  onCancel={() => setEditing(null)}
+                  onSaved={async () => {
+                    await load();
+                    setEditing(null);
+                  }}
+                />
+               )}
               </CardContent>
             </Card>
           ))}

@@ -19,8 +19,8 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
 import { applyLocalPostponements, getNextLevanteMatch } from '@/lib/levante-services';
 import { communityFetch } from '@/lib/community-client';
-import { getCommunityIdentity } from '@/lib/community-identity';
-export function CommunityApp({ communitySlug }: { communitySlug: string }) {
+import type { CommunityIdentity } from '@/lib/community-identity';
+export function CommunityApp({ identity }: { identity: CommunityIdentity }) {
   const [active, setActive] = useState<SectionId>('inicio');
   const [predictionOpen, setPredictionOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -71,7 +71,7 @@ export function CommunityApp({ communitySlug }: { communitySlug: string }) {
     <>
     <AppShell
       active={active}
-      identity={getCommunityIdentity(communitySlug)}
+      identity={identity}
       navigate={navigate}
       user={user}
       onLogin={() => setLoginOpen(true)}

@@ -1,4 +1,5 @@
 import type { SavedLineup } from '@/lib/formations';
+import type { CommunityHeaderFields } from '@/lib/community-identity';
 import type { PredictionScoreBreakdown } from '@/lib/prediction-scoring';
 
 export interface CommunityUser {
@@ -38,7 +39,7 @@ export interface CommunityRankingEntry {
   matchBreakdowns: RankingMatchBreakdown[];
 }
 
-export interface AdminCommunity {
+export interface AdminCommunity extends CommunityHeaderFields {
   slug: string;
   name: string;
   createdAt: number;

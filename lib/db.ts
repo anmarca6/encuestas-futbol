@@ -72,6 +72,12 @@ export function ensureCommunitySchema(): Promise<void> {
         created_at INTEGER NOT NULL
       )
     `).bind().run();
+    const communityColumns = await db.prepare('PRAGMA table_info(communities)').bind().all<{ name: string }>();
+    for (const column of ['header_title', 'header_subtitle', 'header_image']) {
+      if (!communityColumns.results.some((item) => item.name === column)) {
+        await db.prepare(`ALTER TABLE communities ADD COLUMN ${column} TEXT`).bind().run();
+      }
+    }
     await db.prepare('INSERT OR IGNORE INTO communities (slug, name, created_at) VALUES (?, ?, ?)')
       .bind(DEFAULT_COMMUNITY_SLUG, 'Granota App', Date.now()).run();
     // Los usuarios existentes pasan a la comunidad principal y el apodo pasa a ser único por comunidad.
