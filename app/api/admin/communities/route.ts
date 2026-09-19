@@ -9,6 +9,7 @@ import {
   HEADER_IMAGE_PATTERN,
   HEADER_SUBTITLE_MAX,
   HEADER_TITLE_MAX,
+  isReadableHeaderColor,
 } from '@/lib/community-identity';
 
 export async function GET(request: NextRequest) {
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     .prepare(`
       SELECT c.slug, c.name, c.created_at AS createdAt,
         c.header_title AS headerTitle, c.header_subtitle AS headerSubtitle, c.header_image AS headerImage,
+        c.header_color AS headerColor,
         (SELECT COUNT(*) FROM users u WHERE u.community_slug = c.slug) AS users,
         (SELECT COUNT(*) FROM predictions p JOIN users u ON u.id = p.user_id WHERE u.community_slug = c.slug) AS predictions
       FROM communities c
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
   }
   const community: AdminCommunity = {
     slug, name, createdAt: Date.now(), users: 0, predictions: 0,
-    headerTitle: null, headerSubtitle: null, headerImage: null,
+    headerTitle: null, headerSubtitle: null, headerImage: null, headerColor: null,
   };
   await getDatabase()
     .prepare('INSERT INTO communities (slug, name, created_at) VALUES (?, ?, ?)')
@@ -59,7 +61,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ community }, { status: 201 });
 }
 
-// Edita la cabecera de una comunidad. headerImage: omitido = sin cambios, '' = sin imagen (escudo del Levante).
+// Edita la cabecera de una comunidad. headerImage / headerColor: omitido = sin cambios, '' = por defecto
+// (escudo del Levante / azul marino).
 export async function PATCH(request: NextRequest) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;
@@ -69,6 +72,7 @@ export async function PATCH(request: NextRequest) {
     headerTitle?: string;
     headerSubtitle?: string;
     headerImage?: string;
+    headerColor?: string;
   };
   const title = body.headerTitle?.trim().replace(/\s+/g, ' ') ?? '';
   const subtitle = body.headerSubtitle?.trim().replace(/\s+/g, ' ') ?? '';
@@ -83,17 +87,28 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'La imagen no es válida o es demasiado grande.' }, { status: 400 });
   }
 
+  const color = body.headerColor?.toLowerCase();
+  if (color !== undefined && color !== '' && !isReadableHeaderColor(color)) {
+    return NextResponse.json({ error: 'El color no es válido o es demasiado claro para el texto blanco de la cabecera.' }, { status: 400 });
+  }
+
   await ensureCommunitySchema();
   if (!body.slug || !(await findCommunity(body.slug))) {
     return NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
   }
-  const db = getDatabase();
-  if (image === undefined) {
-    await db.prepare('UPDATE communities SET header_title = ?, header_subtitle = ? WHERE slug = ?')
-      .bind(title, subtitle, body.slug).run();
-  } else {
-    await db.prepare('UPDATE communities SET header_title = ?, header_subtitle = ?, header_image = ? WHERE slug = ?')
-      .bind(title, subtitle, image, body.slug).run();
+  const assignments = ['header_title = ?', 'header_subtitle = ?'];
+  const values: unknown[] = [title, subtitle];
+  if (image !== undefined) {
+    assignments.push('header_image = ?');
+    values.push(image);
   }
+  if (color !== undefined) {
+    assignments.push('header_color = ?');
+    values.push(color || null);
+  }
+  await getDatabase()
+    .prepare(`UPDATE communities SET ${assignments.join(', ')} WHERE slug = ?`)
+    .bind(...values, body.slug)
+    .run();
   return NextResponse.json({ ok: true });
 }

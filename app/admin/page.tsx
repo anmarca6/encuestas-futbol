@@ -18,8 +18,12 @@ import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { AdminCommunity } from '@/lib/community-types';
 import { DEFAULT_COMMUNITY_SLUG, isValidCommunitySlug, slugifyCommunityName } from '@/lib/community-shared';
 import {
+  DEFAULT_HEADER_COLOR,
+  HEADER_COLOR_PRESETS,
   HEADER_SUBTITLE_MAX,
   HEADER_TITLE_MAX,
+  headerColorWithAlpha,
+  isReadableHeaderColor,
   resolveCommunityIdentity,
   type CommunityIdentity,
 } from '@/lib/community-identity';
@@ -464,14 +468,17 @@ function MatchReportEditor() {
 // Vista previa de la cabecera tal como la verán los usuarios de la comunidad.
 function HeaderPreview({ identity }: { identity: CommunityIdentity }) {
   return (
-    <div className="flex h-18 items-center gap-3 rounded-xl bg-[#071527] px-4 text-white">
+    <div
+      className="flex h-18 items-center gap-3 rounded-xl px-4 text-white"
+      style={{ backgroundColor: identity.color ?? DEFAULT_HEADER_COLOR }}
+    >
       {identity.logoSrc ? (
         <Image unoptimized src={identity.logoSrc} width={96} height={96} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white/20" />
       ) : (
         <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white/95 text-[10px] font-black text-slate-500">Levante</span>
       )}
       <span className="min-w-0 text-left">
-        <small className="block truncate text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">{identity.eyebrow}</small>
+        <small className={`block truncate text-[10px] font-bold uppercase tracking-[.22em] ${identity.color ? 'text-white/80' : 'text-sky-300'}`}>{identity.eyebrow}</small>
         <strong className="block truncate text-lg font-black">{identity.title}</strong>
       </span>
     </div>
@@ -492,12 +499,14 @@ function CommunityHeaderEditor({
   const [subtitle, setSubtitle] = useState(current.eyebrow);
   // undefined = sin cambios · '' = sin imagen · data URL = imagen nueva
   const [newImage, setNewImage] = useState<string | undefined>(undefined);
+  const [color, setColor] = useState(current.color ?? DEFAULT_HEADER_COLOR);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const logoSrc = newImage === undefined ? current.logoSrc : newImage || undefined;
-  const canSave = title.trim().length > 0 && subtitle.trim().length > 0 && !processing && !saving;
+  const colorReadable = isReadableHeaderColor(color);
+  const canSave = title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !processing && !saving;
 
   const chooseImage = async (file: File | undefined) => {
     if (!file) return;
@@ -524,6 +533,7 @@ function CommunityHeaderEditor({
           slug: community.slug,
           headerTitle: title,
           headerSubtitle: subtitle,
+          headerColor: color === DEFAULT_HEADER_COLOR ? '' : color,
           ...(newImage === undefined ? {} : { headerImage: newImage }),
         }),
       });
@@ -543,7 +553,7 @@ function CommunityHeaderEditor({
   return (
     <form onSubmit={(event) => void save(event)} className="space-y-4 border-t border-slate-100 pt-4">
       <p className="text-xs font-black uppercase tracking-wider text-[#a91d43]">Cabecera</p>
-      <HeaderPreview identity={{ eyebrow: subtitle.trim() || current.eyebrow, title: title.trim() || current.title, logoSrc }} />
+      <HeaderPreview identity={{ eyebrow: subtitle.trim() || current.eyebrow, title: title.trim() || current.title, logoSrc, color: colorReadable ? color : undefined }} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
@@ -577,6 +587,39 @@ function CommunityHeaderEditor({
           )}
           <span className="text-xs text-slate-400">Se recorta en cuadrado. Sin imagen se muestra el escudo del Levante.</span>
         </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-black uppercase text-slate-400">Color de la cabecera</label>
+        <div className="flex flex-wrap items-center gap-2">
+          {HEADER_COLOR_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              aria-label={preset === DEFAULT_HEADER_COLOR ? 'Color por defecto (azul marino)' : `Color ${preset}`}
+              aria-pressed={color === preset}
+              onClick={() => setColor(preset)}
+              style={{ backgroundColor: preset }}
+              className={`grid size-8 place-items-center rounded-full ring-offset-2 transition ${color === preset ? 'ring-2 ring-[#a91d43]' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
+            >
+              {color === preset && <Check className="size-4 text-white" />}
+            </button>
+          ))}
+          <label className="ml-1 inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
+            <input
+              type="color"
+              value={/^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_HEADER_COLOR}
+              onChange={(event) => setColor(event.target.value.toLowerCase())}
+              className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
+              aria-label="Elegir otro color"
+            />
+            Otro color · {color}
+          </label>
+        </div>
+        {!colorReadable && (
+          <p className="mt-1 text-xs font-bold text-[#a91d43]">
+            Ese color es demasiado claro: el texto blanco de la cabecera no se leería bien. Elige uno más oscuro.
+          </p>
+        )}
       </div>
       {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
       <div className="flex gap-2">

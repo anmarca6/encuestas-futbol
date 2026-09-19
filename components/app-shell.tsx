@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { TeamCrest } from '@/components/shared';
 import type { CommunityUser } from '@/lib/community-types';
 import milCromosBanner from '@/public/bannerMilCromos.png';
-import type { CommunityIdentity } from '@/lib/community-identity';
+import { headerColorWithAlpha, type CommunityIdentity } from '@/lib/community-identity';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
   ['inicio', 'Inicio', House],
@@ -72,7 +72,10 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071527]/95 text-white backdrop-blur-xl">
+      <header
+        className={`sticky top-0 z-40 border-b border-white/10 text-white backdrop-blur-xl ${identity.color ? '' : 'bg-[#071527]/95'}`}
+        style={identity.color ? { backgroundColor: headerColorWithAlpha(identity.color, 0.95) } : undefined}
+      >
         <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-4 sm:px-6">
           <button
             onClick={() => navigate('inicio')}
@@ -92,7 +95,7 @@ export function AppShell({
               <TeamCrest teamName="Levante UD" size="lg" />
             )}
             <span className="min-w-0 text-left">
-              <small className="block truncate text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">
+              <small className={`block truncate text-[10px] font-bold uppercase tracking-[.22em] ${identity.color ? 'text-white/80' : 'text-sky-300'}`}>
                 {identity.eyebrow}
               </small>
               <strong className="block truncate text-lg font-black">{identity.title}</strong>
