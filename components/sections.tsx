@@ -168,14 +168,20 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
         <TeamIdentity teamName={match.homeTeam} size="sm" shortOnMobile />
         <TeamIdentity teamName={match.awayTeam} size="sm" shortOnMobile />
         <small className="block text-slate-400">
-          {formatDate(match.date, true)}
+          {match.status === 'POSTPONED' ? 'Fecha por confirmar' : formatDate(match.date, true)}
         </small>
       </div>
-      <strong className="whitespace-nowrap rounded-lg bg-white px-2 py-1 text-[#071527] shadow-sm">
-        {match.status === 'FINISHED'
-          ? `${match.homeScore}-${match.awayScore}`
-          : ''}
-      </strong>
+      {match.status === 'POSTPONED' ? (
+        <span className="whitespace-nowrap rounded-lg bg-amber-50 px-2 py-1 text-xs font-black text-amber-700">
+          Aplazado
+        </span>
+      ) : (
+        <strong className="whitespace-nowrap rounded-lg bg-white px-2 py-1 text-[#071527] shadow-sm">
+          {match.status === 'FINISHED'
+            ? `${match.homeScore}-${match.awayScore}`
+            : ''}
+        </strong>
+      )}
     </div>
   );
 }
