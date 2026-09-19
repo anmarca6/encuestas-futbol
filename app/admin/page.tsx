@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Check, Copy, ImagePlus, Loader2, Pencil, Plus, Shield, Trash2 } from 'lucide-react';
+import { Check, Copy, ImagePlus, KeyRound, Loader2, Pencil, Plus, Shield, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -875,8 +875,185 @@ function CommunityHeaderEditor({
   );
 }
 
-function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity[] | null; reload: () => Promise<void> }) {
+// Petición JSON al servidor devolviendo si fue bien o el mensaje de error.
+async function adminRequest(method: string, url: string, body?: unknown): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (response.ok) return { ok: true };
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    return { ok: false, error: result?.error ?? `Error ${response.status} del servidor.` };
+  } catch {
+    return { ok: false, error: 'No se pudo conectar. Inténtalo de nuevo.' };
+  }
+}
+
+// Administrador(es) de una comunidad: el super administrador crea aquí su usuario y contraseña.
+function CommunityAdminRow({
+  community,
+  admins,
+  reloadAdmins,
+}: {
+  community: AdminCommunity;
+  admins: AdminAccountInfo[] | null;
+  reloadAdmins: () => Promise<void>;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  const own = (admins ?? []).filter((account) => account.role === 'community' && account.communitySlug === community.slug);
+  const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
+  const usernameValid = ADMIN_USERNAME_PATTERN.test(cleanUsername);
+  const canCreate = usernameValid && password.length >= MIN_ADMIN_PASSWORD_LENGTH && busy === null;
+
+  const run = async (key: string, action: () => Promise<{ ok: boolean; error?: string }>, onDone: () => void) => {
+    setBusy(key);
+    setError('');
+    const result = await action();
+    if (!result.ok) setError(result.error ?? 'No se pudo completar la acción.');
+    else {
+      onDone();
+      await reloadAdmins();
+    }
+    setBusy(null);
+  };
+
+  return (
+    <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-400">Administrador</span>
+        {admins === null ? (
+          <span className="text-sm text-slate-400">Cargando…</span>
+        ) : own.length === 0 ? (
+          <span className="text-sm text-slate-500">Sin asignar</span>
+        ) : (
+          own.map((account) => (
+            <span key={account.id} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-sm font-black text-[#071527] ring-1 ring-slate-200">
+              @{account.username}
+              <button
+                type="button"
+                aria-label={`Cambiar la contraseña de @${account.username}`}
+                title="Cambiar contraseña"
+                onClick={() => {
+                  setResettingId((current) => (current === account.id ? null : account.id));
+                  setNewPassword('');
+                }}
+                className="grid size-5 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-[#071527]"
+              >
+                <KeyRound className="size-3" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Eliminar a @${account.username}`}
+                title="Eliminar administrador"
+                disabled={busy === account.id}
+                onClick={() => {
+                  if (!window.confirm(`¿Eliminar al administrador @${account.username}? Perderá el acceso al panel.`)) return;
+                  void run(account.id, () => adminRequest('DELETE', `/api/admin/admins?id=${encodeURIComponent(account.id)}`), () => undefined);
+                }}
+                className="grid size-5 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-[#a91d43]"
+              >
+                {busy === account.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+              </button>
+            </span>
+          ))
+        )}
+        <Button type="button" variant="outline" size="sm" onClick={() => setCreating((current) => !current)} aria-expanded={creating}>
+          <UserPlus className="size-3.5" />
+          {own.length === 0 ? 'Crear administrador' : 'Añadir otro'}
+        </Button>
+      </div>
+      {resettingId && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            type="text"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            autoComplete="off"
+            placeholder={`Nueva contraseña (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+            aria-label="Nueva contraseña del administrador"
+          />
+          <Button
+            type="button"
+            disabled={newPassword.length < MIN_ADMIN_PASSWORD_LENGTH || busy === resettingId}
+            onClick={() => void run(resettingId, () => adminRequest('PATCH', '/api/admin/admins', { id: resettingId, password: newPassword }), () => {
+              setResettingId(null);
+              setNewPassword('');
+            })}
+            className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]"
+          >
+            Guardar contraseña
+          </Button>
+        </div>
+      )}
+      {creating && (
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <Input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="off"
+              maxLength={31}
+              placeholder={`@usuario (p. ej. @${community.slug})`}
+              aria-label={`Usuario del administrador de ${community.name}`}
+            />
+            <Input
+              type="text"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="off"
+              placeholder={`Contraseña (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+              aria-label={`Contraseña del administrador de ${community.name}`}
+            />
+            <Button
+              type="button"
+              disabled={!canCreate}
+              onClick={() => void run('create', () => adminRequest('POST', '/api/admin/admins', { username: cleanUsername, password, communitySlug: community.slug }), () => {
+                setUsername('');
+                setPassword('');
+                setCreating(false);
+              })}
+              className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]"
+            >
+              {busy === 'create' ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+              Crear
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500">
+            {username.trim() && !usernameValid
+              ? 'Usuario no válido: 2-30 caracteres, minúsculas, números, punto, guion o guion bajo.'
+              : 'Con este usuario y contraseña entrará en /admin y solo verá esta comunidad. Pásale la contraseña por un canal privado.'}
+          </p>
+        </div>
+      )}
+      {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
+    </div>
+  );
+}
+
+function CommunitiesPanel({
+  communities,
+  reload,
+  admins,
+  reloadAdmins,
+}: {
+  communities: AdminCommunity[] | null;
+  reload: () => Promise<void>;
+  admins: AdminAccountInfo[] | null;
+  reloadAdmins: () => Promise<void>;
+}) {
   const [name, setName] = useState('');
+  // Administrador opcional que se crea a la vez que la comunidad
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -889,6 +1066,9 @@ function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity
 
   const slug = slugifyCommunityName(name);
   const preview = name.trim() && isValidCommunitySlug(slug) ? `${origin}/${slug}` : null;
+  const newAdminUsername = adminUsername.trim().replace(/^@/, '').toLowerCase();
+  const wantsAdmin = newAdminUsername !== '' || adminPassword !== '';
+  const newAdminValid = !wantsAdmin || (ADMIN_USERNAME_PATTERN.test(newAdminUsername) && adminPassword.length >= MIN_ADMIN_PASSWORD_LENGTH);
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -900,12 +1080,26 @@ function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name }),
       });
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok) {
+      const result = (await response.json()) as { error?: string; community?: { slug: string } };
+      if (!response.ok || !result.community) {
         setError(result.error ?? 'No se pudo crear la comunidad.');
         return;
       }
       setName('');
+      if (wantsAdmin) {
+        const created = await adminRequest('POST', '/api/admin/admins', {
+          username: newAdminUsername,
+          password: adminPassword,
+          communitySlug: result.community.slug,
+        });
+        if (created.ok) {
+          setAdminUsername('');
+          setAdminPassword('');
+        } else {
+          setError(`La comunidad se creó, pero no se pudo crear su administrador: ${created.error} Créalo desde su tarjeta.`);
+        }
+        await reloadAdmins();
+      }
       await reload();
     } catch {
       setError('No se pudo conectar. Inténtalo de nuevo.');
@@ -937,11 +1131,34 @@ function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity
                 maxLength={40}
                 placeholder="Por ejemplo: Ismaelete"
               />
-              <Button type="submit" disabled={creating || !preview} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
+              <Button type="submit" disabled={creating || !preview || !newAdminValid} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
                 {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 Crear comunidad
               </Button>
             </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                value={adminUsername}
+                onChange={(event) => setAdminUsername(event.target.value)}
+                autoComplete="off"
+                maxLength={31}
+                placeholder="Administrador (opcional): @usuario"
+                aria-label="Usuario del administrador de la nueva comunidad"
+              />
+              <Input
+                type="text"
+                value={adminPassword}
+                onChange={(event) => setAdminPassword(event.target.value)}
+                autoComplete="off"
+                placeholder={`Contraseña del administrador (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+                aria-label="Contraseña del administrador de la nueva comunidad"
+              />
+            </div>
+            {wantsAdmin && !newAdminValid && (
+              <p className="text-xs font-bold text-[#a91d43]">
+                Para crear también el administrador indica un usuario válido (2-30 caracteres, minúsculas, números, punto, guion o guion bajo) y una contraseña de al menos {MIN_ADMIN_PASSWORD_LENGTH} caracteres.
+              </p>
+            )}
             <p className="text-xs text-slate-500">
               {preview ? (
                 <>La dirección será <b className="text-[#071527]">{preview}</b></>
@@ -997,6 +1214,7 @@ function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity
                   </Button>
                 </div>
                </div>
+               <CommunityAdminRow community={community} admins={admins} reloadAdmins={reloadAdmins} />
                {editing === community.slug && (
                 <CommunityHeaderEditor
                   community={community}
@@ -1138,8 +1356,15 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
 }
 
 // Administradores de comunidad: solo los gestionan los super administradores.
-function AdminsPanel({ communities }: { communities: AdminCommunity[] | null }) {
-  const [admins, setAdmins] = useState<AdminAccountInfo[] | null>(null);
+function AdminsPanel({
+  communities,
+  admins,
+  reload,
+}: {
+  communities: AdminCommunity[] | null;
+  admins: AdminAccountInfo[] | null;
+  reload: () => Promise<void>;
+}) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [communitySlug, setCommunitySlug] = useState('');
@@ -1148,16 +1373,6 @@ function AdminsPanel({ communities }: { communities: AdminCommunity[] | null }) 
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const load = () =>
-    fetch('/api/admin/admins')
-      .then(async (response) => (await response.json()) as { admins?: AdminAccountInfo[] })
-      .then((result) => setAdmins(result.admins ?? []))
-      .catch(() => setAdmins([]));
-
-  useEffect(() => {
-    void load();
-  }, []);
 
   const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
   const usernameValid = ADMIN_USERNAME_PATTERN.test(cleanUsername);
@@ -1182,7 +1397,7 @@ function AdminsPanel({ communities }: { communities: AdminCommunity[] | null }) 
       }
       setUsername('');
       setPassword('');
-      await load();
+      await reload();
     } catch {
       setError('No se pudo conectar. Inténtalo de nuevo.');
     } finally {
@@ -1222,7 +1437,7 @@ function AdminsPanel({ communities }: { communities: AdminCommunity[] | null }) 
         setError(result?.error ?? `No se pudo eliminar (error ${response.status}).`);
         return;
       }
-      await load();
+      await reload();
     } finally {
       setBusyId(null);
     }
@@ -1431,6 +1646,7 @@ export default function AdminPage() {
   // undefined = comprobando sesión · null = sin sesión
   const [admin, setAdmin] = useState<AdminSessionInfo | null | undefined>(undefined);
   const [communities, setCommunities] = useState<AdminCommunity[] | null>(null);
+  const [admins, setAdmins] = useState<AdminAccountInfo[] | null>(null);
   const [selectedSlug, setSelectedSlug] = useState(DEFAULT_COMMUNITY_SLUG);
 
   const loadSession = () =>
@@ -1445,18 +1661,28 @@ export default function AdminPage() {
       .then((result) => setCommunities(result.communities ?? []))
       .catch(() => setCommunities([]));
 
+  const loadAdmins = () =>
+    fetch('/api/admin/admins')
+      .then(async (response) => (await response.json()) as { admins?: AdminAccountInfo[] })
+      .then((result) => setAdmins(result.admins ?? []))
+      .catch(() => setAdmins([]));
+
   useEffect(() => {
     void loadSession();
   }, []);
 
   const isSuper = admin?.role === 'super';
   useEffect(() => {
-    if (isSuper) void loadCommunities();
+    if (isSuper) {
+      void loadCommunities();
+      void loadAdmins();
+    }
   }, [isSuper]);
 
   const logout = async () => {
     await fetch('/api/admin/login', { method: 'DELETE' });
     setCommunities(null);
+    setAdmins(null);
     setAdmin(null);
   };
 
@@ -1507,7 +1733,7 @@ export default function AdminPage() {
                 description="Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus propios usuarios, predicciones y clasificación."
               />
               <div className="mt-4">
-                <CommunitiesPanel communities={communities} reload={loadCommunities} />
+                <CommunitiesPanel communities={communities} reload={loadCommunities} admins={admins} reloadAdmins={loadAdmins} />
               </div>
             </section>
             <section>
@@ -1516,7 +1742,7 @@ export default function AdminPage() {
                 description="Los super administradores (Leo y Angel) tienen acceso a todo. Cada comunidad puede tener su propio administrador, que solo gestiona esa comunidad."
               />
               <div className="mt-4">
-                <AdminsPanel communities={communities} />
+                <AdminsPanel communities={communities} admins={admins} reload={loadAdmins} />
               </div>
             </section>
             <section>
