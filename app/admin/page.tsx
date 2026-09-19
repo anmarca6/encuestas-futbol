@@ -32,6 +32,15 @@ import {
 } from '@/lib/community-identity';
 import { fitImageToDataUrl, resizeImageToDataUrl } from '@/lib/image-resize';
 import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
+import {
+  DEFAULT_SOCIAL_NETWORKS,
+  MAX_COMMUNITY_LINKS,
+  SOCIAL_NETWORKS,
+  getSocialNetwork,
+  normalizeSocialUrl,
+  parseCommunityLinks,
+  type CommunityLink,
+} from '@/lib/social-networks';
 
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -513,6 +522,11 @@ function CommunityHeaderEditor({
   const [newHeroImage, setNewHeroImage] = useState<string | undefined>(undefined);
   const [sentHeroImage, setSentHeroImage] = useState<string | undefined>(undefined);
   const [pendingHero, setPendingHero] = useState<string | null>(null);
+  // Follow me: siempre 3 filas (red + URL); las que tienen la URL vacía no se guardan.
+  const [links, setLinks] = useState<CommunityLink[]>(() => {
+    const saved = parseCommunityLinks(community.heroLinks);
+    return Array.from({ length: MAX_COMMUNITY_LINKS }, (_, index) => saved[index] ?? { network: DEFAULT_SOCIAL_NETWORKS[index], url: '' });
+  });
   const [processingHero, setProcessingHero] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<unknown[] | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -522,8 +536,12 @@ function CommunityHeaderEditor({
   const logoSrc = pendingLogo ?? (newImage === undefined ? current.logoSrc : newImage || undefined);
   const colorReadable = isReadableHeaderColor(color);
   // El aviso de guardado desaparece en cuanto se vuelve a editar algo.
-  const snapshot = [title, subtitle, color, heroTitle, heroSubtitle, newImage, newHeroImage];
+  const snapshot = [title, subtitle, color, heroTitle, heroSubtitle, newImage, newHeroImage, JSON.stringify(links)];
   const saved = savedSnapshot !== null && savedSnapshot.every((value, index) => value === snapshot[index]);
+  // Cada fila con URL debe ser válida para su red; las válidas se ven ya en la vista previa.
+  const linkChecks = links.map((link) => ({ link, url: link.url.trim() ? normalizeSocialUrl(link.network, link.url) : null }));
+  const linksValid = linkChecks.every((check) => !check.link.url.trim() || check.url !== null);
+  const previewLinks = linkChecks.flatMap((check) => (check.url ? [{ network: check.link.network, url: check.url }] : []));
   const heroLines = heroTitle.split('\n').map((line) => line.trim()).filter(Boolean);
   const heroTooLong = heroLines.length > 2 || heroLines.join('\n').length > HERO_TITLE_MAX;
   const heroPreview = (() => {
@@ -534,10 +552,10 @@ function CommunityHeaderEditor({
       headerColor: colorReadable && color !== DEFAULT_HEADER_COLOR ? color : null,
     });
     if (!base) return null;
-    return { ...base, imageUrl: pendingHero ?? (newHeroImage === undefined ? base.imageUrl : newHeroImage || undefined) };
+    return { ...base, links: previewLinks, imageUrl: pendingHero ?? (newHeroImage === undefined ? base.imageUrl : newHeroImage || undefined) };
   })();
   const canSave =
-    title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !heroTooLong &&
+    title.trim().length > 0 && subtitle.trim().length > 0 && colorReadable && !heroTooLong && linksValid &&
     !processing && !processingHero && !saving;
 
   const chooseImage = async (file: File | undefined) => {
@@ -589,6 +607,7 @@ function CommunityHeaderEditor({
           headerColor: color === DEFAULT_HEADER_COLOR ? '' : color,
           heroTitle,
           heroSubtitle,
+          heroLinks: links.filter((link) => link.url.trim()),
           ...(newHeroImage === undefined || newHeroImage === sentHeroImage ? {} : { heroImage: newHeroImage }),
           ...(newImage === undefined || newImage === sentImage ? {} : { headerImage: newImage }),
         }),
@@ -760,6 +779,52 @@ function CommunityHeaderEditor({
             <span className="text-xs text-slate-400">
               Se reduce sin recortarla. Necesita un título para mostrarse.
             </span>
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-black uppercase text-slate-400">Follow me (hasta {MAX_COMMUNITY_LINKS} redes)</label>
+          <p className="mb-2 text-xs text-slate-400">
+            Aparecen como botones en la portada. Pega la dirección de tu perfil o escribe solo tu @usuario. Deja vacías las filas que no uses.
+          </p>
+          <div className="space-y-2">
+            {linkChecks.map(({ link, url }, index) => {
+              const network = getSocialNetwork(link.network);
+              const invalid = link.url.trim() !== '' && url === null;
+              return (
+                <div key={index}>
+                  <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
+                    <NativeSelect
+                      value={link.network}
+                      aria-label={`Red social ${index + 1}`}
+                      onChange={(event) =>
+                        setLinks((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, network: event.target.value } : item)))
+                      }
+                    >
+                      {SOCIAL_NETWORKS.map((option) => (
+                        <NativeSelectOption key={option.id} value={option.id}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                    <Input
+                      value={link.url}
+                      aria-label={`Enlace de ${network?.label ?? 'la red'}`}
+                      aria-invalid={invalid}
+                      maxLength={200}
+                      placeholder={network ? `https://${network.domains[0]}/tu-perfil  o  @usuario` : 'https://…'}
+                      onChange={(event) =>
+                        setLinks((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, url: event.target.value } : item)))
+                      }
+                    />
+                  </div>
+                  {invalid && (
+                    <p className="mt-1 text-xs font-bold text-[#a91d43]">
+                      Enlace no válido: usa una dirección de {network?.domains[0] ?? 'la red elegida'} o un @usuario.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

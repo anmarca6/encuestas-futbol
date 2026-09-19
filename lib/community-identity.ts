@@ -1,4 +1,5 @@
 import { DEFAULT_COMMUNITY_SLUG } from '@/lib/community-shared';
+import { parseCommunityLinks, type CommunityLink } from '@/lib/social-networks';
 
 // Identidad visible de cada comunidad en la cabecera. Sin logoSrc se muestra el escudo del Levante.
 export interface CommunityIdentity {
@@ -82,6 +83,8 @@ export interface CommunityHeroFields {
   heroTitle: string | null;
   heroSubtitle: string | null;
   heroImageVersion: string | null;
+  // JSON con los enlaces "Follow me" (ver lib/social-networks.ts)
+  heroLinks: string | null;
 }
 
 export interface CommunityHero {
@@ -89,6 +92,7 @@ export interface CommunityHero {
   subtitle: string;
   imageUrl?: string;
   accentColor: string;
+  links: CommunityLink[];
 }
 
 export const HERO_TITLE_MAX = 60;
@@ -124,6 +128,7 @@ export function resolveCommunityHero(
     title: fields.heroTitle,
     subtitle: fields.heroSubtitle ?? '',
     imageUrl: heroImageUrl(community.slug, fields.heroImageVersion ?? null),
+    links: parseCommunityLinks(fields.heroLinks),
     accentColor: fields.headerColor && isReadableHeaderColor(fields.headerColor) ? fields.headerColor : DEFAULT_ACCENT_COLOR,
   };
 }

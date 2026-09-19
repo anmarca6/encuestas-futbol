@@ -27,7 +27,7 @@ export async function findCommunityWithHeader(slug: string): Promise<(Community 
       SELECT slug, name, created_at AS createdAt, header_title AS headerTitle,
         header_subtitle AS headerSubtitle, header_image AS headerImage,
         header_color AS headerColor, hero_title AS heroTitle, hero_subtitle AS heroSubtitle,
-        hero_image_version AS heroImageVersion
+        hero_image_version AS heroImageVersion, hero_links AS heroLinks
       FROM communities WHERE slug = ? LIMIT 1
     `)
     .bind(slug)

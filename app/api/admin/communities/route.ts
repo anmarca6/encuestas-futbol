@@ -15,6 +15,7 @@ import {
   heroImageVersionOf,
   isReadableHeaderColor,
 } from '@/lib/community-identity';
+import { MAX_COMMUNITY_LINKS, getSocialNetwork, normalizeSocialUrl } from '@/lib/social-networks';
 
 export async function GET(request: NextRequest) {
   const unauthorized = requireAdmin(request);
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       SELECT c.slug, c.name, c.created_at AS createdAt,
         c.header_title AS headerTitle, c.header_subtitle AS headerSubtitle, c.header_image AS headerImage,
         c.header_color AS headerColor, c.hero_title AS heroTitle, c.hero_subtitle AS heroSubtitle,
-        c.hero_image_version AS heroImageVersion,
+        c.hero_image_version AS heroImageVersion, c.hero_links AS heroLinks,
         (SELECT COUNT(*) FROM users u WHERE u.community_slug = c.slug) AS users,
         (SELECT COUNT(*) FROM predictions p JOIN users u ON u.id = p.user_id WHERE u.community_slug = c.slug) AS predictions
       FROM communities c
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
   const community: AdminCommunity = {
     slug, name, createdAt: Date.now(), users: 0, predictions: 0,
     headerTitle: null, headerSubtitle: null, headerImage: null, headerColor: null,
-    heroTitle: null, heroSubtitle: null, heroImageVersion: null,
+    heroTitle: null, heroSubtitle: null, heroImageVersion: null, heroLinks: null,
   };
   await getDatabase()
     .prepare('INSERT INTO communities (slug, name, created_at) VALUES (?, ?, ?)')
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 
 // Edita la cabecera de una comunidad. headerImage / headerColor: omitido = sin cambios, '' = por defecto
 // (escudo del Levante / azul marino). Portada: heroTitle omitido = sin cambios, '' = portada estándar (borra todo);
-// heroImage omitido = sin cambios, '' = sin imagen.
+// heroImage omitido = sin cambios, '' = sin imagen. heroLinks (Follow me): omitido = sin cambios, [] = ninguno.
 async function updateCommunity(request: NextRequest) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;
@@ -83,6 +84,7 @@ async function updateCommunity(request: NextRequest) {
     heroTitle?: string;
     heroSubtitle?: string;
     heroImage?: string;
+    heroLinks?: Array<{ network?: string; url?: string }>;
   };
   const title = body.headerTitle?.trim().replace(/\s+/g, ' ') ?? '';
   const subtitle = body.headerSubtitle?.trim().replace(/\s+/g, ' ') ?? '';
@@ -121,6 +123,29 @@ async function updateCommunity(request: NextRequest) {
     return NextResponse.json({ error: 'La imagen de la portada no es válida o es demasiado grande.' }, { status: 400 });
   }
 
+  // Enlaces "Follow me": hasta 3, cada uno con una red y una URL válida de esa red.
+  let heroLinks: string | null | undefined;
+  if (body.heroLinks !== undefined) {
+    const entries = Array.isArray(body.heroLinks) ? body.heroLinks.filter((item) => item?.url?.trim()) : null;
+    if (!entries || entries.length > MAX_COMMUNITY_LINKS) {
+      return NextResponse.json({ error: `Puedes añadir hasta ${MAX_COMMUNITY_LINKS} enlaces.` }, { status: 400 });
+    }
+    const links = [];
+    for (const item of entries) {
+      const network = getSocialNetwork(item.network ?? '');
+      const url = network && normalizeSocialUrl(network.id, item.url ?? '');
+      if (!network || !url) {
+        const domain = network?.domains[0] ?? 'la red elegida';
+        return NextResponse.json(
+          { error: `El enlace de ${network?.label ?? 'la red'} no es válido: debe ser una dirección de ${domain} o un @usuario.` },
+          { status: 400 },
+        );
+      }
+      links.push({ network: network.id, url });
+    }
+    heroLinks = links.length ? JSON.stringify(links) : null;
+  }
+
   await ensureCommunitySchema();
   if (!body.slug || !(await findCommunity(body.slug))) {
     return NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
@@ -137,10 +162,14 @@ async function updateCommunity(request: NextRequest) {
   }
   if (heroTitle === null) {
     // Sin título de portada se vuelve a la portada estándar y se descarta lo demás.
-    assignments.push('hero_title = NULL', 'hero_subtitle = NULL', 'hero_image = NULL', 'hero_image_version = NULL');
+    assignments.push('hero_title = NULL', 'hero_subtitle = NULL', 'hero_image = NULL', 'hero_image_version = NULL', 'hero_links = NULL');
   } else if (heroTitle !== undefined) {
     assignments.push('hero_title = ?', 'hero_subtitle = ?');
     values.push(heroTitle, heroSubtitle);
+    if (heroLinks !== undefined) {
+      assignments.push('hero_links = ?');
+      values.push(heroLinks);
+    }
     if (heroImage !== undefined) {
       assignments.push('hero_image = ?', 'hero_image_version = ?');
       values.push(heroImage || null, heroImage ? heroImageVersionOf(heroImage) : null);

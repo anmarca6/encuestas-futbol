@@ -1,5 +1,51 @@
+import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { HERO_FEATURES, type CommunityHero } from '@/lib/community-identity';
+import { getSocialNetwork, type CommunityLink } from '@/lib/social-networks';
+
+// Iconos de marca: un círculo del color de la red que se "enciende" al pasar el ratón.
+function FollowMe({ links, accentColor }: { links: CommunityLink[]; accentColor: string }) {
+  const items = links.flatMap((link) => {
+    const network = getSocialNetwork(link.network);
+    return network ? [{ link, network }] : [];
+  });
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <p className="mb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-[.22em] text-slate-400">
+        <span className="relative flex size-2" aria-hidden="true">
+          <span className="absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:animate-none" style={{ backgroundColor: accentColor }} />
+          <span className="relative inline-flex size-2 rounded-full" style={{ backgroundColor: accentColor }} />
+        </span>
+        Follow me
+      </p>
+      <ul className="flex flex-wrap gap-2.5">
+        {items.map(({ link, network }) => (
+          <li key={`${network.id}-${link.url}`}>
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${network.chipLabel} (se abre en una pestaña nueva)`}
+              style={{ '--brand': network.color } as CSSProperties}
+              className="group inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-black text-[#071527] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-transparent hover:bg-(--brand) hover:text-white hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-(--brand) text-white transition-colors duration-200 group-hover:bg-white/20">
+                <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+                  <path d={network.iconPath} />
+                </svg>
+              </span>
+              {network.chipLabel}
+              <span aria-hidden="true" className="-ml-1 text-xs opacity-0 transition duration-200 group-hover:translate-x-0.5 group-hover:opacity-100">
+                ↗
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 // Portada de Inicio de una comunidad: textos a la izquierda, imagen a la derecha.
 // La primera línea del título va en oscuro y las siguientes en el color de acento de la comunidad.
@@ -34,6 +80,7 @@ export function CommunityHeroCard({
               </li>
             ))}
           </ul>
+          <FollowMe links={hero.links} accentColor={hero.accentColor} />
           <button
             type="button"
             onClick={onRules}
