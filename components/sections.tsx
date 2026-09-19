@@ -301,7 +301,7 @@ export function HomeSection({
   return (
     <>
       {hero ? (
-        <CommunityHeroCard hero={hero} onPredict={predict} onRules={openRules} />
+        <CommunityHeroCard hero={hero} onRules={openRules} />
       ) : (
         <StandardHeroCard onRules={openRules} />
       )}

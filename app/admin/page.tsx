@@ -695,7 +695,7 @@ function CommunityHeaderEditor({
           <div className="relative">
             <div className="pointer-events-none select-none" aria-hidden="true">
               {heroPreview ? (
-                <CommunityHeroCard hero={heroPreview} onPredict={() => undefined} onRules={() => undefined} />
+                <CommunityHeroCard hero={heroPreview} onRules={() => undefined} />
               ) : (
                 <StandardHeroCard onRules={() => undefined} />
               )}

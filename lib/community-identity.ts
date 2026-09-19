@@ -85,7 +85,6 @@ export interface CommunityHeroFields {
 }
 
 export interface CommunityHero {
-  eyebrow: string;
   title: string;
   subtitle: string;
   imageUrl?: string;
@@ -117,12 +116,11 @@ export function heroImageUrl(slug: string, version: string | null): string | und
 }
 
 export function resolveCommunityHero(
-  community: { slug: string; name: string },
+  community: { slug: string },
   fields: Partial<CommunityHeroFields> & Partial<CommunityHeaderFields>,
 ): CommunityHero | null {
   if (!fields.heroTitle) return null;
   return {
-    eyebrow: community.slug === DEFAULT_COMMUNITY_SLUG ? 'En clave granota' : `${community.name} × Granota App`,
     title: fields.heroTitle,
     subtitle: fields.heroSubtitle ?? '',
     imageUrl: heroImageUrl(community.slug, fields.heroImageVersion ?? null),
