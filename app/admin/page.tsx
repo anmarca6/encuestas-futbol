@@ -16,6 +16,7 @@ import { formations, formationOptions, type SavedLineup } from '@/lib/formations
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { AdminCommunity } from '@/lib/community-types';
+import { ADMIN_USERNAME_PATTERN, MIN_ADMIN_PASSWORD_LENGTH, type AdminAccountInfo, type AdminSessionInfo } from '@/lib/admin-shared';
 import { DEFAULT_COMMUNITY_SLUG, isValidCommunitySlug, slugifyCommunityName } from '@/lib/community-shared';
 import {
   DEFAULT_HEADER_COLOR,
@@ -60,6 +61,7 @@ interface AdminPrediction {
 }
 
 function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,11 +74,11 @@ function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!response.ok) {
-        const result = (await response.json()) as { error?: string };
-        setError(result.error ?? 'No se pudo entrar.');
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(result?.error ?? 'No se pudo entrar.');
         return;
       }
       onAuthenticated();
@@ -100,18 +102,29 @@ function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
           Panel de administración
         </h1>
         <p className="mt-1 text-center text-sm text-slate-500">
-          Acceso solo para el equipo de Granota App.
+          Acceso solo para administradores.
         </p>
         <Input
-          type="password"
           autoFocus
+          autoComplete="username"
+          value={username}
+          onChange={(event) => {
+            setUsername(event.target.value);
+            setError('');
+          }}
+          placeholder="Usuario"
+          className="mt-6 h-12"
+        />
+        <Input
+          type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(event) => {
             setPassword(event.target.value);
             setError('');
           }}
-          placeholder="Contraseña de administrador"
-          className="mt-6 h-12"
+          placeholder="Contraseña"
+          className="mt-3 h-12"
         />
         {error && (
           <p role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">
@@ -120,7 +133,7 @@ function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
         )}
         <Button
           type="submit"
-          disabled={loading || password.length === 0}
+          disabled={loading || username.trim().length === 0 || password.length === 0}
           className="mt-4 h-12 w-full bg-[#a91d43] font-black text-white"
         >
           {loading ? <Loader2 className="animate-spin" /> : 'Entrar'}
@@ -130,7 +143,7 @@ function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
   );
 }
 
-function MvpEditor() {
+function MvpEditor({ communitySlug }: { communitySlug: string }) {
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   const [overrides, setOverrides] = useState<MvpOverride[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,7 +152,7 @@ function MvpEditor() {
   const [savedMatchday, setSavedMatchday] = useState<number | null>(null);
 
   const loadOverrides = () =>
-    fetch('/api/mvp')
+    fetch('/api/mvp', { headers: { 'x-community': communitySlug } })
       .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
       .then((result) => setOverrides(result.overrides ?? []));
 
@@ -173,7 +186,7 @@ function MvpEditor() {
       const response = await fetch('/api/admin/mvp', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ matchday, playerId: draft.playerId, reason: draft.reason }),
+        body: JSON.stringify({ community: communitySlug, matchday, playerId: draft.playerId, reason: draft.reason }),
       });
       if (response.ok) {
         await loadOverrides();
@@ -258,7 +271,7 @@ function MvpEditor() {
   );
 }
 
-function MatchReportEditor() {
+function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
   type MatchReportDraft = {
     homeScore: number;
     awayScore: number;
@@ -270,15 +283,19 @@ function MatchReportEditor() {
   };
 
   const [reports, setReports] = useState<Record<number, MatchReportDraft>>({});
+  // Partidos que la comunidad aún no ha definido y hereda de la comunidad principal
+  const [inherited, setInherited] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [savingMatchday, setSavingMatchday] = useState<number | null>(null);
   const [savedMatchday, setSavedMatchday] = useState<number | null>(null);
 
   const loadReports = async () => {
-    const response = await fetch('/api/admin/matches');
-    const result = (await response.json()) as { reports?: Array<{ matchday: number; homeScore: number; awayScore: number; formation: SavedLineup['formation']; lineup: SavedLineup; scorers: string[]; mvp: string | null; reason: string }> };
+    const response = await fetch(`/api/admin/matches?community=${encodeURIComponent(communitySlug)}`);
+    const result = (await response.json()) as { reports?: Array<{ inherited?: boolean; matchday: number; homeScore: number; awayScore: number; formation: SavedLineup['formation']; lineup: SavedLineup; scorers: string[]; mvp: string | null; reason: string }> };
     const next: Record<number, MatchReportDraft> = {};
+    const nextInherited: Record<number, boolean> = {};
     for (const item of result.reports ?? []) {
+      nextInherited[item.matchday] = item.inherited === true;
       next[item.matchday] = {
         homeScore: item.homeScore,
         awayScore: item.awayScore,
@@ -290,6 +307,7 @@ function MatchReportEditor() {
       };
     }
     setReports(next);
+    setInherited(nextInherited);
   };
 
   useEffect(() => {
@@ -350,6 +368,7 @@ function MatchReportEditor() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
+          community: communitySlug,
           matchday,
           homeScore: draft.homeScore,
           awayScore: draft.awayScore,
@@ -386,6 +405,11 @@ function MatchReportEditor() {
                 <div>
                   <strong className="block text-[#071527]">Jornada {match.matchday}</strong>
                   <span className="text-sm text-slate-500">{match.homeTeam} vs {match.awayTeam}</span>
+                  {inherited[match.matchday] && communitySlug !== DEFAULT_COMMUNITY_SLUG && (
+                    <span className="mt-1 block text-xs font-bold text-[#153e72]">
+                      Datos de la comunidad principal: guarda para personalizarlos en esta comunidad.
+                    </span>
+                  )}
                 </div>
                 <Button
                   onClick={() => void save(match.matchday)}
@@ -851,9 +875,7 @@ function CommunityHeaderEditor({
   );
 }
 
-function CommunitiesPanel() {
-  const [communities, setCommunities] = useState<AdminCommunity[]>([]);
-  const [loading, setLoading] = useState(true);
+function CommunitiesPanel({ communities, reload }: { communities: AdminCommunity[] | null; reload: () => Promise<void> }) {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -861,15 +883,8 @@ function CommunitiesPanel() {
   const [editing, setEditing] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
 
-  const load = () =>
-    fetch('/api/admin/communities')
-      .then(async (response) => (await response.json()) as { communities?: AdminCommunity[] })
-      .then((result) => setCommunities(result.communities ?? []))
-      .catch(() => setCommunities([]));
-
   useEffect(() => {
     setOrigin(window.location.origin);
-    void load().finally(() => setLoading(false));
   }, []);
 
   const slug = slugifyCommunityName(name);
@@ -891,7 +906,7 @@ function CommunitiesPanel() {
         return;
       }
       setName('');
-      await load();
+      await reload();
     } catch {
       setError('No se pudo conectar. Inténtalo de nuevo.');
     } finally {
@@ -940,7 +955,7 @@ function CommunitiesPanel() {
           </form>
         </CardContent>
       </Card>
-      {loading ? (
+      {communities === null ? (
         <p className="text-sm font-bold text-slate-400">Cargando comunidades…</p>
       ) : (
         <div className="space-y-2">
@@ -986,7 +1001,7 @@ function CommunitiesPanel() {
                 <CommunityHeaderEditor
                   community={community}
                   onCancel={() => setEditing(null)}
-                  onSaved={load}
+                  onSaved={reload}
                 />
                )}
               </CardContent>
@@ -998,13 +1013,13 @@ function CommunitiesPanel() {
   );
 }
 
-function PredictionsModeration() {
+function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = () =>
-    fetch('/api/admin/predictions')
+    fetch(`/api/admin/predictions?community=${encodeURIComponent(communitySlug)}`)
       .then(async (response) => (await response.json()) as { predictions?: AdminPrediction[] })
       .then((result) => setPredictions(result.predictions ?? []))
       .catch(() => setPredictions([]));
@@ -1017,7 +1032,7 @@ function PredictionsModeration() {
     if (!window.confirm('¿Eliminar esta predicción?')) return;
     setBusyId(id);
     try {
-      await fetch(`/api/admin/predictions?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await fetch(`/api/admin/predictions?id=${encodeURIComponent(id)}&community=${encodeURIComponent(communitySlug)}`, { method: 'DELETE' });
       await load();
     } finally {
       setBusyId(null);
@@ -1028,7 +1043,7 @@ function PredictionsModeration() {
     if (!window.confirm(`¿Eliminar TODAS las predicciones de @${nickname}?`)) return;
     setBusyId(userId);
     try {
-      await fetch(`/api/admin/predictions?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+      await fetch(`/api/admin/predictions?userId=${encodeURIComponent(userId)}&community=${encodeURIComponent(communitySlug)}`, { method: 'DELETE' });
       await load();
     } finally {
       setBusyId(null);
@@ -1073,9 +1088,6 @@ function PredictionsModeration() {
                   )}
                 </span>
                 <strong className="text-[#071527]">@{group.nickname}</strong>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  /{group.communitySlug}
-                </span>
                 <span className="text-xs font-bold text-slate-400">
                   {group.predictions.length} {group.predictions.length === 1 ? 'predicción' : 'predicciones'}
                 </span>
@@ -1125,22 +1137,330 @@ function PredictionsModeration() {
   );
 }
 
-export default function AdminPage() {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+// Administradores de comunidad: solo los gestionan los super administradores.
+function AdminsPanel({ communities }: { communities: AdminCommunity[] | null }) {
+  const [admins, setAdmins] = useState<AdminAccountInfo[] | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [communitySlug, setCommunitySlug] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = () =>
+    fetch('/api/admin/admins')
+      .then(async (response) => (await response.json()) as { admins?: AdminAccountInfo[] })
+      .then((result) => setAdmins(result.admins ?? []))
+      .catch(() => setAdmins([]));
 
   useEffect(() => {
-    void fetch('/api/admin/login')
-      .then(async (response) => (await response.json()) as { authenticated: boolean })
-      .then((result) => setAuthenticated(result.authenticated))
-      .catch(() => setAuthenticated(false));
+    void load();
   }, []);
+
+  const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
+  const usernameValid = ADMIN_USERNAME_PATTERN.test(cleanUsername);
+  const chosenCommunity = communitySlug || communities?.find((community) => community.slug !== DEFAULT_COMMUNITY_SLUG)?.slug || communities?.[0]?.slug || '';
+  const canCreate = usernameValid && password.length >= MIN_ADMIN_PASSWORD_LENGTH && chosenCommunity !== '' && !creating;
+  const communityName = (slug: string | null) => communities?.find((community) => community.slug === slug)?.name ?? slug ?? '';
+
+  const create = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setCreating(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: cleanUsername, password, communitySlug: chosenCommunity }),
+      });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setError(result?.error ?? `No se pudo crear el administrador (error ${response.status}).`);
+        return;
+      }
+      setUsername('');
+      setPassword('');
+      await load();
+    } catch {
+      setError('No se pudo conectar. Inténtalo de nuevo.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const resetPassword = async (id: string) => {
+    setBusyId(id);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/admins', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, password: newPassword }),
+      });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setError(result?.error ?? `No se pudo cambiar la contraseña (error ${response.status}).`);
+        return;
+      }
+      setResettingId(null);
+      setNewPassword('');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remove = async (account: AdminAccountInfo) => {
+    if (!window.confirm(`¿Eliminar al administrador @${account.username}? Perderá el acceso al panel.`)) return;
+    setBusyId(account.id);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/admins?id=${encodeURIComponent(account.id)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(result?.error ?? `No se pudo eliminar (error ${response.status}).`);
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-0 shadow-sm ring-slate-200">
+        <CardContent>
+          <form onSubmit={(event) => void create(event)} className="space-y-3">
+            <label className="block text-xs font-black uppercase text-slate-400">Nuevo administrador de comunidad</label>
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_12rem]">
+              <Input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                autoComplete="off"
+                maxLength={31}
+                placeholder="@usuario"
+                aria-label="Usuario del administrador"
+              />
+              <Input
+                type="text"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="off"
+                placeholder={`Contraseña (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+                aria-label="Contraseña del administrador"
+              />
+              <NativeSelect value={chosenCommunity} onChange={(event) => setCommunitySlug(event.target.value)} aria-label="Comunidad que administra">
+                {(communities ?? []).map((community) => (
+                  <NativeSelectOption key={community.slug} value={community.slug}>
+                    {community.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="submit" disabled={!canCreate} className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]">
+                {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                Crear administrador
+              </Button>
+              <span className="text-xs text-slate-500">
+                {username.trim() && !usernameValid
+                  ? 'Usuario no válido: 2-30 caracteres, minúsculas, números, punto, guion o guion bajo.'
+                  : 'Solo verá y podrá editar su comunidad: MVP, once, goleadores y los comentarios de su grada. Pásale la contraseña por un canal privado.'}
+              </span>
+            </div>
+            {error && <p className="text-sm font-bold text-[#a91d43]">{error}</p>}
+          </form>
+        </CardContent>
+      </Card>
+      {admins === null ? (
+        <p className="text-sm font-bold text-slate-400">Cargando administradores…</p>
+      ) : (
+        <div className="space-y-2">
+          {admins.map((account) => (
+            <Card key={account.id} className="border-0 shadow-sm ring-slate-200">
+              <CardContent className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <strong className="text-[#071527]">@{account.username}</strong>
+                    <span
+                      className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${account.role === 'super' ? 'bg-rose-50 text-[#a91d43]' : 'bg-sky-50 text-[#153e72]'}`}
+                    >
+                      {account.role === 'super' ? 'Super administrador' : `Admin de ${communityName(account.communitySlug)}`}
+                    </span>
+                    <p className="text-xs text-slate-400">Creado el {dateFormatter.format(new Date(account.createdAt))}</p>
+                  </div>
+                  {account.role === 'community' && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setResettingId((current) => (current === account.id ? null : account.id));
+                          setNewPassword('');
+                        }}
+                      >
+                        Cambiar contraseña
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Eliminar a @${account.username}`}
+                        disabled={busyId === account.id}
+                        onClick={() => void remove(account)}
+                        className="border-rose-200 text-[#a91d43] hover:bg-rose-50"
+                      >
+                        {busyId === account.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {resettingId === account.id && (
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      type="text"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      autoComplete="off"
+                      placeholder={`Nueva contraseña (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+                      aria-label={`Nueva contraseña de @${account.username}`}
+                    />
+                    <Button
+                      disabled={newPassword.length < MIN_ADMIN_PASSWORD_LENGTH || busyId === account.id}
+                      onClick={() => void resetPassword(account.id)}
+                      className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]"
+                    >
+                      Guardar contraseña
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Cada administrador cambia su propia contraseña.
+function PasswordPanel() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/admin/password', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setMessage({ ok: false, text: result?.error ?? `No se pudo cambiar la contraseña (error ${response.status}).` });
+        return;
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setMessage({ ok: true, text: 'Contraseña cambiada.' });
+    } catch {
+      setMessage({ ok: false, text: 'No se pudo conectar. Inténtalo de nuevo.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-0 shadow-sm ring-slate-200">
+      <CardContent>
+        <form onSubmit={(event) => void save(event)} className="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              autoComplete="current-password"
+              placeholder="Contraseña actual"
+              aria-label="Contraseña actual"
+            />
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              autoComplete="new-password"
+              placeholder={`Nueva contraseña (mín. ${MIN_ADMIN_PASSWORD_LENGTH})`}
+              aria-label="Nueva contraseña"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="submit"
+              disabled={saving || !currentPassword || newPassword.length < MIN_ADMIN_PASSWORD_LENGTH}
+              className="bg-[#a91d43] font-black text-white hover:bg-[#8f1738]"
+            >
+              {saving && <Loader2 className="size-4 animate-spin" />}
+              Cambiar contraseña
+            </Button>
+            {message && (
+              <span className={`text-sm font-bold ${message.ok ? 'text-emerald-700' : 'text-[#a91d43]'}`}>{message.text}</span>
+            )}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <Card className="border-0 shadow-sm ring-slate-200">
+      <CardHeader>
+        <CardTitle className="font-black text-[#071527]">{title}</CardTitle>
+        <p className="text-sm text-slate-500">{description}</p>
+      </CardHeader>
+    </Card>
+  );
+}
+
+export default function AdminPage() {
+  // undefined = comprobando sesión · null = sin sesión
+  const [admin, setAdmin] = useState<AdminSessionInfo | null | undefined>(undefined);
+  const [communities, setCommunities] = useState<AdminCommunity[] | null>(null);
+  const [selectedSlug, setSelectedSlug] = useState(DEFAULT_COMMUNITY_SLUG);
+
+  const loadSession = () =>
+    fetch('/api/admin/login')
+      .then(async (response) => (await response.json()) as { authenticated: boolean; admin?: AdminSessionInfo })
+      .then((result) => setAdmin(result.authenticated && result.admin ? result.admin : null))
+      .catch(() => setAdmin(null));
+
+  const loadCommunities = () =>
+    fetch('/api/admin/communities')
+      .then(async (response) => (await response.json()) as { communities?: AdminCommunity[] })
+      .then((result) => setCommunities(result.communities ?? []))
+      .catch(() => setCommunities([]));
+
+  useEffect(() => {
+    void loadSession();
+  }, []);
+
+  const isSuper = admin?.role === 'super';
+  useEffect(() => {
+    if (isSuper) void loadCommunities();
+  }, [isSuper]);
 
   const logout = async () => {
     await fetch('/api/admin/login', { method: 'DELETE' });
-    setAuthenticated(false);
+    setCommunities(null);
+    setAdmin(null);
   };
 
-  if (authenticated === null) {
+  if (admin === undefined) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#071527]">
         <Loader2 className="size-8 animate-spin text-white/60" />
@@ -1148,85 +1468,105 @@ export default function AdminPage() {
     );
   }
 
-  if (!authenticated) {
-    return <LoginGate onAuthenticated={() => setAuthenticated(true)} />;
+  if (admin === null) {
+    return <LoginGate onAuthenticated={() => void loadSession()} />;
   }
+
+  // Comunidad sobre la que se editan MVP, once, goleadores y comentarios.
+  const managedSlug = isSuper ? selectedSlug : admin.communitySlug ?? DEFAULT_COMMUNITY_SLUG;
+  const managedName = isSuper
+    ? communities?.find((community) => community.slug === managedSlug)?.name ?? managedSlug
+    : admin.communityName ?? managedSlug;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       <header className="border-b border-white/10 bg-[#071527] px-4 py-5 text-white sm:px-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-white/10">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10">
               <Shield className="size-5" />
             </span>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-sky-300">
-                Granota App
+            <div className="min-w-0">
+              <p className="truncate text-xs font-black uppercase tracking-widest text-sky-300">
+                {isSuper ? 'Super administrador' : `Administrador de ${admin.communityName ?? admin.communitySlug}`} · @{admin.username}
               </p>
               <strong className="text-lg font-black">Panel de administración</strong>
             </div>
           </div>
-          <Button variant="outline" onClick={() => void logout()} className="border-white/20 bg-transparent text-white hover:bg-white/10">
+          <Button variant="outline" onClick={() => void logout()} className="shrink-0 border-white/20 bg-transparent text-white hover:bg-white/10">
             Cerrar sesión
           </Button>
         </div>
       </header>
       <main className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-8">
+        {isSuper && (
+          <>
+            <section>
+              <SectionHeading
+                title="Comunidades"
+                description="Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus propios usuarios, predicciones y clasificación."
+              />
+              <div className="mt-4">
+                <CommunitiesPanel communities={communities} reload={loadCommunities} />
+              </div>
+            </section>
+            <section>
+              <SectionHeading
+                title="Administradores"
+                description="Los super administradores (Leo y Angel) tienen acceso a todo. Cada comunidad puede tener su propio administrador, que solo gestiona esa comunidad."
+              />
+              <div className="mt-4">
+                <AdminsPanel communities={communities} />
+              </div>
+            </section>
+            <section>
+              <SectionHeading
+                title="Comunidad que gestionas"
+                description="El MVP, el once, los goleadores y la moderación de aquí abajo se aplican a la comunidad elegida."
+              />
+              <div className="mt-4">
+                <NativeSelect value={selectedSlug} onChange={(event) => setSelectedSlug(event.target.value)} aria-label="Comunidad que gestionas" className="w-full sm:w-72">
+                  {(communities ?? [{ slug: DEFAULT_COMMUNITY_SLUG, name: 'Granota App' }]).map((community) => (
+                    <NativeSelectOption key={community.slug} value={community.slug}>
+                      {community.name} (/{community.slug})
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+            </section>
+          </>
+        )}
         <section>
-          <Card className="border-0 shadow-sm ring-slate-200">
-            <CardHeader>
-              <CardTitle className="font-black text-[#071527]">Comunidades</CardTitle>
-              <p className="text-sm text-slate-500">
-                Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus
-                propios usuarios, predicciones y clasificación.
-              </p>
-            </CardHeader>
-          </Card>
+          <SectionHeading
+            title="MVP por jornada"
+            description={`Elige el MVP de cada jornada jugada en ${managedName}. Se muestra en Inicio y en el detalle de Jornada de esa comunidad.`}
+          />
           <div className="mt-4">
-            <CommunitiesPanel />
+            <MvpEditor key={managedSlug} communitySlug={managedSlug} />
           </div>
         </section>
         <section>
-          <Card className="border-0 shadow-sm ring-slate-200">
-            <CardHeader>
-              <CardTitle className="font-black text-[#071527]">MVP por jornada</CardTitle>
-              <p className="text-sm text-slate-500">
-                Elige el MVP de cada jornada jugada. Se muestra en Inicio y en el
-                detalle de Jornada.
-              </p>
-            </CardHeader>
-          </Card>
+          <SectionHeading
+            title="Partidos oficiales"
+            description={`Introduce el resultado, la formación, el once, los goleadores y el MVP de cada partido. Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
+          />
           <div className="mt-4">
-            <MvpEditor />
+            <MatchReportEditor key={managedSlug} communitySlug={managedSlug} />
           </div>
         </section>
         <section>
-          <Card className="border-0 shadow-sm ring-slate-200">
-            <CardHeader>
-              <CardTitle className="font-black text-[#071527]">Partidos oficiales</CardTitle>
-              <p className="text-sm text-slate-500">
-                Introduce el resultado, la formación, el once, los goleadores y el MVP de cada partido.
-                Al guardar, la clasificación de la Grada usa esos datos oficiales.
-              </p>
-            </CardHeader>
-          </Card>
+          <SectionHeading
+            title="Moderación de La Grada"
+            description={`Predicciones publicadas por los usuarios de ${managedName}. Borra una predicción o todas las de un usuario si el apodo falta al respeto.`}
+          />
           <div className="mt-4">
-            <MatchReportEditor />
+            <PredictionsModeration key={managedSlug} communitySlug={managedSlug} />
           </div>
         </section>
         <section>
-          <Card className="border-0 shadow-sm ring-slate-200">
-            <CardHeader>
-              <CardTitle className="font-black text-[#071527]">Moderación de La Grada</CardTitle>
-              <p className="text-sm text-slate-500">
-                Predicciones publicadas por los usuarios de todas las comunidades. Borra una predicción o
-                todas las de un usuario si el apodo falta al respeto.
-              </p>
-            </CardHeader>
-          </Card>
+          <SectionHeading title="Mi contraseña" description="Cambia la contraseña con la que entras a este panel." />
           <div className="mt-4">
-            <PredictionsModeration />
+            <PasswordPanel />
           </div>
         </section>
       </main>

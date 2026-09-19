@@ -1,17 +1,10 @@
-import { NextResponse } from 'next/server';
-import { ensureCommunitySchema, getDatabase } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { resolveCommunity } from '@/lib/community';
+import { loadMvpOverrides } from '@/lib/official-data';
 
-interface MvpOverrideRow {
-  matchday: number;
-  playerId: string;
-  reason: string;
-}
-
-export async function GET() {
-  await ensureCommunitySchema();
-  const rows = await getDatabase()
-    .prepare('SELECT matchday, player_id AS playerId, reason FROM matchday_mvps')
-    .bind()
-    .all<MvpOverrideRow>();
-  return NextResponse.json({ overrides: rows.results });
+export async function GET(request: NextRequest) {
+  const community = await resolveCommunity(request);
+  if (!community) return NextResponse.json({ overrides: [] });
+  const rows = await loadMvpOverrides(community.slug);
+  return NextResponse.json({ overrides: rows.map(({ matchday, playerId, reason }) => ({ matchday, playerId, reason })) });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireSuperAdmin } from '@/lib/admin-auth';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { findCommunity } from '@/lib/community';
 import type { AdminCommunity } from '@/lib/community-types';
@@ -18,8 +18,8 @@ import {
 import { MAX_COMMUNITY_LINKS, getSocialNetwork, normalizeSocialUrl } from '@/lib/social-networks';
 
 export async function GET(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireSuperAdmin(request);
+  if (admin instanceof NextResponse) return admin;
 
   await ensureCommunitySchema();
   const rows = await getDatabase()
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireSuperAdmin(request);
+  if (admin instanceof NextResponse) return admin;
 
   const body = (await request.json()) as { name?: string };
   const name = body.name?.trim().replace(/\s+/g, ' ').slice(0, 40) ?? '';
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
 // (escudo del Levante / azul marino). Portada: heroTitle omitido = sin cambios, '' = portada estándar (borra todo);
 // heroImage omitido = sin cambios, '' = sin imagen. heroLinks (Follow me): omitido = sin cambios, [] = ninguno.
 async function updateCommunity(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireSuperAdmin(request);
+  if (admin instanceof NextResponse) return admin;
 
   const body = (await request.json()) as {
     slug?: string;

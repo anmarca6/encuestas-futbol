@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { resolveCommunity } from '@/lib/community';
+import { loadOfficialReports } from '@/lib/official-data';
 import { scorePredictionBreakdown } from '@/lib/prediction-scoring';
 import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import type { CommunityRankingEntry } from '@/lib/community-types';
@@ -63,11 +64,8 @@ export async function GET(request: NextRequest) {
     WHERE u.community_slug = ?
     ORDER BY u.nickname COLLATE NOCASE ASC
   `).bind(community.slug).all<RankingPredictionRow>();
-  const officialRows = await getDatabase().prepare(`
-    SELECT matchday, home_score AS homeScore, away_score AS awayScore,
-      formation, lineup, scorers, mvp, reason
-    FROM official_match_reports
-  `).bind().all<OfficialReportRow>();
+  // Los datos oficiales de la comunidad (o, si no ha definido un partido, los de la principal).
+  const officialRows = { results: await loadOfficialReports(community.slug) };
   const officialReports = new Map<number, ReturnType<typeof reportFromOfficialInput>>();
   const officialResultByMatchday = new Map<number, { homeScore: number; awayScore: number }>();
   for (const official of officialRows.results) {

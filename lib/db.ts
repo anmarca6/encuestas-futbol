@@ -1,5 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
+import { randomUUID } from 'node:crypto';
 import { DEFAULT_COMMUNITY_SLUG } from '@/lib/community-shared';
+import { hashPassword } from '@/lib/password';
 
 interface PreparedStatement {
   bind(...args: unknown[]): {
@@ -135,6 +137,89 @@ export function ensureCommunitySchema(): Promise<void> {
         updated_at INTEGER NOT NULL
       )
     `).bind().run();
+
+    // Datos oficiales por comunidad. Sustituyen a matchday_mvps y official_match_reports (que se
+    // conservan sin uso): la primera vez se copian a la comunidad principal.
+    const existingTables = await db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('community_mvps', 'community_reports')")
+      .bind()
+      .all<{ name: string }>();
+    const hasTable = (name: string) => existingTables.results.some((table) => table.name === name);
+    const hadMvps = hasTable('community_mvps');
+    const hadReports = hasTable('community_reports');
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS community_mvps (
+        community_slug TEXT NOT NULL,
+        matchday INTEGER NOT NULL,
+        player_id TEXT NOT NULL,
+        reason TEXT NOT NULL DEFAULT '',
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (community_slug, matchday)
+      )
+    `).bind().run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS community_reports (
+        community_slug TEXT NOT NULL,
+        matchday INTEGER NOT NULL,
+        home_score INTEGER NOT NULL,
+        away_score INTEGER NOT NULL,
+        formation TEXT NOT NULL,
+        lineup TEXT NOT NULL,
+        scorers TEXT NOT NULL DEFAULT '[]',
+        mvp TEXT NOT NULL,
+        reason TEXT NOT NULL DEFAULT '',
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (community_slug, matchday)
+      )
+    `).bind().run();
+    if (!hadMvps) {
+      await db.prepare(`
+        INSERT OR IGNORE INTO community_mvps (community_slug, matchday, player_id, reason, updated_at)
+        SELECT ?, matchday, player_id, reason, updated_at FROM matchday_mvps
+      `).bind(DEFAULT_COMMUNITY_SLUG).run();
+    }
+    if (!hadReports) {
+      await db.prepare(`
+        INSERT OR IGNORE INTO community_reports
+          (community_slug, matchday, home_score, away_score, formation, lineup, scorers, mvp, reason, updated_at)
+        SELECT ?, matchday, home_score, away_score, formation, lineup, scorers, mvp, reason, updated_at
+        FROM official_match_reports
+      `).bind(DEFAULT_COMMUNITY_SLUG).run();
+    }
+
+    // Cuentas de administración: los super administradores (por defecto leo y angel) se crean la primera
+    // vez con la contraseña de ADMIN_PASSWORD, que pueden cambiar después; los de comunidad los crea un super.
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS admin_accounts (
+        id TEXT PRIMARY KEY NOT NULL,
+        username TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL,
+        community_slug TEXT,
+        created_at INTEGER NOT NULL
+      )
+    `).bind().run();
+    await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_accounts_username ON admin_accounts (username)').bind().run();
+    const initialPassword = process.env.ADMIN_PASSWORD;
+    if (initialPassword) {
+      const superAdmins = (process.env.SUPER_ADMINS ?? 'leo,angel')
+        .split(',')
+        .map((name) => name.trim().toLowerCase())
+        .filter(Boolean);
+      for (const username of superAdmins) {
+        const found = await db.prepare('SELECT id FROM admin_accounts WHERE username = ? LIMIT 1').bind(username).first();
+        if (found) continue;
+        const passwordHash = await hashPassword(initialPassword);
+        // Si otra instancia la crea a la vez, el índice único lo impide: no es un error.
+        await db
+          .prepare('INSERT INTO admin_accounts (id, username, password_hash, role, community_slug, created_at) VALUES (?, ?, ?, ?, NULL, ?)')
+          .bind(randomUUID(), username, passwordHash, 'super', Date.now())
+          .run()
+          .catch((error: unknown) => {
+            if (!/unique/i.test(error instanceof Error ? error.message : String(error))) throw error;
+          });
+      }
+    }
   })().catch((error) => {
     schemaReady = undefined;
     throw error;

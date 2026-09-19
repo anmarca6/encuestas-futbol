@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireAdmin, resolveAdminCommunity } from '@/lib/admin-auth';
+import { loadOfficialReports } from '@/lib/official-data';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { formations, type SavedLineup } from '@/lib/formations';
 import { levantePlayers } from '@/lib/levante-data';
-
-interface MatchReportRow {
-  matchday: number;
-  homeScore: number;
-  awayScore: number;
-  formation: string;
-  lineup: string;
-  scorers: string;
-  mvp: string | null;
-  reason: string;
-}
 
 function ensureLineup(value: unknown): SavedLineup | null {
   if (!value || typeof value !== 'object') return null;
@@ -34,59 +24,39 @@ function normalizeScorerList(value: unknown): string[] {
 }
 
 export async function GET(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+  const community = await resolveAdminCommunity(admin, request.nextUrl.searchParams.get('community'));
+  if (community instanceof NextResponse) return community;
+
+  // Los partidos que la comunidad no ha definido se heredan de la comunidad principal (inherited: true).
+  const rows = await loadOfficialReports(community);
+  const toReport = (row: (typeof rows)[number]) => ({
+    matchday: row.matchday,
+    homeScore: row.homeScore,
+    awayScore: row.awayScore,
+    formation: row.formation,
+    lineup: JSON.parse(row.lineup) as SavedLineup,
+    scorers: JSON.parse(row.scorers) as string[],
+    mvp: row.mvp,
+    reason: row.reason,
+    inherited: row.inherited,
+  });
 
   const matchday = Number(request.nextUrl.searchParams.get('matchday'));
-  await ensureCommunitySchema();
   if (Number.isInteger(matchday) && matchday > 0) {
-    const row = await getDatabase().prepare(`
-      SELECT matchday, home_score AS homeScore, away_score AS awayScore,
-        formation, lineup, scorers, mvp, reason
-      FROM official_match_reports WHERE matchday = ? LIMIT 1
-    `).bind(matchday).first<MatchReportRow>();
-    if (!row) {
-      return NextResponse.json({ report: null });
-    }
-    return NextResponse.json({
-      report: {
-        matchday: row.matchday,
-        homeScore: row.homeScore,
-        awayScore: row.awayScore,
-        formation: row.formation,
-        lineup: JSON.parse(row.lineup) as SavedLineup,
-        scorers: JSON.parse(row.scorers) as string[],
-        mvp: row.mvp,
-        reason: row.reason,
-      },
-    });
+    const row = rows.find((item) => item.matchday === matchday);
+    return NextResponse.json({ report: row ? toReport(row) : null });
   }
-
-  const rows = await getDatabase().prepare(`
-    SELECT matchday, home_score AS homeScore, away_score AS awayScore,
-      formation, lineup, scorers, mvp, reason
-    FROM official_match_reports ORDER BY matchday ASC
-  `).bind().all<MatchReportRow>();
-
-  return NextResponse.json({
-    reports: rows.results.map((row) => ({
-      matchday: row.matchday,
-      homeScore: row.homeScore,
-      awayScore: row.awayScore,
-      formation: row.formation,
-      lineup: JSON.parse(row.lineup) as SavedLineup,
-      scorers: JSON.parse(row.scorers) as string[],
-      mvp: row.mvp,
-      reason: row.reason,
-    })),
-  });
+  return NextResponse.json({ reports: rows.map(toReport) });
 }
 
 export async function POST(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireAdmin(request);
+  if (admin instanceof NextResponse) return admin;
 
   const body = (await request.json()) as {
+    community?: string;
     matchday?: number;
     homeScore?: number;
     awayScore?: number;
@@ -97,6 +67,8 @@ export async function POST(request: NextRequest) {
     reason?: string;
   };
 
+  const community = await resolveAdminCommunity(admin, body.community);
+  if (community instanceof NextResponse) return community;
   const matchday = Number(body.matchday);
   const homeScore = Number(body.homeScore);
   const awayScore = Number(body.awayScore);
@@ -124,10 +96,10 @@ export async function POST(request: NextRequest) {
 
   await ensureCommunitySchema();
   await getDatabase().prepare(`
-    INSERT INTO official_match_reports (
-      matchday, home_score, away_score, formation, lineup, scorers, mvp, reason, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(matchday) DO UPDATE SET
+    INSERT INTO community_reports (
+      community_slug, matchday, home_score, away_score, formation, lineup, scorers, mvp, reason, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(community_slug, matchday) DO UPDATE SET
       home_score = excluded.home_score,
       away_score = excluded.away_score,
       formation = excluded.formation,
@@ -137,6 +109,7 @@ export async function POST(request: NextRequest) {
       reason = excluded.reason,
       updated_at = excluded.updated_at
   `).bind(
+    community,
     matchday,
     homeScore,
     awayScore,
@@ -152,8 +125,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const unauthorized = requireAdmin(request);
-  if (unauthorized) return unauthorized;
+  const admin = await requireAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+  const community = await resolveAdminCommunity(admin, request.nextUrl.searchParams.get('community'));
+  if (community instanceof NextResponse) return community;
 
   const matchday = Number(request.nextUrl.searchParams.get('matchday'));
   if (!Number.isInteger(matchday) || matchday < 1) {
@@ -161,6 +136,6 @@ export async function DELETE(request: NextRequest) {
   }
 
   await ensureCommunitySchema();
-  await getDatabase().prepare('DELETE FROM official_match_reports WHERE matchday = ?').bind(matchday).run();
+  await getDatabase().prepare('DELETE FROM community_reports WHERE community_slug = ? AND matchday = ?').bind(community, matchday).run();
   return NextResponse.json({ ok: true });
 }

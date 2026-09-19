@@ -58,7 +58,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       })
       .then((data) => setFootballData({ ...data, matches: applyLocalPostponements(data.matches) }))
       .catch(() => setFootballData(null));
-    void fetch('/api/mvp')
+    void communityFetch('/api/mvp')
       .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
       .then((result) => setMvpOverrides(result.overrides ?? []))
       .catch(() => setMvpOverrides([]));
