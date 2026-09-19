@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Check, Copy, ImagePlus, KeyRound, Loader2, Pencil, Plus, Shield, Trash2, UserPlus } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -143,7 +143,74 @@ function LoginGate({ onAuthenticated }: { onAuthenticated: () => void }) {
   );
 }
 
-function MvpEditor({ communitySlug }: { communitySlug: string }) {
+// Un partido está jugado si terminó, o si su fecha ya pasó y no se ha aplazado.
+function isMatchPlayed(match: { status: string; date: string }): boolean {
+  return match.status === 'FINISHED' || (match.status !== 'POSTPONED' && match.date <= new Date().toISOString().slice(0, 10));
+}
+
+// Jornada más reciente ya jugada (o la primera si aún no hay ninguna).
+function latestPlayedMatchday(): number {
+  const played = levanteMatches.filter(isMatchPlayed);
+  return played.length ? Math.max(...played.map((match) => match.matchday)) : 1;
+}
+
+// Tira de jornadas: se edita una sola cada vez, en lugar de una lista larguísima.
+// marks: 'own' = guardada en esta comunidad · 'inherited' = viene de la comunidad principal.
+function MatchdayPicker({
+  matchdays,
+  selected,
+  onSelect,
+  marks,
+}: {
+  matchdays: Array<{ matchday: number; played: boolean }>;
+  selected: number;
+  onSelect: (matchday: number) => void;
+  marks: Record<number, 'own' | 'inherited'>;
+}) {
+  return (
+    <div>
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-2 sm:flex-wrap sm:overflow-visible" role="group" aria-label="Jornada">
+        {matchdays.map(({ matchday, played }) => {
+          const active = matchday === selected;
+          const mark = marks[matchday];
+          return (
+            <button
+              key={matchday}
+              type="button"
+              aria-pressed={active}
+              aria-label={`Jornada ${matchday}${mark === 'own' ? ' (guardada)' : mark === 'inherited' ? ' (heredada)' : ''}`}
+              onClick={() => onSelect(matchday)}
+              className={`relative h-9 min-w-11 shrink-0 rounded-lg px-2.5 text-sm font-black transition ${
+                active
+                  ? 'bg-[#071527] text-white shadow-sm'
+                  : played
+                    ? 'bg-white text-[#071527] ring-1 ring-slate-200 hover:bg-slate-100'
+                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              J{matchday}
+              {mark && (
+                <span
+                  aria-hidden="true"
+                  className={`absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ${active ? 'ring-[#071527]' : 'ring-white'} ${mark === 'own' ? 'bg-emerald-500' : 'bg-sky-400'}`}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> Guardada aquí</span>
+        {Object.values(marks).includes('inherited') && (
+          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-400" /> Heredada de la principal</span>
+        )}
+        <span>Las jornadas en gris aún no se han jugado.</span>
+      </p>
+    </div>
+  );
+}
+
+function MvpEditor({ communitySlug, matchday, onMatchdayChange }: { communitySlug: string; matchday: number; onMatchdayChange: (matchday: number) => void }) {
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   const [overrides, setOverrides] = useState<MvpOverride[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -203,11 +270,20 @@ function MvpEditor({ communitySlug }: { communitySlug: string }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {sortedMatches.length === 0 && (
         <p className="text-sm text-slate-500">Todavía no hay jornadas disponibles.</p>
       )}
-      {sortedMatches.map((match) => {
+      <MatchdayPicker
+        matchdays={[...matches].sort((a, b) => a.matchday - b.matchday).map((match) => ({
+          matchday: match.matchday,
+          played: isMatchPlayed(match),
+        }))}
+        selected={matchday}
+        onSelect={onMatchdayChange}
+        marks={Object.fromEntries((overrides ?? []).map((item) => [item.matchday, 'own' as const]))}
+      />
+      {sortedMatches.filter((match) => match.matchday === matchday).map((match) => {
         const draft = draftFor(match.matchday);
         const isFinished = match.status === 'FINISHED';
         return (
@@ -271,7 +347,7 @@ function MvpEditor({ communitySlug }: { communitySlug: string }) {
   );
 }
 
-function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
+function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { communitySlug: string; matchday: number; onMatchdayChange: (matchday: number) => void }) {
   type MatchReportDraft = {
     homeScore: number;
     awayScore: number;
@@ -395,7 +471,18 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
 
   return (
     <div className="space-y-4">
-      {levanteMatches.map((match) => {
+      <MatchdayPicker
+        matchdays={levanteMatches.map((match) => ({
+          matchday: match.matchday,
+          played: isMatchPlayed(match),
+        }))}
+        selected={matchday}
+        onSelect={onMatchdayChange}
+        marks={Object.fromEntries(
+          Object.keys(reports).map((key) => [Number(key), inherited[Number(key)] && communitySlug !== DEFAULT_COMMUNITY_SLUG ? ('inherited' as const) : ('own' as const)]),
+        )}
+      />
+      {levanteMatches.filter((match) => match.matchday === matchday).map((match) => {
         const draft = draftFor(match.matchday);
         const slots = formations[draft.formation as keyof typeof formations]?.slots ?? formations['4-3-3'].slots;
         return (
@@ -419,7 +506,7 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
                   {savingMatchday === match.matchday ? <Loader2 className="animate-spin" /> : savedMatchday === match.matchday ? 'Guardado ✓' : 'Guardar'}
                 </Button>
               </div>
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label className="mb-1 block text-xs font-black uppercase text-slate-400">Resultado local</label>
                   <Input type="number" min={0} max={20} value={draft.homeScore} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), homeScore: Number(event.target.value) } }))} className="h-11" />
@@ -440,14 +527,25 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
                     });
                     const nextLineup: SavedLineup = { formation, players: nextPlayers };
                     setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), formation, lineup: nextLineup } }));
-                  }} className="h-11">
+                  }} className="h-11 w-full">
                     {formationOptions.map((option) => (
                       <NativeSelectOption key={option} value={option}>{option}</NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </div>
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase text-slate-400">MVP</label>
+                  <NativeSelect value={draft.mvp} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), mvp: event.target.value } }))} className="h-11 w-full">
+                    <NativeSelectOption value="">Elige MVP</NativeSelectOption>
+                    {levantePlayers.map((player) => (
+                      <NativeSelectOption key={`${match.matchday}-mvp-${player.id}`} value={player.id}>{player.displayName}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-wider text-[#a91d43]">Once titular</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {slots.map((slot, index) => (
                   <div key={`${match.matchday}-${slot.id}`}>
                     <label className="mb-1 block text-xs font-black uppercase text-slate-400">{slot.label}</label>
@@ -456,7 +554,7 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
                       players[index] = event.target.value;
                       const nextLineup: SavedLineup = { formation: draft.formation, players };
                       setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), lineup: nextLineup } }));
-                    }} className="h-11">
+                    }} className="h-11 w-full">
                       <NativeSelectOption value="">Sin elegir</NativeSelectOption>
                       {levantePlayers.map((player) => (
                         <NativeSelectOption key={player.id} value={player.id}>{player.displayName}</NativeSelectOption>
@@ -465,9 +563,10 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
                   </div>
                 ))}
               </div>
+              </div>
               <div>
-                <label className="mb-2 block text-xs font-black uppercase text-slate-400">Goleadores</label>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                <p className="mb-2 text-xs font-black uppercase tracking-wider text-[#a91d43]">Goleadores</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                   {levantePlayers.map((player) => (
                     <label key={`${match.matchday}-scorer-${player.id}`} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-sm">
                       <input type="checkbox" checked={draft.scorers.includes(player.id)} onChange={() => {
@@ -480,15 +579,6 @@ function MatchReportEditor({ communitySlug }: { communitySlug: string }) {
                     </label>
                   ))}
                 </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase text-slate-400">MVP</label>
-                <NativeSelect value={draft.mvp} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), mvp: event.target.value } }))} className="h-11">
-                  <NativeSelectOption value="">Elige MVP</NativeSelectOption>
-                  {levantePlayers.map((player) => (
-                    <NativeSelectOption key={`${match.matchday}-mvp-${player.id}`} value={player.id}>{player.displayName}</NativeSelectOption>
-                  ))}
-                </NativeSelect>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-black uppercase text-slate-400">Nota / motivo</label>
@@ -1235,6 +1325,8 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openUserId, setOpenUserId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const load = () =>
     fetch(`/api/admin/predictions?community=${encodeURIComponent(communitySlug)}`)
@@ -1291,13 +1383,30 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
     return <p className="text-sm text-slate-500">Todavía no hay predicciones publicadas.</p>;
   }
 
+  const visibleGroups = grouped.filter(([, group]) => group.nickname.toLowerCase().includes(search.trim().replace(/^@/, '').toLowerCase()));
+
   return (
-    <div className="space-y-4">
-      {grouped.map(([userId, group]) => (
-        <Card key={userId} className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-bold text-slate-500">
+          {grouped.length} {grouped.length === 1 ? 'usuario' : 'usuarios'} · {predictions.length} {predictions.length === 1 ? 'predicción' : 'predicciones'}
+        </p>
+        <div className="relative sm:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar usuario" aria-label="Buscar usuario" className="pl-9" />
+        </div>
+      </div>
+      {visibleGroups.length === 0 && <p className="text-sm text-slate-500">Ningún usuario coincide con la búsqueda.</p>}
+      {visibleGroups.map(([userId, group]) => (
+        <Card key={userId} className="border-0 py-0 shadow-sm ring-slate-200">
+          <CardContent className="px-4 py-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                aria-expanded={openUserId === userId}
+                onClick={() => setOpenUserId((current) => (current === userId ? null : userId))}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
                 <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-rose-100 text-sm font-black text-[#a91d43]">
                   {group.avatarUrl ? (
                     <Image unoptimized src={group.avatarUrl} width={80} height={80} alt="" className="h-full w-full object-cover" />
@@ -1309,7 +1418,8 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
                 <span className="text-xs font-bold text-slate-400">
                   {group.predictions.length} {group.predictions.length === 1 ? 'predicción' : 'predicciones'}
                 </span>
-              </div>
+                <ChevronDown className={`ml-auto size-4 shrink-0 text-slate-400 transition ${openUserId === userId ? 'rotate-180' : ''}`} />
+              </button>
               <Button
                 variant="outline"
                 disabled={busyId === userId}
@@ -1319,7 +1429,8 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
                 <Trash2 className="size-4" /> Eliminar todas
               </Button>
             </div>
-            <div className="space-y-2">
+            {openUserId === userId && (
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
               {group.predictions.map((prediction) => {
                 const match = levanteMatches.find((item) => item.id === prediction.matchId);
                 return (
@@ -1348,6 +1459,7 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
       ))}
@@ -1631,16 +1743,17 @@ function PasswordPanel() {
   );
 }
 
+// Título de una pestaña: compacto, sin tarjeta, para dejar sitio al contenido.
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
-    <Card className="border-0 shadow-sm ring-slate-200">
-      <CardHeader>
-        <CardTitle className="font-black text-[#071527]">{title}</CardTitle>
-        <p className="text-sm text-slate-500">{description}</p>
-      </CardHeader>
-    </Card>
+    <div>
+      <h2 className="text-lg font-black text-[#071527]">{title}</h2>
+      <p className="text-sm text-slate-500">{description}</p>
+    </div>
   );
 }
+
+type AdminTab = 'comunidades' | 'administradores' | 'mvp' | 'partidos' | 'moderacion' | 'contrasena';
 
 export default function AdminPage() {
   // undefined = comprobando sesión · null = sin sesión
@@ -1648,6 +1761,9 @@ export default function AdminPage() {
   const [communities, setCommunities] = useState<AdminCommunity[] | null>(null);
   const [admins, setAdmins] = useState<AdminAccountInfo[] | null>(null);
   const [selectedSlug, setSelectedSlug] = useState(DEFAULT_COMMUNITY_SLUG);
+  const [tab, setTab] = useState<AdminTab | null>(null);
+  // Jornada que se está editando (la comparten "MVP" y "Partidos oficiales")
+  const [matchday, setMatchday] = useState(latestPlayedMatchday);
 
   const loadSession = () =>
     fetch('/api/admin/login')
@@ -1679,6 +1795,26 @@ export default function AdminPage() {
     }
   }, [isSuper]);
 
+  const tabs: Array<{ id: AdminTab; label: string; icon: typeof Globe; superOnly?: boolean }> = [
+    { id: 'comunidades', label: 'Comunidades', icon: Globe, superOnly: true },
+    { id: 'administradores', label: 'Administradores', icon: UserCog, superOnly: true },
+    { id: 'mvp', label: 'MVP', icon: Star },
+    { id: 'partidos', label: 'Partidos oficiales', icon: ClipboardList },
+    { id: 'moderacion', label: 'Moderación', icon: MessageSquare },
+    { id: 'contrasena', label: 'Mi contraseña', icon: KeyRound },
+  ];
+  const availableTabs = tabs.filter((item) => isSuper || !item.superOnly);
+  const activeTab: AdminTab | null = admin ? (availableTabs.find((item) => item.id === tab)?.id ?? availableTabs[0].id) : null;
+  useEffect(() => {
+    if (!admin) return;
+    const fromHash = window.location.hash.replace('#', '') as AdminTab;
+    if (availableTabs.some((item) => item.id === fromHash)) setTab(fromHash);
+  }, [admin]);
+  const selectTab = (next: AdminTab) => {
+    setTab(next);
+    window.history.replaceState(null, '', `#${next}`);
+  };
+
   const logout = async () => {
     await fetch('/api/admin/login', { method: 'DELETE' });
     setCommunities(null);
@@ -1704,10 +1840,12 @@ export default function AdminPage() {
     ? communities?.find((community) => community.slug === managedSlug)?.name ?? managedSlug
     : admin.communityName ?? managedSlug;
 
+  const communityTabs: AdminTab[] = ['mvp', 'partidos', 'moderacion'];
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
-      <header className="border-b border-white/10 bg-[#071527] px-4 py-5 text-white sm:px-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <header className="bg-[#071527] px-4 pt-5 text-white sm:px-8">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 pb-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10">
               <Shield className="size-5" />
@@ -1723,78 +1861,99 @@ export default function AdminPage() {
             Cerrar sesión
           </Button>
         </div>
+        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto" role="tablist" aria-label="Secciones del panel">
+          {availableTabs.map((item) => {
+            const Icon = item.icon;
+            const active = item.id === activeTab;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectTab(item.id)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-t-xl px-4 py-2.5 text-sm font-black transition ${
+                  active ? 'bg-slate-50 text-[#071527]' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Icon className="size-4" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
       </header>
-      <main className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-8">
-        {isSuper && (
-          <>
-            <section>
-              <SectionHeading
-                title="Comunidades"
-                description="Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus propios usuarios, predicciones y clasificación."
-              />
-              <div className="mt-4">
-                <CommunitiesPanel communities={communities} reload={loadCommunities} admins={admins} reloadAdmins={loadAdmins} />
-              </div>
-            </section>
-            <section>
-              <SectionHeading
-                title="Administradores"
-                description="Los super administradores (Leo y Angel) tienen acceso a todo. Cada comunidad puede tener su propio administrador, que solo gestiona esa comunidad."
-              />
-              <div className="mt-4">
-                <AdminsPanel communities={communities} admins={admins} reload={loadAdmins} />
-              </div>
-            </section>
-            <section>
-              <SectionHeading
-                title="Comunidad que gestionas"
-                description="El MVP, el once, los goleadores y la moderación de aquí abajo se aplican a la comunidad elegida."
-              />
-              <div className="mt-4">
-                <NativeSelect value={selectedSlug} onChange={(event) => setSelectedSlug(event.target.value)} aria-label="Comunidad que gestionas" className="w-full sm:w-72">
-                  {(communities ?? [{ slug: DEFAULT_COMMUNITY_SLUG, name: 'Granota App' }]).map((community) => (
-                    <NativeSelectOption key={community.slug} value={community.slug}>
-                      {community.name} (/{community.slug})
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-            </section>
-          </>
+      <main className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-8">
+        {isSuper && activeTab !== null && communityTabs.includes(activeTab) && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
+            <label htmlFor="managed-community" className="text-xs font-black uppercase tracking-wider text-slate-400">
+              Comunidad que gestionas
+            </label>
+            <NativeSelect
+              id="managed-community"
+              value={selectedSlug}
+              onChange={(event) => setSelectedSlug(event.target.value)}
+              className="w-full sm:w-72"
+            >
+              {(communities ?? [{ slug: DEFAULT_COMMUNITY_SLUG, name: 'Granota App' }]).map((community) => (
+                <NativeSelectOption key={community.slug} value={community.slug}>
+                  {community.name} (/{community.slug})
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
         )}
-        <section>
-          <SectionHeading
-            title="MVP por jornada"
-            description={`Elige el MVP de cada jornada jugada en ${managedName}. Se muestra en Inicio y en el detalle de Jornada de esa comunidad.`}
-          />
-          <div className="mt-4">
-            <MvpEditor key={managedSlug} communitySlug={managedSlug} />
-          </div>
-        </section>
-        <section>
-          <SectionHeading
-            title="Partidos oficiales"
-            description={`Introduce el resultado, la formación, el once, los goleadores y el MVP de cada partido. Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
-          />
-          <div className="mt-4">
-            <MatchReportEditor key={managedSlug} communitySlug={managedSlug} />
-          </div>
-        </section>
-        <section>
-          <SectionHeading
-            title="Moderación de La Grada"
-            description={`Predicciones publicadas por los usuarios de ${managedName}. Borra una predicción o todas las de un usuario si el apodo falta al respeto.`}
-          />
-          <div className="mt-4">
+        {activeTab === 'comunidades' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Comunidades"
+              description="Cada comunidad tiene su propia dirección, con los mismos partidos y funciones, pero sus propios usuarios, predicciones y clasificación."
+            />
+            <CommunitiesPanel communities={communities} reload={loadCommunities} admins={admins} reloadAdmins={loadAdmins} />
+          </section>
+        )}
+        {activeTab === 'administradores' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Administradores"
+              description="Los super administradores tienen acceso a todo. Cada comunidad puede tener su propio administrador, que solo gestiona esa comunidad."
+            />
+            <AdminsPanel communities={communities} admins={admins} reload={loadAdmins} />
+          </section>
+        )}
+        {activeTab === 'mvp' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="MVP por jornada"
+              description={`Elige la jornada y el MVP de ${managedName}. Se muestra en Inicio y en el detalle de Jornada de esa comunidad.`}
+            />
+            <MvpEditor key={managedSlug} communitySlug={managedSlug} matchday={matchday} onMatchdayChange={setMatchday} />
+          </section>
+        )}
+        {activeTab === 'partidos' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Partidos oficiales"
+              description={`Elige la jornada e introduce el resultado, la formación, el once, los goleadores y el MVP. Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
+            />
+            <MatchReportEditor key={managedSlug} communitySlug={managedSlug} matchday={matchday} onMatchdayChange={setMatchday} />
+          </section>
+        )}
+        {activeTab === 'moderacion' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Moderación de La Grada"
+              description={`Predicciones publicadas por los usuarios de ${managedName}. Abre un usuario para ver sus predicciones y borra una o todas si el apodo falta al respeto.`}
+            />
             <PredictionsModeration key={managedSlug} communitySlug={managedSlug} />
-          </div>
-        </section>
-        <section>
-          <SectionHeading title="Mi contraseña" description="Cambia la contraseña con la que entras a este panel." />
-          <div className="mt-4">
+          </section>
+        )}
+        {activeTab === 'contrasena' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading title="Mi contraseña" description="Cambia la contraseña con la que entras a este panel." />
             <PasswordPanel />
-          </div>
-        </section>
+          </section>
+        )}
       </main>
     </div>
   );
