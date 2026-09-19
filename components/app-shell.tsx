@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TeamCrest } from '@/components/shared';
 import type { CommunityUser } from '@/lib/community-types';
-import milCromosBanner from '@/public/bannerMilCromos.png';
+import milCromosBanner from '@/public/bannerMilcromos_v2.png';
 import { headerColorWithAlpha, type CommunityIdentity } from '@/lib/community-identity';
 export type SectionId = 'inicio' | 'jornada' | 'grada' | 'clasificacion' | 'reglas' | 'perfil' | 'ajustes';
 const items = [
@@ -138,14 +138,16 @@ export function AppShell({
           href="https://www.milcromos.com"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="MilCromos: completa tu colección. Abre www.milcromos.com en una pestaña nueva"
-          className="mx-auto mb-6 block max-w-3xl overflow-hidden rounded-2xl shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+          aria-label="MilCromos: organiza tu colección de cromos de LaLiga. Abre www.milcromos.com en una pestaña nueva"
+          className="relative mx-auto mb-6 block aspect-[2000/450] w-full max-w-4xl overflow-hidden rounded-2xl transition duration-200 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         >
+          {/* El banner trae su propia tarjeta con borde y sombra, rodeada de margen en blanco: se recorta ese margen. */}
           <Image
+            fill
             src={milCromosBanner}
-            alt="MilCromos: completa tu colección. Encuentra, cambia, disfruta."
-            sizes="(min-width: 832px) 768px, 100vw"
-            className="h-auto w-full"
+            alt="MilCromos: ¿Coleccionas cromos de LaLiga? Organiza tu colección, encuentra los que te faltan y cambia tus repetidos gratis en milcromos.com."
+            sizes="(min-width: 896px) 896px, 100vw"
+            className="scale-[1.035] object-cover"
           />
         </a>
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 text-center text-sm leading-6 text-slate-500 shadow-sm sm:text-base">
