@@ -23,6 +23,10 @@ import ivanRomeroImage from '@/JugadoresDelLevante2627/IvánRomero.webp';
 import musuayiImage from '@/JugadoresDelLevante2627/Musuayi.webp';
 import ettaEyongImage from '@/JugadoresDelLevante2627/EttaEyong.webp';
 import oriolReyImage from '@/JugadoresDelLevante2627/OriolRey.webp';
+import usedoImage from '@/JugadoresDelLevante2627/usedo.jpeg';
+import nakohaImage from '@/JugadoresDelLevante2627/nahoka.jpeg';
+import iGaldinImage from '@/JugadoresDelLevante2627/ihor.jpeg';
+import calatravaImage from '@/JugadoresDelLevante2627/calatrava.jpeg';
 
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
@@ -337,7 +341,7 @@ export const levantePlayers: LevantePlayer[] = [
     number: 36,
     displayName: 'I. Galdin',
     position: 'GOALKEEPER',
-    image: null,
+    image: iGaldinImage.src,
     possibleDeparture: false,
   },
   {
@@ -417,7 +421,7 @@ export const levantePlayers: LevantePlayer[] = [
     number: 35,
     displayName: 'Nakoha',
     position: 'DEFENDER',
-    image: null,
+    image: nakohaImage.src,
     possibleDeparture: false,
   },
   {
@@ -489,7 +493,7 @@ export const levantePlayers: LevantePlayer[] = [
     number: 34,
     displayName: 'M. Usedo',
     position: 'MIDFIELDER',
-    image: null,
+    image: usedoImage.src,
     possibleDeparture: false,
   },
   {
@@ -505,7 +509,7 @@ export const levantePlayers: LevantePlayer[] = [
     number: 38,
     displayName: 'Calatrava',
     position: 'MIDFIELDER',
-    image: null,
+    image: calatravaImage.src,
     possibleDeparture: false,
   },
   {
