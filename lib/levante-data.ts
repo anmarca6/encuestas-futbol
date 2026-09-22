@@ -1,4 +1,3 @@
-import pabloCamposImage from '@/JugadoresDelLevante2627/PabloCampos.webp';
 import mathewRyanImage from '@/JugadoresDelLevante2627/MathewRyan.webp';
 import alexPrimoImage from '@/JugadoresDelLevante2627/AlexPrimo.webp';
 import aissaMandiImage from '@/JugadoresDelLevante2627/AÏssaMandi.webp';
@@ -309,11 +308,11 @@ export interface LevantePlayer {
 }
 export const levantePlayers: LevantePlayer[] = [
   {
-    id: 'pablo-campos',
+    id: 'p-cunat',
     number: 1,
-    displayName: 'Pablo Campos',
+    displayName: 'P. Cuñat',
     position: 'GOALKEEPER',
-    image: pabloCamposImage.src,
+    image: null,
     possibleDeparture: false,
   },
   {
@@ -327,9 +326,17 @@ export const levantePlayers: LevantePlayer[] = [
   {
     id: 'alex-primo',
     number: 32,
-    displayName: 'Alex Primo',
+    displayName: 'Álex Primo',
     position: 'GOALKEEPER',
     image: alexPrimoImage.src,
+    possibleDeparture: false,
+  },
+  {
+    id: 'i-galdin',
+    number: 36,
+    displayName: 'I. Galdin',
+    position: 'GOALKEEPER',
+    image: null,
     possibleDeparture: false,
   },
   {
@@ -405,6 +412,14 @@ export const levantePlayers: LevantePlayer[] = [
     possibleDeparture: false,
   },
   {
+    id: 'nakoha',
+    number: 35,
+    displayName: 'Nakoha',
+    position: 'DEFENDER',
+    image: null,
+    possibleDeparture: false,
+  },
+  {
     id: 'axel-tape',
     number: 16,
     displayName: 'Axel Tape',
@@ -466,6 +481,30 @@ export const levantePlayers: LevantePlayer[] = [
     displayName: 'Paco Cortés',
     position: 'MIDFIELDER',
     image: pacoCortesImage.src,
+    possibleDeparture: false,
+  },
+  {
+    id: 'm-usedo',
+    number: 34,
+    displayName: 'M. Usedo',
+    position: 'MIDFIELDER',
+    image: null,
+    possibleDeparture: false,
+  },
+  {
+    id: 'nurgali',
+    number: 37,
+    displayName: 'Nurgali',
+    position: 'MIDFIELDER',
+    image: null,
+    possibleDeparture: false,
+  },
+  {
+    id: 'calatrava',
+    number: 38,
+    displayName: 'Calatrava',
+    position: 'MIDFIELDER',
+    image: null,
     possibleDeparture: false,
   },
   {
