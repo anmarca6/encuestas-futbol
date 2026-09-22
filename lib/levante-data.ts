@@ -1,3 +1,4 @@
+import pCunatImage from '@/JugadoresDelLevante2627/PabloCampos.webp';
 import mathewRyanImage from '@/JugadoresDelLevante2627/MathewRyan.webp';
 import alexPrimoImage from '@/JugadoresDelLevante2627/AlexPrimo.webp';
 import aissaMandiImage from '@/JugadoresDelLevante2627/AÏssaMandi.webp';
@@ -312,7 +313,7 @@ export const levantePlayers: LevantePlayer[] = [
     number: 1,
     displayName: 'P. Cuñat',
     position: 'GOALKEEPER',
-    image: null,
+    image: pCunatImage.src,
     possibleDeparture: false,
   },
   {
