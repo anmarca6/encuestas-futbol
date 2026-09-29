@@ -27,6 +27,7 @@ import usedoImage from '@/JugadoresDelLevante2627/usedo.jpeg';
 import nakohaImage from '@/JugadoresDelLevante2627/nahoka.jpeg';
 import iGaldinImage from '@/JugadoresDelLevante2627/ihor.jpeg';
 import calatravaImage from '@/JugadoresDelLevante2627/calatrava.jpeg';
+import aldiNurgaliImage from '@/JugadoresDelLevante2627/aldiNurgali.jpeg';
 
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
@@ -499,9 +500,9 @@ export const levantePlayers: LevantePlayer[] = [
   {
     id: 'nurgali',
     number: 37,
-    displayName: 'Nurgali',
+    displayName: 'Aldi Nurgali',
     position: 'MIDFIELDER',
-    image: null,
+    image: aldiNurgaliImage.src,
     possibleDeparture: false,
   },
   {
