@@ -36,7 +36,7 @@ export const leagueTeams: LeagueTeam[] = [
   { id: 'real-betis', name: 'Real Betis', shortName: 'Betis', crest: betisCrest.src },
   { id: 'rc-deportivo', name: 'RC Deportivo', shortName: 'Deportivo', crest: deportivoCrest.src },
   { id: 'levante-ud', name: 'Levante UD', shortName: 'Levante', crest: levanteCrest.src },
-  { id: 'racing-de-santander', name: 'Racing de Santander', shortName: 'Racing', crest: racingCrest.src },
+  { id: 'racing-de-santander', name: 'Real Racing Club de Santander', shortName: 'Racing', crest: racingCrest.src },
   { id: 'rcd-espanyol', name: 'RCD Espanyol', shortName: 'Espanyol', crest: espanyolCrest.src },
   { id: 'athletic-club', name: 'Athletic Club', shortName: 'Athletic', crest: athleticCrest.src },
   { id: 'real-sociedad', name: 'Real Sociedad', shortName: 'R. Sociedad', crest: sociedadCrest.src },

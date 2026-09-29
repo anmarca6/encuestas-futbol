@@ -148,7 +148,7 @@ const matchSeeds: MatchSeed[] = [
     14,
     '2026-11-29',
     LEVANTE_TEAM,
-    'Racing de Santander',
+    'Real Racing Club de Santander',
     null,
     null,
     'SCHEDULED',
@@ -186,7 +186,7 @@ const matchSeeds: MatchSeed[] = [
   [
     37,
     '2027-05-23',
-    'Racing de Santander',
+    'Real Racing Club de Santander',
     LEVANTE_TEAM,
     null,
     null,
