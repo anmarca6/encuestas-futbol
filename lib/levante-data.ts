@@ -27,7 +27,7 @@ import usedoImage from '@/JugadoresDelLevante2627/usedo.jpeg';
 import nakohaImage from '@/JugadoresDelLevante2627/nakoha.webp';
 import iGaldinImage from '@/JugadoresDelLevante2627/ihor.webp';
 import calatravaImage from '@/JugadoresDelLevante2627/calatrava.webp';
-import aldiNurgaliImage from '@/JugadoresDelLevante2627/aldiNurgali.webp';
+import aldiNurgaliImage from '@/JugadoresDelLevante2627/nurgali.webp';
 
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
