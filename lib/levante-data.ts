@@ -23,7 +23,7 @@ import ivanRomeroImage from '@/JugadoresDelLevante2627/IvánRomero.webp';
 import musuayiImage from '@/JugadoresDelLevante2627/Musuayi.webp';
 import ettaEyongImage from '@/JugadoresDelLevante2627/EttaEyong.webp';
 import oriolReyImage from '@/JugadoresDelLevante2627/OriolRey.webp';
-import usedoImage from '@/JugadoresDelLevante2627/usedo.jpeg';
+import usedoImage from '@/JugadoresDelLevante2627/usedo.webp';
 import nakohaImage from '@/JugadoresDelLevante2627/nakoha.webp';
 import iGaldinImage from '@/JugadoresDelLevante2627/ihor.webp';
 import calatravaImage from '@/JugadoresDelLevante2627/calatrava.webp';
