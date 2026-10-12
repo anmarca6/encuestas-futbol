@@ -31,7 +31,13 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
   const [myPredictions, setMyPredictions] = useState<CommunityPrediction[]>([]);
   const scheduleMatches = footballData?.matches.length ? withLocalMatchIds(footballData.matches) : levanteMatches;
-  const nextMatch = getNextLevanteMatch(scheduleMatches);
+  // Se recalcula cada segundo para que, al vencer el plazo, todo pase a apuntar al siguiente partido sin recargar.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const nextMatch = getNextLevanteMatch(scheduleMatches, now);
   const [mvpOverrides, setMvpOverrides] = useState<MvpOverride[] | null>(null);
   useEffect(() => {
     const saved = myPredictions.find((prediction) => prediction.matchId === nextMatch?.id);

@@ -1,12 +1,11 @@
 import { LEVANTE_TEAM, levanteMatches, type LevanteMatch } from '@/lib/levante-data';
-import { madridDateTimeToUtc } from '@/lib/prediction-deadline';
+import { isPredictionClosed } from '@/lib/prediction-deadline';
 const todayInMadrid = (now: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
-// Con hora de inicio conocida, un partido sigue vigente hasta 3 horas despues del saque (asi el dia del partido nunca salta al siguiente
-// antes de tiempo). Sin hora, se da un dia de margen por si la fecha local esta desfasada respecto a la oficial.
-const MATCH_DURATION_MS = 3 * 60 * 60 * 1000;
+// "Pendiente" = aun se puede pronosticar: con hora de inicio conocida, el partido deja de ser el proximo en cuanto vence el plazo
+// (2 horas antes del saque). Sin hora, se da un dia de margen por si la fecha local esta desfasada respecto a la oficial.
 const hasEnded = (match: LevanteMatch, now: Date) => {
   if (match.status === 'FINISHED' || match.status === 'POSTPONED') return true;
-  if (match.kickoffTime) return now.getTime() >= madridDateTimeToUtc(match.date, match.kickoffTime).getTime() + MATCH_DURATION_MS;
+  if (match.kickoffTime) return isPredictionClosed(match, now);
   return match.date < todayInMadrid(new Date(now.getTime() - 24 * 60 * 60 * 1000));
 };
 const byDate = (a: LevanteMatch, b: LevanteMatch) => a.date.localeCompare(b.date) || a.matchday - b.matchday;

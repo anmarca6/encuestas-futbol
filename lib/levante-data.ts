@@ -130,7 +130,7 @@ const matchSeeds: MatchSeed[] = [
   ],
   [6, '2026-09-16', LEVANTE_TEAM, 'Athletic Club', null, null, 'POSTPONED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
-  [8, '2026-10-11', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
+  [8, '2026-10-12', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
   [9, '2026-10-18', 'RC Deportivo', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [10, '2026-10-25', 'Real Sociedad', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [
@@ -211,7 +211,7 @@ export const levanteMatches: LevanteMatch[] = matchSeeds.map(
     competition: LEVANTE_COMPETITION,
     matchday,
     date,
-    kickoffTime: ({ 4: '18:30', 5: '16:15', 6: '21:30', 7: '18:30' } as Record<number, string>)[matchday] ?? null,
+    kickoffTime: ({ 4: '18:30', 5: '16:15', 6: '21:30', 7: '18:30', 8: '21:00' } as Record<number, string>)[matchday] ?? null,
     homeTeam,
     awayTeam,
     homeScore,
