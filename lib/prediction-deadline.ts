@@ -2,7 +2,7 @@ import type { LevanteMatch } from '@/lib/levante-data';
 
 const MADRID_TIME_ZONE = 'Europe/Madrid';
 
-function madridDateTimeToUtc(date: string, time: string): Date {
+export function madridDateTimeToUtc(date: string, time: string): Date {
   const [year, month, day] = date.split('-').map(Number);
   const [hour, minute] = time.split(':').map(Number);
   const desired = Date.UTC(year, month - 1, day, hour, minute);

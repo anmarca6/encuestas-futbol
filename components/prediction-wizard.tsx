@@ -14,8 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { LineupBuilder, PlayerPhoto } from '@/components/lineup-builder';
 import { TeamCrest } from '@/components/shared';
-import { LEVANTE_TEAM, levantePlayers } from '@/lib/levante-data';
-import { getNextLevanteMatch } from '@/lib/levante-services';
+import { LEVANTE_TEAM, levantePlayers, type LevanteMatch } from '@/lib/levante-data';
 import { formationOptions, type FormationId, type SavedLineup } from '@/lib/formations';
 import type { CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
@@ -38,6 +37,7 @@ function ScorePicker({ team, value, onChange }: { team: string; value: number; o
 }
 
 export function PredictionWizard({
+  match,
   open,
   onOpenChange,
   user,
@@ -46,6 +46,7 @@ export function PredictionWizard({
   onSaved,
   onPublished,
 }: {
+  match: LevanteMatch | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: CommunityUser | null;
@@ -54,7 +55,6 @@ export function PredictionWizard({
   onSaved: (prediction: PredictionDraft) => void;
   onPublished: () => void;
 }) {
-  const match = getNextLevanteMatch();
   const [step, setStep] = useState(0);
   const [formation, setFormation] = useState<FormationId>('4-3-3');
   const [lineup, setLineup] = useState<SavedLineup | null>(null);

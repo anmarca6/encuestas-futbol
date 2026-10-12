@@ -17,7 +17,8 @@ import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
-import { applyLocalPostponements, getNextLevanteMatch } from '@/lib/levante-services';
+import { applyLocalPostponements, getNextLevanteMatch, withLocalMatchIds } from '@/lib/levante-services';
+import { levanteMatches } from '@/lib/levante-data';
 import { communityFetch } from '@/lib/community-client';
 import type { CommunityHero, CommunityIdentity } from '@/lib/community-identity';
 export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; hero: CommunityHero | null }) {
@@ -28,7 +29,20 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
   const [user, setUser] = useState<CommunityUser | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionDraft | null>(null);
   const [footballData, setFootballData] = useState<FootballDataPayload | null>(null);
+  const [myPredictions, setMyPredictions] = useState<CommunityPrediction[]>([]);
+  const scheduleMatches = footballData?.matches.length ? withLocalMatchIds(footballData.matches) : levanteMatches;
+  const nextMatch = getNextLevanteMatch(scheduleMatches);
   const [mvpOverrides, setMvpOverrides] = useState<MvpOverride[] | null>(null);
+  useEffect(() => {
+    const saved = myPredictions.find((prediction) => prediction.matchId === nextMatch?.id);
+    setCurrentPrediction(saved ? {
+      matchId: saved.matchId,
+      predictedScore: { home: saved.homeScore, away: saved.awayScore },
+      lineup: saved.lineup,
+      scorers: saved.scorers,
+      mvp: saved.mvp,
+    } : null);
+  }, [myPredictions, nextMatch?.id]);
   useEffect(() => {
     void communityFetch('/api/session')
       .then(
@@ -39,18 +53,8 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       .catch(() => setUser(null));
     void communityFetch('/api/predictions?mine=1')
       .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
-      .then((result) => {
-        const matchId = getNextLevanteMatch()?.id;
-        const saved = result.predictions?.find((prediction) => prediction.matchId === matchId);
-        setCurrentPrediction(saved ? {
-          matchId: saved.matchId,
-          predictedScore: { home: saved.homeScore, away: saved.awayScore },
-          lineup: saved.lineup,
-          scorers: saved.scorers,
-          mvp: saved.mvp,
-        } : null);
-      })
-      .catch(() => setCurrentPrediction(null));
+      .then((result) => setMyPredictions(result.predictions ?? []))
+      .catch(() => setMyPredictions([]));
     void fetch('/api/football')
       .then(async (response) => {
         if (!response.ok) throw new Error('Football data unavailable');
@@ -85,7 +89,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       {active === 'inicio' && (
         <HomeSection
           predict={predict}
-          hasPrediction={currentPrediction?.matchId === getNextLevanteMatch()?.id}
+          hasPrediction={currentPrediction?.matchId === nextMatch?.id}
           openRules={() => setActive('reglas')}
           hero={hero}
           footballData={footballData}
@@ -129,6 +133,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       )}
     </AppShell>
     <PredictionWizard
+      match={nextMatch}
       open={predictionOpen}
       onOpenChange={setPredictionOpen}
       user={user}
