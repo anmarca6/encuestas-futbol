@@ -108,7 +108,9 @@ export async function GET(request: NextRequest) {
       mvp: row.mvp,
     });
     const actualGoalMinutes = reportOverride?.levanteGoals ?? [];
-    if (match && reportOverride && actualGoalMinutes.length > 0) {
+    // Con informe oficial se puntua siempre, tambien si el Levante no marco (0-0 o derrota sin goles propios):
+    // en ese caso acierta los goleadores quien no pronostico ninguno.
+    if (match && reportOverride) {
       const actualNames = actualGoalMinutes.flatMap((goal) => Array(goal.minutes.length).fill(goal.playerName));
       const predictedScorers = (JSON.parse(row.scorers) as string[]).map((id) => levantePlayers.find((player) => player.id === id)?.displayName).filter(Boolean) as string[];
       const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
