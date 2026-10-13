@@ -437,7 +437,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
 
   const save = async (matchday: number) => {
     const draft = draftFor(matchday);
-    if (!draft.formation || draft.lineup.players.length !== 11 || !draft.mvp) return;
+    if (!draft.formation || draft.lineup.players.length !== 11) return;
     setSavingMatchday(matchday);
     try {
       const response = await fetch('/api/admin/matches', {
@@ -451,8 +451,6 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
           formation: draft.formation,
           lineup: draft.lineup,
           scorers: draft.scorers,
-          mvp: draft.mvp,
-          reason: draft.reason,
         }),
       });
       if (response.ok) {
@@ -500,13 +498,13 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                 </div>
                 <Button
                   onClick={() => void save(match.matchday)}
-                  disabled={savingMatchday === match.matchday || !draft.mvp}
+                  disabled={savingMatchday === match.matchday}
                   className="bg-[#a91d43] font-black text-white"
                 >
                   {savingMatchday === match.matchday ? <Loader2 className="animate-spin" /> : savedMatchday === match.matchday ? 'Guardado ✓' : 'Guardar'}
                 </Button>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div>
                   <label className="mb-1 block text-xs font-black uppercase text-slate-400">Resultado local</label>
                   <Input type="number" min={0} max={20} value={draft.homeScore} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), homeScore: Number(event.target.value) } }))} className="h-11" />
@@ -530,15 +528,6 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                   }} className="h-11 w-full">
                     {formationOptions.map((option) => (
                       <NativeSelectOption key={option} value={option}>{option}</NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-black uppercase text-slate-400">MVP</label>
-                  <NativeSelect value={draft.mvp} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), mvp: event.target.value } }))} className="h-11 w-full">
-                    <NativeSelectOption value="">Elige MVP</NativeSelectOption>
-                    {levantePlayers.map((player) => (
-                      <NativeSelectOption key={`${match.matchday}-mvp-${player.id}`} value={player.id}>{player.displayName}</NativeSelectOption>
                     ))}
                   </NativeSelect>
                 </div>
@@ -579,10 +568,6 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                     </label>
                   ))}
                 </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase text-slate-400">Nota / motivo</label>
-                <Textarea value={draft.reason} onChange={(event) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), reason: event.target.value } }))} rows={2} placeholder="Motivo del MVP o nota del partido" />
               </div>
             </CardContent>
           </Card>
@@ -1934,7 +1919,7 @@ export default function AdminPage() {
           <section className="space-y-4" role="tabpanel">
             <SectionHeading
               title="Formación, resultado y goles"
-              description={`Elige la jornada e introduce el resultado, la formación, el once, los goleadores y el MVP. Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
+              description={`Elige la jornada e introduce el resultado, la formación, el once y los goleadores (el MVP se elige en su pestaña). Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
             />
             <MatchReportEditor key={managedSlug} communitySlug={managedSlug} matchday={matchday} onMatchdayChange={setMatchday} />
           </section>

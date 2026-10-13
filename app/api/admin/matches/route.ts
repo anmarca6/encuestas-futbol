@@ -63,8 +63,6 @@ export async function POST(request: NextRequest) {
     formation?: string;
     lineup?: SavedLineup | null;
     scorers?: string[];
-    mvp?: string | null;
-    reason?: string;
   };
 
   const community = await resolveAdminCommunity(admin, body.community);
@@ -75,8 +73,6 @@ export async function POST(request: NextRequest) {
   const formation = body.formation?.trim() ?? '';
   const lineup = ensureLineup(body.lineup ?? null);
   const scorers = normalizeScorerList(body.scorers ?? []);
-  const mvp = body.mvp?.trim() ?? '';
-  const reason = body.reason?.trim() ?? '';
 
   if (!Number.isInteger(matchday) || matchday < 1) {
     return NextResponse.json({ error: 'Jornada no válida.' }, { status: 400 });
@@ -90,9 +86,6 @@ export async function POST(request: NextRequest) {
   if (!lineup || lineup.formation !== formation) {
     return NextResponse.json({ error: 'Completa el once titular con la formación correcta.' }, { status: 400 });
   }
-  if (!mvp || !levantePlayers.some((player) => player.id === mvp)) {
-    return NextResponse.json({ error: 'Selecciona un MVP válido.' }, { status: 400 });
-  }
 
   await ensureCommunitySchema();
   await getDatabase().prepare(`
@@ -105,8 +98,6 @@ export async function POST(request: NextRequest) {
       formation = excluded.formation,
       lineup = excluded.lineup,
       scorers = excluded.scorers,
-      mvp = excluded.mvp,
-      reason = excluded.reason,
       updated_at = excluded.updated_at
   `).bind(
     community,
@@ -116,8 +107,8 @@ export async function POST(request: NextRequest) {
     formation,
     JSON.stringify(lineup),
     JSON.stringify(scorers),
-    mvp,
-    reason,
+    '',
+    '',
     Date.now(),
   ).run();
 

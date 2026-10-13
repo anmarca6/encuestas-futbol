@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { resolveCommunity } from '@/lib/community';
-import { loadOfficialReports } from '@/lib/official-data';
+import { loadMvpOverrides, loadOfficialReports } from '@/lib/official-data';
 import { scorePredictionBreakdown } from '@/lib/prediction-scoring';
 import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import type { CommunityRankingEntry } from '@/lib/community-types';
@@ -66,6 +66,12 @@ export async function GET(request: NextRequest) {
   `).bind(community.slug).all<RankingPredictionRow>();
   // Los datos oficiales de la comunidad (o, si no ha definido un partido, los de la principal).
   const officialRows = { results: await loadOfficialReports(community.slug) };
+  // El MVP de cada jornada sale de su pestaña propia; solo si no hay, se usa el que traía el informe antiguo.
+  const mvpNameByMatchday = new Map<number, string>();
+  for (const override of await loadMvpOverrides(community.slug)) {
+    const name = levantePlayers.find((player) => player.id === override.playerId)?.displayName;
+    if (name) mvpNameByMatchday.set(override.matchday, name);
+  }
   const officialReports = new Map<number, ReturnType<typeof reportFromOfficialInput>>();
   const officialResultByMatchday = new Map<number, { homeScore: number; awayScore: number }>();
   for (const official of officialRows.results) {
@@ -119,7 +125,7 @@ export async function GET(request: NextRequest) {
       }
       if (officialResult && row.homeScore === officialResult.homeScore && row.awayScore === officialResult.awayScore) breakdown.result = 5;
       const predictedMvp = row.mvp ? levantePlayers.find((player) => player.id === row.mvp)?.displayName ?? '' : '';
-      if (predictedMvp && normalized(predictedMvp) === normalized(reportOverride.mvp.playerName)) breakdown.mvp = 2;
+      if (predictedMvp && normalized(predictedMvp) === normalized(mvpNameByMatchday.get(match.matchday) ?? reportOverride.mvp.playerName)) breakdown.mvp = 2;
       if (row.lineup && (JSON.parse(row.lineup) as SavedLineup).formation === reportOverride.formation) breakdown.formation = 2;
     }
     current.points += breakdown.formation + breakdown.lineup + breakdown.result + breakdown.scorers + breakdown.mvp;
