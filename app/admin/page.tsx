@@ -1799,7 +1799,7 @@ export default function AdminPage() {
     { id: 'comunidades', label: 'Comunidades', icon: Globe, superOnly: true },
     { id: 'administradores', label: 'Administradores', icon: UserCog, superOnly: true },
     { id: 'mvp', label: 'MVP', icon: Star },
-    { id: 'partidos', label: 'Partidos oficiales', icon: ClipboardList },
+    { id: 'partidos', label: 'Formación, resultado y goles', icon: ClipboardList },
     { id: 'moderacion', label: 'Moderación', icon: MessageSquare },
     { id: 'contrasena', label: 'Mi contraseña', icon: KeyRound },
   ];
@@ -1933,7 +1933,7 @@ export default function AdminPage() {
         {activeTab === 'partidos' && (
           <section className="space-y-4" role="tabpanel">
             <SectionHeading
-              title="Partidos oficiales"
+              title="Formación, resultado y goles"
               description={`Elige la jornada e introduce el resultado, la formación, el once, los goleadores y el MVP. Al guardar, la clasificación de La Grada de ${managedName} usa esos datos.`}
             />
             <MatchReportEditor key={managedSlug} communitySlug={managedSlug} matchday={matchday} onMatchdayChange={setMatchday} />
