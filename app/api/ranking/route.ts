@@ -109,11 +109,14 @@ export async function GET(request: NextRequest) {
     });
     const actualGoalMinutes = reportOverride?.levanteGoals ?? [];
     if (match && reportOverride && actualGoalMinutes.length > 0) {
-      const actualScorers = actualGoalMinutes.map((goal) => goal.playerName);
       const actualNames = actualGoalMinutes.flatMap((goal) => Array(goal.minutes.length).fill(goal.playerName));
       const predictedScorers = (JSON.parse(row.scorers) as string[]).map((id) => levantePlayers.find((player) => player.id === id)?.displayName).filter(Boolean) as string[];
       const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
-      const samePlayers = predictedScorers.length === actualScorers.length && predictedScorers.every((value, index) => normalized(value) === normalized(actualScorers[index]));
+      // Mismos goleadores y mismo numero de goles de cada uno, en cualquier orden.
+      const sortedNames = (names: string[]) => names.map(normalized).sort();
+      const sortedPredicted = sortedNames(predictedScorers);
+      const sortedActual = sortedNames(actualNames);
+      const samePlayers = sortedPredicted.length === sortedActual.length && sortedPredicted.every((value, index) => value === sortedActual[index]);
       if (samePlayers) {
         breakdown.scorers = 4;
       }

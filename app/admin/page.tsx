@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Minus, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,7 +11,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@/components/ui/native-select';
-import { levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { LEVANTE_TEAM, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
@@ -410,7 +410,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
       awayScore: match.awayScore ?? 0,
       formation,
       lineup: { formation, players },
-      scorers: report.levanteGoals.map((goal) => playerIdForName(goal.playerName)).filter(Boolean),
+      scorers: report.levanteGoals.flatMap((goal) => Array(goal.minutes.length).fill(playerIdForName(goal.playerName)) as string[]).filter(Boolean),
       mvp: playerIdForName(report.mvp.playerName),
       reason: report.mvp.reason,
     };
@@ -554,19 +554,38 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
               </div>
               </div>
               <div>
-                <p className="mb-2 text-xs font-black uppercase tracking-wider text-[#a91d43]">Goleadores</p>
+                <p className="mb-1 text-xs font-black uppercase tracking-wider text-[#a91d43]">Goleadores</p>
+                {(() => {
+                  const levanteGoals = match.homeTeam === LEVANTE_TEAM ? draft.homeScore : draft.awayScore;
+                  const registered = draft.scorers.length;
+                  return (
+                    <p className={`mb-2 text-xs font-bold ${registered === levanteGoals ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      Goles del Levante: {levanteGoals} · goles asignados: {registered}. Usa + y − para indicar cuántos goles ha marcado cada jugador.
+                    </p>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                  {levantePlayers.map((player) => (
-                    <label key={`${match.matchday}-scorer-${player.id}`} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-sm">
-                      <input type="checkbox" checked={draft.scorers.includes(player.id)} onChange={() => {
-                        const scorers = draft.scorers.includes(player.id)
-                          ? draft.scorers.filter((id) => id !== player.id)
-                          : [...draft.scorers, player.id];
-                        setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), scorers } }));
-                      }} />
-                      {player.displayName}
-                    </label>
-                  ))}
+                  {levantePlayers.map((player) => {
+                    const goals = draft.scorers.filter((id) => id === player.id).length;
+                    const setScorers = (scorers: string[]) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), scorers } }));
+                    return (
+                      <div key={`${match.matchday}-scorer-${player.id}`} className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-sm ${goals > 0 ? 'border-[#a91d43]/40 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
+                        <span className="min-w-0 truncate">{player.displayName}</span>
+                        <span className="flex shrink-0 items-center gap-1">
+                          <button type="button" aria-label={`Quitar un gol a ${player.displayName}`} disabled={goals === 0} onClick={() => {
+                            const index = draft.scorers.lastIndexOf(player.id);
+                            setScorers(draft.scorers.filter((_, position) => position !== index));
+                          }} className="grid size-6 place-items-center rounded-full border border-slate-300 bg-white disabled:opacity-40">
+                            <Minus className="size-3" />
+                          </button>
+                          <b className="w-4 text-center">{goals}</b>
+                          <button type="button" aria-label={`Añadir un gol a ${player.displayName}`} onClick={() => setScorers([...draft.scorers, player.id])} className="grid size-6 place-items-center rounded-full border border-slate-300 bg-white">
+                            <Plus className="size-3" />
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
