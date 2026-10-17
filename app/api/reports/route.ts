@@ -14,8 +14,12 @@ export async function GET(request: NextRequest) {
   const reports = rows.map((row) => {
     const lineup = JSON.parse(row.lineup) as SavedLineup;
     const slots = formations[row.formation as keyof typeof formations]?.slots ?? [];
+    // Cada jugador va con el puesto en el que se alineo (LI, DFC, LD, MC, EI...), no solo con su linea.
     const byPosition = (position: string) =>
-      lineup.players.filter((_, index) => slots[index]?.position === position).map(nameOf);
+      lineup.players
+        .map((playerId, index) => ({ playerId, slot: slots[index] }))
+        .filter((item) => item.slot?.position === position)
+        .map((item) => `${nameOf(item.playerId)} (${item.slot.label})`);
     const goalCounts = new Map<string, number>();
     for (const playerId of JSON.parse(row.scorers) as string[]) goalCounts.set(playerId, (goalCounts.get(playerId) ?? 0) + 1);
     // Los datos oficiales no incluyen el minuto: se indican tantos minutos 0 como goles (la pantalla los muestra como "sin minuto").

@@ -1560,8 +1560,9 @@ function PredictionDetail({ prediction, match }: { prediction: CommunityPredicti
           <div className="space-y-1.5">
             {lines.map(([label, position]) => {
               const names = prediction.lineup!.players
-                .filter((_, index) => slots[index]?.position === position)
-                .map(playerName);
+                .map((playerId, index) => ({ playerId, slot: slots[index] }))
+                .filter((item) => item.slot?.position === position)
+                .map((item) => `${playerName(item.playerId)} (${item.slot.label})`);
               return names.length === 0 ? null : (
                 <p key={label} className="rounded-lg bg-slate-50 px-3 py-1.5 text-slate-600">
                   <b className="mr-2 text-[#153e72]">{label}:</b>
