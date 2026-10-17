@@ -30,15 +30,18 @@ interface OfficialReportRow {
   reason: string;
 }
 
+const playerName = (playerId: string) => levantePlayers.find((player) => player.id === playerId)?.displayName ?? playerId;
+
 function reportFromOfficialInput(row: OfficialReportRow) {
   const lineup = JSON.parse(row.lineup) as { formation: string; players: string[] };
   return {
     formation: row.formation,
+    // Los once se guardan como ids: se pasan a nombres para compararlos con los pronosticos (la division por lineas no afecta a la puntuacion).
     lineup: {
-      goalkeeper: lineup.players.slice(0, 1),
-      defenders: lineup.players.slice(1, 5),
-      midfielders: lineup.players.slice(5, 9),
-      attackers: lineup.players.slice(9, 11),
+      goalkeeper: lineup.players.slice(0, 1).map(playerName),
+      defenders: lineup.players.slice(1, 5).map(playerName),
+      midfielders: lineup.players.slice(5, 9).map(playerName),
+      attackers: lineup.players.slice(9, 11).map(playerName),
     },
     levanteGoals: (JSON.parse(row.scorers) as string[]).map((playerId) => ({
       playerName: levantePlayers.find((player) => player.id === playerId)?.displayName ?? playerId,
