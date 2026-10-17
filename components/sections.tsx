@@ -77,7 +77,7 @@ import {
 } from '@/lib/laliga-data';
 import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
-import type { SavedLineup } from '@/lib/formations';
+import { formations, type SavedLineup } from '@/lib/formations';
 import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
 import { communityFetch } from '@/lib/community-client';
 import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
@@ -1533,6 +1533,95 @@ export function CommunityRankingSection() {
   );
 }
 
+// Todo lo que el usuario puso en una prediccion: resultado, formacion, once por lineas, goleadores y MVP.
+function PredictionDetail({ prediction, match }: { prediction: CommunityPrediction; match: LevanteMatch | undefined }) {
+  const playerName = (playerId: string) => levantePlayers.find((player) => player.id === playerId)?.displayName ?? playerId;
+  const slots = prediction.lineup ? formations[prediction.lineup.formation]?.slots ?? [] : [];
+  const lines: Array<[string, string]> = [['POR', 'GOALKEEPER'], ['DEF', 'DEFENDER'], ['MED', 'MIDFIELDER'], ['ATA', 'FORWARD']];
+  const goalCounts = new Map<string, number>();
+  for (const playerId of prediction.scorers) goalCounts.set(playerId, (goalCounts.get(playerId) ?? 0) + 1);
+  return (
+    <div className="mt-3 space-y-3 border-t border-slate-100 pt-3 text-sm">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#a91d43]">Resultado</p>
+          <p className="mt-1 font-black text-[#071527]">
+            {match ? `${match.homeTeam} ` : ''}{prediction.homeScore} — {prediction.awayScore}{match ? ` ${match.awayTeam}` : ''}
+          </p>
+        </div>
+        <div className="rounded-xl bg-[#071527] p-3 text-white">
+          <p className="text-[10px] font-black uppercase tracking-wider text-sky-200">Formación</p>
+          <p className="mt-1 text-lg font-black">{prediction.lineup?.formation ?? '—'}</p>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-[#a91d43]">XI titular</p>
+        {prediction.lineup ? (
+          <div className="space-y-1.5">
+            {lines.map(([label, position]) => {
+              const names = prediction.lineup!.players
+                .filter((_, index) => slots[index]?.position === position)
+                .map(playerName);
+              return names.length === 0 ? null : (
+                <p key={label} className="rounded-lg bg-slate-50 px-3 py-1.5 text-slate-600">
+                  <b className="mr-2 text-[#153e72]">{label}:</b>
+                  {names.join(', ')}
+                </p>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-slate-500">Sin once.</p>
+        )}
+      </div>
+      <div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-[#a91d43]">⚽ Goleadores del Levante</p>
+        {goalCounts.size === 0 ? (
+          <p className="text-slate-500">Ninguno (el Levante no marca).</p>
+        ) : (
+          <p className="text-slate-700">
+            {[...goalCounts].map(([playerId, count]) => (count > 1 ? `${playerName(playerId)} (${count} goles)` : playerName(playerId))).join(', ')}
+          </p>
+        )}
+      </div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950">
+        <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">⭐ MVP</p>
+        <p className="mt-1 font-bold">{prediction.mvp ? playerName(prediction.mvp) : 'Sin MVP'}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProfilePredictionCard({ prediction }: { prediction: CommunityPrediction }) {
+  const [open, setOpen] = useState(false);
+  const match = levanteMatches.find((item) => item.id === prediction.matchId);
+  return (
+    <Card className="border-0 shadow-sm ring-slate-200">
+      <CardContent>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="mb-3 flex w-full items-center justify-between gap-2 rounded-lg border border-[#153e72]/20 bg-sky-50 px-3 py-1.5 text-xs font-black text-[#153e72] hover:bg-sky-100"
+        >
+          {open ? 'Ocultar predicción completa' : 'Ver predicción completa'}
+          <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
+        </button>
+        <small className="font-black uppercase tracking-wider text-[#a91d43]">
+          {match ? `Jornada ${match.matchday}` : 'Predicción'}
+        </small>
+        <p className="mt-2 font-bold text-[#071527]">
+          {match ? `${match.homeTeam} — ${match.awayTeam}` : prediction.matchId}
+        </p>
+        <strong className="mt-4 block rounded-2xl bg-slate-50 py-3 text-center text-2xl text-[#071527]">
+          {prediction.homeScore} — {prediction.awayScore}
+        </strong>
+        {open && <PredictionDetail prediction={prediction} match={match} />}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ProfileSection({
   user,
   openSettings,
@@ -1700,31 +1789,9 @@ export function ProfileSection({
               </Card>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {predictions.map((prediction) => {
-                  const match = levanteMatches.find(
-                    (item) => item.id === prediction.matchId,
-                  );
-                  return (
-                    <Card
-                      key={prediction.id}
-                      className="border-0 shadow-sm ring-slate-200"
-                    >
-                      <CardContent>
-                        <small className="font-black uppercase tracking-wider text-[#a91d43]">
-                          {match ? `Jornada ${match.matchday}` : 'Predicción'}
-                        </small>
-                        <p className="mt-2 font-bold text-[#071527]">
-                          {match
-                            ? `${match.homeTeam} — ${match.awayTeam}`
-                            : prediction.matchId}
-                        </p>
-                        <strong className="mt-4 block rounded-2xl bg-slate-50 py-3 text-center text-2xl text-[#071527]">
-                          {prediction.homeScore} — {prediction.awayScore}
-                        </strong>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {predictions.map((prediction) => (
+                  <ProfilePredictionCard key={prediction.id} prediction={prediction} />
+                ))}
               </div>
             )}
           </div>
