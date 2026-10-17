@@ -18,7 +18,7 @@ import sociedadCrest from '@/escudosLigaEAsports/Real Sociedad de Fútbol.png';
 import sevillaCrest from '@/escudosLigaEAsports/transparent/Sevilla FC.png';
 import valenciaCrest from '@/escudosLigaEAsports/Valencia CF.png';
 import villarrealCrest from '@/escudosLigaEAsports/Villarreal CF.webp';
-import taranconCrest from '@/escudosLigaEAsports/CD Tarancón.jpeg';
+import taranconCrest from '@/escudosLigaEAsports/CD Tarancón.png';
 
 export interface LeagueTeam {
   id: string;

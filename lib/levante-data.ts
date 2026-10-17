@@ -238,7 +238,7 @@ const leagueMatches: LevanteMatch[] = matchSeeds.map(
 // Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora]
 type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null];
 const cupSeeds: CupSeed[] = [
-  [1, '2026-10-28', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', null],
+  [1, '2026-10-28', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', '19:00'],
 ];
 const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime]) => ({
   id: `copa-2026-27-r${round}`,
