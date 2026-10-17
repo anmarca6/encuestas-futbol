@@ -59,6 +59,7 @@ import {
   levanteMatches,
   levantePlayers,
   type LevanteMatch,
+  type LevanteMatchReport,
   type LevantePlayer,
 } from '@/lib/levante-data';
 import {
@@ -526,12 +527,15 @@ type CalendarFilter = 'RESULTADOS' | 'PRÓXIMOS' | 'CALENDARIO';
 function CalendarMatch({
   match,
   mvpOverrides,
+  officialReports,
 }: {
   match: LevanteMatch;
   mvpOverrides: MvpOverride[] | null;
+  officialReports: Record<number, LevanteMatchReport>;
 }) {
   const [open, setOpen] = useState(false);
-  const report = levanteMatchReports[match.matchday];
+  // Primero los datos oficiales de la comunidad (los que mete la administracion); si no hay, los de ejemplo de las primeras jornadas.
+  const report = officialReports[match.matchday] ?? levanteMatchReports[match.matchday];
   const mvp = resolveMvp(match.matchday, mvpOverrides);
   const scoringTeams = [match.homeTeam, match.awayTeam].filter((team) =>
     match.goals.some((goal) => goal.team === team),
@@ -602,7 +606,7 @@ function CalendarMatch({
                           <p key={goal.playerName}>
                             <b>{goal.playerName}</b>{' '}
                             {goal.minutes.length > 1 ? '⚽⚽' : '⚽'}{' '}
-                            {goal.minutes.map((minute) => `${minute}'`).join(' y ')}
+                            {goal.minutes.filter((minute) => minute > 0).map((minute) => `${minute}'`).join(' y ')}
                           </p>
                         ))}
                       </div>
@@ -808,9 +812,11 @@ function StandingsTable({ standings }: { standings: ReadonlyArray<LeagueStanding
 export function MatchdaySection({
   footballData,
   mvpOverrides,
+  officialReports,
 }: {
   footballData: FootballDataPayload | null;
   mvpOverrides: MvpOverride[] | null;
+  officialReports: Record<number, LevanteMatchReport>;
 }) {
   const [view, setView] = useState<'PARTIDOS' | 'CLASIFICACIÓN'>('PARTIDOS');
   const [filter, setFilter] = useState<CalendarFilter>('CALENDARIO');
@@ -870,7 +876,7 @@ export function MatchdaySection({
           </div>
           <div className="space-y-3">
             {visible.map((match) => (
-              <CalendarMatch key={match.id} match={match} mvpOverrides={mvpOverrides} />
+              <CalendarMatch key={match.id} match={match} mvpOverrides={mvpOverrides} officialReports={officialReports} />
             ))}
           </div>
         </>

@@ -18,7 +18,7 @@ import type { FootballDataPayload } from '@/lib/football-data-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
 import { applyLocalPostponements, getNextLevanteMatch, withLocalMatchIds } from '@/lib/levante-services';
-import { levanteMatches } from '@/lib/levante-data';
+import { levanteMatches, type LevanteMatchReport } from '@/lib/levante-data';
 import { communityFetch } from '@/lib/community-client';
 import type { CommunityHero, CommunityIdentity } from '@/lib/community-identity';
 export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; hero: CommunityHero | null }) {
@@ -39,6 +39,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
   }, []);
   const nextMatch = getNextLevanteMatch(scheduleMatches, now);
   const [mvpOverrides, setMvpOverrides] = useState<MvpOverride[] | null>(null);
+  const [officialReports, setOfficialReports] = useState<Record<number, LevanteMatchReport>>({});
   useEffect(() => {
     const saved = myPredictions.find((prediction) => prediction.matchId === nextMatch?.id);
     setCurrentPrediction(saved ? {
@@ -72,6 +73,10 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
       .then((result) => setMvpOverrides(result.overrides ?? []))
       .catch(() => setMvpOverrides([]));
+    void communityFetch('/api/reports')
+      .then(async (response) => (await response.json()) as { reports?: Array<{ matchday: number; report: LevanteMatchReport }> })
+      .then((result) => setOfficialReports(Object.fromEntries((result.reports ?? []).map((item) => [item.matchday, item.report]))))
+      .catch(() => setOfficialReports({}));
   }, []);
   const predict = () => setPredictionOpen(true);
   const navigate = (section: SectionId) => {
@@ -103,7 +108,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
         />
       )}{' '}
       {active === 'jornada' && (
-        <MatchdaySection footballData={footballData} mvpOverrides={mvpOverrides} />
+        <MatchdaySection footballData={footballData} mvpOverrides={mvpOverrides} officialReports={officialReports} />
       )}{' '}
       {active === 'grada' && (
         <StandsSection
