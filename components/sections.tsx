@@ -1414,7 +1414,7 @@ export function StandsSection({
   );
 }
 
-export function CommunityRankingSection() {
+export function CommunityRankingSection({ user }: { user: CommunityUser | null }) {
   const [ranking, setRanking] = useState<CommunityRankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1429,6 +1429,10 @@ export function CommunityRankingSection() {
       .finally(() => setLoading(false));
   }, []);
 
+  const myIndex = user ? ranking.findIndex((entry) => entry.userId === user.id) : -1;
+  const me = myIndex >= 0 ? ranking[myIndex] : null;
+  const goToMe = () => document.getElementById('mi-posicion')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
   return (
     <>
       <Heading
@@ -1436,6 +1440,16 @@ export function CommunityRankingSection() {
         title="Clasificación"
         description="Los puntos de cada jornada se acumulan durante toda la temporada. En caso de empate, la clasificación se ordena alfabéticamente."
       />
+      {me && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#153e72]/30 bg-sky-50 px-4 py-3">
+          <p className="text-sm text-[#071527]">
+            Tu posición: <strong className="text-lg font-black text-[#153e72]">{myIndex + 1}.º</strong> de {ranking.length} · <strong className="font-black text-[#a91d43]">{me.points} pts</strong>
+          </p>
+          <button type="button" onClick={goToMe} className="rounded-lg bg-[#153e72] px-3 py-1.5 text-xs font-black text-white hover:bg-[#0f2f58]">
+            Ver mi posición
+          </button>
+        </div>
+      )}
       <Card className="overflow-hidden border-0 shadow-lg ring-slate-200">
         <CardHeader className="bg-[#071527] text-white">
           <CardTitle className="flex items-center gap-3 font-black">
@@ -1477,7 +1491,14 @@ export function CommunityRankingSection() {
                 {ranking.map((entry, index) => (
                   <TableRow
                     key={entry.userId}
-                    className={index === 0 ? 'bg-amber-50/80 hover:bg-amber-100/80' : undefined}
+                    id={entry.userId === user?.id ? 'mi-posicion' : undefined}
+                    className={
+                      entry.userId === user?.id
+                        ? 'bg-sky-100 shadow-[inset_4px_0_0_#153e72] hover:bg-sky-100'
+                        : index === 0
+                          ? 'bg-amber-50/80 hover:bg-amber-100/80'
+                          : undefined
+                    }
                   >
                     <TableCell className={`text-center font-black ${index === 0 ? 'text-amber-600' : 'text-slate-400'}`}>
                       {index + 1}
@@ -1487,6 +1508,9 @@ export function CommunityRankingSection() {
                         <CommunityAvatar nickname={entry.nickname} avatarUrl={entry.avatarUrl} />
                         <div>
                           <strong className="text-[#071527]">@{entry.nickname}</strong>
+                          {entry.userId === user?.id && (
+                            <span className="ml-2 rounded-full bg-[#153e72] px-2 py-0.5 text-[10px] font-black uppercase text-white">Tú</span>
+                          )}
                           {index === 0 && (
                             <Crown className="ml-2 inline size-5 fill-amber-400 text-amber-600" aria-label="Líder" />
                           )}

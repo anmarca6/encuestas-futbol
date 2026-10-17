@@ -120,7 +120,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
           }}
         />
       )}
-      {active === 'clasificacion' && <CommunityRankingSection />}
+      {active === 'clasificacion' && <CommunityRankingSection user={user} />}
       {active === 'reglas' && <GameRulesSection />}
       {active === 'perfil' && (
         <ProfileSection
