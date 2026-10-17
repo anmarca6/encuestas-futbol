@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { LineupBuilder, PlayerPhoto } from '@/components/lineup-builder';
 import { TeamCrest } from '@/components/shared';
-import { LEVANTE_TEAM, levantePlayers, type LevanteMatch } from '@/lib/levante-data';
+import { LEVANTE_TEAM, levantePlayers, matchShortLabel, type LevanteMatch } from '@/lib/levante-data';
 import { formationOptions, type FormationId, type SavedLineup } from '@/lib/formations';
 import type { CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
@@ -167,7 +167,7 @@ export function PredictionWizard({
               <DialogTitle className="text-xl font-black text-[#071527]">{existingPrediction ? 'Modificar predicción' : 'Participa'}</DialogTitle>
               <DialogDescription>Paso {step + 1} de 6 · {stepNames[step]}</DialogDescription>
             </div>
-            <span className="rounded-full bg-[#a91d43] px-3 py-1 text-xs font-black text-white">J{match.matchday}</span>
+            <span className="rounded-full bg-[#a91d43] px-3 py-1 text-xs font-black text-white">{matchShortLabel(match)}</span>
           </div>
           <div className="grid grid-cols-6 gap-1" aria-label={`Paso ${step + 1} de 6`}>
             {stepNames.map((name, index) => <span key={name} title={name} className={`h-1.5 rounded-full ${index <= step ? 'bg-[#a91d43]' : 'bg-slate-200'}`} />)}

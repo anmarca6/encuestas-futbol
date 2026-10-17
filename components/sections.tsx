@@ -55,6 +55,9 @@ import {
 } from '@/components/ui/tooltip';
 import {
   LEVANTE_TEAM,
+  isCupMatch,
+  matchdayLongLabel,
+  matchdayShortLabel,
   levanteMatchReports,
   levanteMatches,
   levantePlayers,
@@ -164,7 +167,7 @@ export function resolveMvp(
 function CompactMatch({ match }: { match: LevanteMatch }) {
   return (
     <div className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
-      <span className="font-black text-slate-400">J{match.matchday}</span>
+      <span className="font-black text-slate-400">{matchdayShortLabel(match.matchday)}</span>
       <div className="min-w-0 space-y-1.5">
         <TeamIdentity teamName={match.homeTeam} size="sm" shortOnMobile />
         <TeamIdentity teamName={match.awayTeam} size="sm" shortOnMobile />
@@ -222,7 +225,7 @@ function MvpCarousel({
         )}
         <div className="min-w-0">
           <small className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-            J{matchday}
+            {matchdayShortLabel(matchday)}
           </small>
           <strong className="block truncate text-sm text-[#071527]">
             {mvp.playerName}
@@ -321,7 +324,7 @@ export function HomeSection({
                 Próximo partido
               </span>
               <p className="mt-5 text-sm font-bold uppercase tracking-wider text-slate-400">
-                {formatDate(next.date, true)} · Jornada {next.matchday}
+                {formatDate(next.date, true)} · {matchdayLongLabel(next.matchday)}
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-4 text-2xl font-black sm:text-4xl">
                 <TeamIdentity teamName={next.homeTeam} size="xl" bareCrest />
@@ -368,7 +371,7 @@ export function HomeSection({
             <Card className="border-0 bg-gradient-to-br from-[#153e72] to-[#071527] text-white ring-0">
               <CardContent>
                 <p className="text-xs font-black uppercase tracking-widest text-sky-200">
-                  Último partido · J{last.matchday}
+                  Último partido · {matchdayShortLabel(last.matchday)}
                 </p>
                 <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                   <TeamIdentity teamName={last.homeTeam} size="lg" />
@@ -545,10 +548,15 @@ function CalendarMatch({
       className={`border-0 py-0 shadow-sm ring-1 ${match.status === 'FINISHED' ? 'ring-slate-200' : match.status === 'POSTPONED' ? 'ring-amber-200' : 'ring-sky-200/80'}`}
     >
       <CardContent className="px-3 py-4 sm:px-5">
+        {isCupMatch(match) && (
+          <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+            <Trophy className="size-3" /> {matchdayLongLabel(match.matchday)}
+          </span>
+        )}
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
           <div className="text-center">
-            <span className="block text-sm font-black text-[#a91d43]">
-              J{match.matchday}
+            <span className={`block text-sm font-black ${isCupMatch(match) ? 'text-amber-600' : 'text-[#a91d43]'}`}>
+              {matchdayShortLabel(match.matchday)}
             </span>
             <small className="whitespace-nowrap text-[10px] font-bold text-slate-400">
               {formatDate(match.date, true)}
@@ -580,7 +588,7 @@ function CalendarMatch({
             <button
               onClick={() => setOpen(!open)}
               aria-expanded={open}
-              aria-label={`Ver estadísticas de la jornada ${match.matchday}`}
+              aria-label={`Ver estadísticas: ${matchdayLongLabel(match.matchday)}`}
               className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"
             >
               <ChevronDown
@@ -828,13 +836,16 @@ export function MatchdaySection({
     : realLeagueStandings;
   const currentMatchday = getNextLevanteMatch(matches)?.matchday
     ?? Math.max(0, ...matches.filter((match) => match.status === 'FINISHED').map((match) => match.matchday));
-  const visible = matches.filter(
-    (match) =>
-      filter === 'CALENDARIO' ||
-      (filter === 'RESULTADOS'
-        ? match.status === 'FINISHED'
-        : match.status !== 'FINISHED'),
-  );
+  // Orden cronologico: asi el partido aplazado y la Copa del Rey quedan en su fecha real.
+  const visible = [...matches]
+    .sort((a, b) => a.date.localeCompare(b.date) || a.matchday - b.matchday)
+    .filter(
+      (match) =>
+        filter === 'CALENDARIO' ||
+        (filter === 'RESULTADOS'
+          ? match.status === 'FINISHED'
+          : match.status !== 'FINISHED'),
+    );
   return (
     <>
       <Heading
@@ -844,7 +855,7 @@ export function MatchdaySection({
         action={
           <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-500">
             <CalendarDays className="size-4" />
-            Jornada {currentMatchday}
+            {matchdayLongLabel(currentMatchday)}
           </span>
         }
       />
@@ -1043,7 +1054,7 @@ export function PredictSection({
     return (
       <>
         <Heading
-          eyebrow={`Predice · Jornada ${next.matchday}`}
+          eyebrow={`Predice · ${matchdayLongLabel(next.matchday)}`}
           title="Crea tu XI"
           description="Elige la formación, toca cada posición y selecciona el titular que esperas para el próximo partido."
         />
@@ -1092,7 +1103,7 @@ export function PredictSection({
         onRegistered={finishRegistration}
       />
       <Heading
-        eyebrow={`Jornada ${next.matchday} · ${formatDate(next.date)}`}
+        eyebrow={`${matchdayLongLabel(next.matchday)} · ${formatDate(next.date)}`}
         title="¿Cómo quedamos?"
         description="Mójate antes del pitido inicial y prepara tu once para el próximo partido."
       />
@@ -1528,7 +1539,7 @@ export function CommunityRankingSection({ user }: { user: CommunityUser | null }
                           <div className="mt-2 w-64 rounded-xl bg-slate-50 p-3 text-left text-xs text-slate-600">
                             {entry.matchBreakdowns.map((match) => (
                               <div key={`${entry.userId}-${match.matchday}`} className="border-b border-slate-200 pb-2 last:border-0 last:pb-0">
-                                <p className="font-black text-[#071527]">Jornada {match.matchday}: {match.homeTeam} - {match.awayTeam}</p>
+                                <p className="font-black text-[#071527]">{matchdayLongLabel(match.matchday)}: {match.homeTeam} - {match.awayTeam}</p>
                                 <p className="mt-1 font-black text-[#a91d43]">{match.points} puntos conseguidos</p>
                                 <ul className="mt-1 space-y-0.5 font-bold">
                                   <li>{match.breakdown.formation ? `Formación acertada (+${match.breakdown.formation})` : 'Formación no acertada (0)'}</li>
@@ -1633,7 +1644,7 @@ function ProfilePredictionCard({ prediction }: { prediction: CommunityPrediction
           <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
         </button>
         <small className="font-black uppercase tracking-wider text-[#a91d43]">
-          {match ? `Jornada ${match.matchday}` : 'Predicción'}
+          {match ? matchdayLongLabel(match.matchday) : 'Predicción'}
         </small>
         <p className="mt-2 font-bold text-[#071527]">
           {match ? `${match.homeTeam} — ${match.awayTeam}` : prediction.matchId}

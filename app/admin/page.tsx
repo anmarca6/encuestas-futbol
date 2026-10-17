@@ -11,7 +11,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@/components/ui/native-select';
-import { LEVANTE_TEAM, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { LEVANTE_TEAM, matchdayLongLabel, matchdayShortLabel, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
@@ -178,7 +178,7 @@ function MatchdayPicker({
               key={matchday}
               type="button"
               aria-pressed={active}
-              aria-label={`Jornada ${matchday}${mark === 'own' ? ' (guardada)' : mark === 'inherited' ? ' (heredada)' : ''}`}
+              aria-label={`${matchdayLongLabel(matchday)}${mark === 'own' ? ' (guardada)' : mark === 'inherited' ? ' (heredada)' : ''}`}
               onClick={() => onSelect(matchday)}
               className={`relative h-9 min-w-11 shrink-0 rounded-lg px-2.5 text-sm font-black transition ${
                 active
@@ -188,7 +188,7 @@ function MatchdayPicker({
                     : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
               }`}
             >
-              J{matchday}
+              {matchdayShortLabel(matchday)}
               {mark && (
                 <span
                   aria-hidden="true"
@@ -291,7 +291,7 @@ function MvpEditor({ communitySlug, matchday, onMatchdayChange }: { communitySlu
             <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="w-full sm:w-48 sm:shrink-0">
                 <strong className="block text-sm text-[#071527]">
-                  Jornada {match.matchday}
+                  {matchdayLongLabel(match.matchday)}
                 </strong>
                 <p className="text-xs text-slate-500">
                   {match.homeTeam} {isFinished ? `${match.homeScore}-${match.awayScore}` : 'vs'} {match.awayTeam}
@@ -488,7 +488,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <strong className="block text-[#071527]">Jornada {match.matchday}</strong>
+                  <strong className="block text-[#071527]">{matchdayLongLabel(match.matchday)}</strong>
                   <span className="text-sm text-slate-500">{match.homeTeam} vs {match.awayTeam}</span>
                   {inherited[match.matchday] && communitySlug !== DEFAULT_COMMUNITY_SLUG && (
                     <span className="mt-1 block text-xs font-bold text-[#153e72]">
@@ -1444,7 +1444,7 @@ function PredictionsModeration({ communitySlug }: { communitySlug: string }) {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-bold text-[#071527]">
-                        {match ? `J${match.matchday} · ${match.homeTeam} vs ${match.awayTeam}` : prediction.matchId}
+                        {match ? `${matchdayShortLabel(match.matchday)} · ${match.homeTeam} vs ${match.awayTeam}` : prediction.matchId}
                       </p>
                       <p className="text-xs text-slate-400">
                         {prediction.homeScore}-{prediction.awayScore} · {dateFormatter.format(new Date(prediction.publishedAt))}

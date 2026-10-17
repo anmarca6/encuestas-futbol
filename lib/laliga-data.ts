@@ -18,6 +18,7 @@ import sociedadCrest from '@/escudosLigaEAsports/Real Sociedad de Fútbol.png';
 import sevillaCrest from '@/escudosLigaEAsports/transparent/Sevilla FC.png';
 import valenciaCrest from '@/escudosLigaEAsports/Valencia CF.png';
 import villarrealCrest from '@/escudosLigaEAsports/Villarreal CF.webp';
+import taranconCrest from '@/escudosLigaEAsports/CD Tarancón.jpeg';
 
 export interface LeagueTeam {
   id: string;
@@ -49,6 +50,11 @@ export const leagueTeams: LeagueTeam[] = [
   { id: 'malaga-cf', name: 'Málaga CF', shortName: 'Málaga', crest: malagaCrest.src },
 ];
 
+// Rivales de otras competiciones (Copa del Rey) que no estan en la clasificacion de Liga.
+export const cupTeams: LeagueTeam[] = [
+  { id: 'cd-tarancon', name: 'CD Tarancón', shortName: 'Tarancón', crest: taranconCrest.src },
+];
+
 export interface LeagueStanding {
   position: number;
   teamId: string;
@@ -73,6 +79,6 @@ const standingSeeds: StandingSeed[] = [
 export const realLeagueStandings: ReadonlyArray<Readonly<LeagueStanding>> = standingSeeds.map(([teamId,points,played,won,drawn,lost,goalsFor,goalsAgainst],index) => ({ position:index+1,teamId,played,won,drawn,lost,goalsFor,goalsAgainst,goalDifference:goalsFor-goalsAgainst,points }));
 
 export const getLeagueTeamById = (teamId: string) => leagueTeams.find((team) => team.id === teamId);
-export const getLeagueTeamByName = (name: string) => leagueTeams.find((team) => team.name === name);
+export const getLeagueTeamByName = (name: string) => [...leagueTeams, ...cupTeams].find((team) => team.name === name);
 export const getLevanteStanding = () => realLeagueStandings.find((standing) => standing.teamId === 'levante-ud');
 export const cloneLeagueStandings = (): LeagueStanding[] => realLeagueStandings.map((standing) => ({ ...standing }));

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { resolveCommunity } from '@/lib/community';
 import { sessionCookieName } from '@/lib/community-shared';
-import { getNextLevanteMatch } from '@/lib/levante-services';
+import { getNextLevanteMatch, withLocalMatchIds } from '@/lib/levante-services';
+import { loadScheduleMatches } from '@/lib/football-schedule';
 import { LEVANTE_TEAM, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { loadOfficialReports } from '@/lib/official-data';
 import { formations } from '@/lib/formations';
@@ -14,7 +15,10 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 // esta desfasada, tener su informe oficial basta para saber que ya no se puede pronosticar.
 async function nextOpenMatch(communitySlug: string) {
   const played = new Set((await loadOfficialReports(communitySlug)).map((report) => report.matchday));
-  return getNextLevanteMatch(levanteMatches.filter((match) => !played.has(match.matchday)));
+  // Mismo calendario que ve la pantalla (fechas y horas oficiales de la API); si no esta disponible, el local.
+  const schedule = await loadScheduleMatches();
+  const matches = schedule ? withLocalMatchIds(schedule) : levanteMatches;
+  return getNextLevanteMatch(matches.filter((match) => !played.has(match.matchday)));
 }
 
 async function currentUser(request: NextRequest, communitySlug: string) {

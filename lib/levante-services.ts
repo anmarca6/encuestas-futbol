@@ -14,7 +14,12 @@ const pendingByDate = (matches: LevanteMatch[], now: Date) => matches.filter((ma
 // Cuando la API ya devuelva la fecha correcta, se puede quitar la jornada de esta lista.
 const RESCHEDULED_MATCHDAYS = new Set([6]);
 // Un aplazamiento marcado en los datos locales (sin nueva fecha) tambien manda sobre lo que diga la API.
-export const applyLocalPostponements = (matches: LevanteMatch[]): LevanteMatch[] => matches.map((match)=>{
+// Las competiciones que la API de Liga no devuelve (Copa del Rey) se anaden desde el calendario local.
+const withLocalCupMatches = (matches: LevanteMatch[]): LevanteMatch[] => [
+  ...matches,
+  ...levanteMatches.filter((local)=>local.competition!=='LaLiga' && !matches.some((match)=>match.matchday===local.matchday)),
+];
+export const applyLocalPostponements = (matches: LevanteMatch[]): LevanteMatch[] => withLocalCupMatches(matches).map((match)=>{
   const local = levanteMatches.find((item)=>item.matchday===match.matchday);
   if (!local || match.status==='FINISHED') return match;
   if (RESCHEDULED_MATCHDAYS.has(match.matchday)) return {...match,date:local.date,kickoffTime:local.kickoffTime,status:'SCHEDULED' as const};

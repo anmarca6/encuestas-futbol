@@ -32,6 +32,18 @@ import aldiNurgaliImage from '@/JugadoresDelLevante2627/nurgali.webp';
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
 export const LEVANTE_COMPETITION = 'LaLiga' as const;
+export const COPA_DEL_REY = 'Copa del Rey' as const;
+export type MatchCompetition = typeof LEVANTE_COMPETITION | typeof COPA_DEL_REY;
+// La Copa del Rey comparte la numeracion de "jornada" con la Liga: la ronda 1 de Copa es la 101, la 2 es la 102, etc.
+// Asi sus informes oficiales, MVP y pronosticos (que se guardan por numero) no chocan con los de Liga.
+export const CUP_MATCHDAY_OFFSET = 100;
+export const isCupMatchday = (matchday: number) => matchday > CUP_MATCHDAY_OFFSET;
+export const isCupMatch = (match: { matchday: number }) => isCupMatchday(match.matchday);
+export const matchdayShortLabel = (matchday: number) => (isCupMatchday(matchday) ? 'Copa' : `J${matchday}`);
+export const matchdayLongLabel = (matchday: number) =>
+  isCupMatchday(matchday) ? `Copa del Rey · ${matchday - CUP_MATCHDAY_OFFSET}.ª ronda` : `Jornada ${matchday}`;
+export const matchShortLabel = (match: { matchday: number }) => matchdayShortLabel(match.matchday);
+export const matchLongLabel = (match: { matchday: number }) => matchdayLongLabel(match.matchday);
 
 export type MatchStatus = 'FINISHED' | 'SCHEDULED' | 'POSTPONED';
 export interface MatchGoal {
@@ -42,7 +54,7 @@ export interface MatchGoal {
 export interface LevanteMatch {
   id: string;
   season: typeof LEVANTE_SEASON;
-  competition: typeof LEVANTE_COMPETITION;
+  competition: MatchCompetition;
   matchday: number;
   date: string;
   kickoffTime: string | null;
@@ -195,7 +207,7 @@ const matchSeeds: MatchSeed[] = [
   [38, '2027-05-30', LEVANTE_TEAM, 'Celta', null, null, 'SCHEDULED'],
 ];
 
-export const levanteMatches: LevanteMatch[] = matchSeeds.map(
+const leagueMatches: LevanteMatch[] = matchSeeds.map(
   ([
     matchday,
     date,
@@ -222,6 +234,29 @@ export const levanteMatches: LevanteMatch[] = matchSeeds.map(
       homeTeam === 'Valencia CF' || awayTeam === 'Valencia CF' ? ['DERBY'] : [],
   }),
 );
+
+// Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora]
+type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null];
+const cupSeeds: CupSeed[] = [
+  [1, '2026-10-28', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', null],
+];
+const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime]) => ({
+  id: `copa-2026-27-r${round}`,
+  season: LEVANTE_SEASON,
+  competition: COPA_DEL_REY,
+  matchday: CUP_MATCHDAY_OFFSET + round,
+  date,
+  kickoffTime,
+  homeTeam,
+  awayTeam,
+  homeScore,
+  awayScore,
+  status,
+  goals: [],
+  tags: [],
+}));
+
+export const levanteMatches: LevanteMatch[] = [...leagueMatches, ...cupMatches];
 
 const repeatedLineup = {
   goalkeeper: ['Mathew Ryan'],
