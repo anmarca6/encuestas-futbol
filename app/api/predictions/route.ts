@@ -3,11 +3,19 @@ import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { resolveCommunity } from '@/lib/community';
 import { sessionCookieName } from '@/lib/community-shared';
 import { getNextLevanteMatch } from '@/lib/levante-services';
-import { LEVANTE_TEAM, levantePlayers } from '@/lib/levante-data';
+import { LEVANTE_TEAM, levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { loadOfficialReports } from '@/lib/official-data';
 import { formations } from '@/lib/formations';
 import { isPredictionClosed } from '@/lib/prediction-deadline';
 import type { CommunityPrediction, CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
+
+// Proximo partido pronosticable: el primero pendiente que aun no tiene datos oficiales. Si la fecha local de un partido ya jugado
+// esta desfasada, tener su informe oficial basta para saber que ya no se puede pronosticar.
+async function nextOpenMatch(communitySlug: string) {
+  const played = new Set((await loadOfficialReports(communitySlug)).map((report) => report.matchday));
+  return getNextLevanteMatch(levanteMatches.filter((match) => !played.has(match.matchday)));
+}
 
 async function currentUser(request: NextRequest, communitySlug: string) {
   const id = request.cookies.get(sessionCookieName(communitySlug))?.value;
@@ -25,7 +33,7 @@ export async function GET(request: NextRequest) {
   const mine = request.nextUrl.searchParams.get('mine') === '1';
   const user = mine ? await currentUser(request, community.slug) : null;
   if (mine && !user) return NextResponse.json({ predictions: [] });
-  const match = getNextLevanteMatch();
+  const match = await nextOpenMatch(community.slug);
   if (!match && !mine) return NextResponse.json({ predictions: [] });
   interface PredictionRow {
     id: string; matchId: string; homeScore: number; awayScore: number;
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
   if (!community) return NextResponse.json({ error: 'Esta comunidad no existe.' }, { status: 404 });
   const user = await currentUser(request, community.slug);
   if (!user) return NextResponse.json({ error: 'Debes iniciar sesión antes de publicar.' }, { status: 401 });
-  const match = getNextLevanteMatch();
+  const match = await nextOpenMatch(community.slug);
   if (!match) return NextResponse.json({ error: 'No hay un próximo partido disponible.' }, { status: 409 });
   if (isPredictionClosed(match)) {
     return NextResponse.json({ error: 'Las predicciones para este partido ya están cerradas.' }, { status: 409 });

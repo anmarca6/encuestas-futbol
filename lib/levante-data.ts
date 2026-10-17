@@ -131,7 +131,7 @@ const matchSeeds: MatchSeed[] = [
   [6, '2026-10-21', LEVANTE_TEAM, 'Athletic Club', null, null, 'SCHEDULED'],
   [7, '2026-09-20', 'Villarreal CF', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [8, '2026-10-12', LEVANTE_TEAM, 'Sevilla FC', null, null, 'SCHEDULED'],
-  [9, '2026-10-18', 'RC Deportivo', LEVANTE_TEAM, null, null, 'SCHEDULED'],
+  [9, '2026-10-18', 'RC Deportivo', LEVANTE_TEAM, 1, 1, 'FINISHED'],
   [10, '2026-10-25', 'Real Sociedad', LEVANTE_TEAM, null, null, 'SCHEDULED'],
   [
     11,
