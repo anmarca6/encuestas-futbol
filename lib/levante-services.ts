@@ -10,8 +10,16 @@ const hasEnded = (match: LevanteMatch, now: Date) => {
 };
 const byDate = (a: LevanteMatch, b: LevanteMatch) => a.date.localeCompare(b.date) || a.matchday - b.matchday;
 const pendingByDate = (matches: LevanteMatch[], now: Date) => matches.filter((match)=>!hasEnded(match, now)).sort(byDate);
-// Un aplazamiento marcado en los datos locales manda sobre lo que diga la API (que puede tardar en reflejarlo o dar una fecha provisional).
-export const applyLocalPostponements = (matches: LevanteMatch[]): LevanteMatch[] => matches.map((match)=>match.status!=='FINISHED' && levanteMatches.some((local)=>local.matchday===match.matchday && local.status==='POSTPONED') ? {...match,status:'POSTPONED' as const} : match);
+// Partidos aplazados cuya nueva fecha y hora ya conocemos: lo local manda sobre la API (que puede tardar en reflejarlo o dar una fecha provisional).
+// Cuando la API ya devuelva la fecha correcta, se puede quitar la jornada de esta lista.
+const RESCHEDULED_MATCHDAYS = new Set([6]);
+// Un aplazamiento marcado en los datos locales (sin nueva fecha) tambien manda sobre lo que diga la API.
+export const applyLocalPostponements = (matches: LevanteMatch[]): LevanteMatch[] => matches.map((match)=>{
+  const local = levanteMatches.find((item)=>item.matchday===match.matchday);
+  if (!local || match.status==='FINISHED') return match;
+  if (RESCHEDULED_MATCHDAYS.has(match.matchday)) return {...match,date:local.date,kickoffTime:local.kickoffTime,status:'SCHEDULED' as const};
+  return local.status==='POSTPONED' ? {...match,status:'POSTPONED' as const} : match;
+});
 export const getNextLevanteMatch = (matches=levanteMatches, now=new Date()): LevanteMatch | null => pendingByDate(matches, now)[0] ?? null;
 export const getLastLevanteMatch = (matches=levanteMatches): LevanteMatch | null => [...matches].reverse().find((match)=>match.status==='FINISHED') ?? null;
 export const getRecentLevanteMatches = (limit=3,matches=levanteMatches): LevanteMatch[] => matches.filter((match)=>match.status==='FINISHED').slice(-limit);
