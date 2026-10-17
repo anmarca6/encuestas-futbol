@@ -21,8 +21,10 @@ export const applyLocalPostponements = (matches: LevanteMatch[]): LevanteMatch[]
   return local.status==='POSTPONED' ? {...match,status:'POSTPONED' as const} : match;
 });
 export const getNextLevanteMatch = (matches=levanteMatches, now=new Date()): LevanteMatch | null => pendingByDate(matches, now)[0] ?? null;
-export const getLastLevanteMatch = (matches=levanteMatches): LevanteMatch | null => [...matches].reverse().find((match)=>match.status==='FINISHED') ?? null;
-export const getRecentLevanteMatches = (limit=3,matches=levanteMatches): LevanteMatch[] => matches.filter((match)=>match.status==='FINISHED').slice(-limit);
+// Los partidos jugados se ordenan por fecha (no por jornada): un partido aplazado se juega despues de jornadas posteriores.
+const finishedByDate = (matches: LevanteMatch[]) => matches.filter((match)=>match.status==='FINISHED').sort(byDate);
+export const getLastLevanteMatch = (matches=levanteMatches): LevanteMatch | null => finishedByDate(matches).slice(-1)[0] ?? null;
+export const getRecentLevanteMatches = (limit=3,matches=levanteMatches): LevanteMatch[] => finishedByDate(matches).slice(-limit);
 // Lista de "Próximos partidos": por fecha, e incluye los aplazados (pendientes de nueva fecha), que quedan en su posición original.
 export const getUpcomingLevanteMatches = (limit=5,matches=levanteMatches,now=new Date()): LevanteMatch[] => matches.filter((match)=>match.status==='POSTPONED' || !hasEnded(match, now)).sort(byDate).slice(0,limit);
 export const getMatchByMatchday = (matchday:number,matches=levanteMatches): LevanteMatch | null => matches.find((match)=>match.matchday===matchday) ?? null;
