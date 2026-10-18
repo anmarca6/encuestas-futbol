@@ -12,7 +12,10 @@ export interface ConsensusRow {
 }
 
 export interface Consensus {
+  // Predicciones usadas en total, de cuantos partidos distintos vienen y cuantas son de este mismo partido.
   sample: number;
+  matches: number;
+  currentMatchSample: number;
   formation: FormationId;
   lineup: SavedLineup;
   homeScore: number;
@@ -30,7 +33,7 @@ function tally<T extends string>(values: T[]): Array<[T, number]> {
 
 export const MIN_CONSENSUS_SAMPLE = 3;
 
-export function buildConsensus(rows: ConsensusRow[], target: { homeTeam: string }): Consensus | null {
+export function buildConsensus(rows: ConsensusRow[], target: { id: string; homeTeam: string }): Consensus | null {
   if (rows.length < MIN_CONSENSUS_SAMPLE) return null;
   const levanteIsHome = target.homeTeam === LEVANTE_TEAM;
 
@@ -75,6 +78,8 @@ export function buildConsensus(rows: ConsensusRow[], target: { homeTeam: string 
 
   return {
     sample: rows.length,
+    matches: new Set(rows.map((row) => row.matchId)).size,
+    currentMatchSample: rows.filter((row) => row.matchId === target.id).length,
     formation: formationId,
     lineup: { formation: formationId, players },
     homeScore: levanteIsHome ? levanteGoals : rivalGoals,

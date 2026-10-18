@@ -136,7 +136,9 @@ export function PredictionWizard({
         return counts;
       }, {}));
       setMvp(consensus.mvp);
-      setAiMessage(`Listo: rellenado con lo más común de ${consensus.sample} predicciones de la comunidad. Puedes cambiar lo que quieras.`);
+      setAiMessage(
+        `Listo: rellenado con lo más común de ${consensus.sample} predicciones de la comunidad, de ${consensus.matches} ${consensus.matches === 1 ? 'partido' : 'partidos'} distintos (${consensus.currentMatchSample} de este partido). Puedes cambiar lo que quieras.`,
+      );
       if (goToPublish) setStep(5);
     } catch {
       setAiMessage('No se pudo consultar a la IA. Inténtalo de nuevo o rellénalo tú.');
@@ -219,7 +221,10 @@ export function PredictionWizard({
                   <Sparkles className="size-5" /> Modo IA
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Rellena tu predicción con lo más común de la comunidad: la formación más usada, el XI más repetido, el marcador más votado, los goleadores más citados y el MVP favorito.
+                  Rellena tu predicción con lo más común de tu comunidad: la formación más usada, el XI más repetido, el marcador más votado, los goleadores más citados y el MVP favorito.
+                </p>
+                <p className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs font-bold text-[#153e72]">
+                  ¿De dónde salen los datos? De TODAS las predicciones publicadas en la comunidad hasta ahora, de todas las jornadas (también de esta, si ya hay predicciones), y no solo de las de este partido. Cada apartado usa lo más repetido en ese conjunto.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button disabled={aiLoading} onClick={() => void fillWithAi(false)} className="bg-[#153e72] font-black text-white">
