@@ -295,7 +295,8 @@ export function HomeSection({
       standings.find((item) => item.teamId === 'levante-ud') ??
       getLevanteStanding();
   const countdown = usePredictionCountdown(next);
-  const recentMvps = getRecentLevanteMatches(4, matches)
+  // MVP de todos los partidos jugados que lo tengan (del mas reciente al mas antiguo), no solo de los ultimos.
+  const recentMvps = getRecentLevanteMatches(Number.MAX_SAFE_INTEGER, matches)
     .reverse()
     .map((match) => {
       const resolved = resolveMvp(match.matchday, mvpOverrides);
