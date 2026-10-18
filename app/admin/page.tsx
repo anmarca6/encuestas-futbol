@@ -354,6 +354,8 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
     formation: SavedLineup['formation'];
     lineup: SavedLineup;
     scorers: string[];
+    // Minuto de cada gol, en la misma posicion que `scorers` (0 = sin minuto). Solo informativo para el calendario.
+    minutes: number[];
     mvp: string;
     reason: string;
   };
@@ -367,7 +369,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
 
   const loadReports = async () => {
     const response = await fetch(`/api/admin/matches?community=${encodeURIComponent(communitySlug)}`);
-    const result = (await response.json()) as { reports?: Array<{ inherited?: boolean; matchday: number; homeScore: number; awayScore: number; formation: SavedLineup['formation']; lineup: SavedLineup; scorers: string[]; mvp: string | null; reason: string }> };
+    const result = (await response.json()) as { reports?: Array<{ inherited?: boolean; matchday: number; homeScore: number; awayScore: number; formation: SavedLineup['formation']; lineup: SavedLineup; scorers: string[]; goalMinutes?: number[]; mvp: string | null; reason: string }> };
     const next: Record<number, MatchReportDraft> = {};
     const nextInherited: Record<number, boolean> = {};
     for (const item of result.reports ?? []) {
@@ -378,6 +380,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
         formation: item.formation,
         lineup: item.lineup ?? { formation: '4-3-3', players: Array(11).fill('') },
         scorers: item.scorers ?? [],
+        minutes: (item.scorers ?? []).map((_, index) => item.goalMinutes?.[index] ?? 0),
         mvp: item.mvp ?? '',
         reason: item.reason ?? '',
       };
@@ -411,6 +414,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
       formation,
       lineup: { formation, players },
       scorers: report.levanteGoals.flatMap((goal) => Array(goal.minutes.length).fill(playerIdForName(goal.playerName)) as string[]).filter(Boolean),
+      minutes: report.levanteGoals.flatMap((goal) => (playerIdForName(goal.playerName) ? goal.minutes : [])),
       mvp: playerIdForName(report.mvp.playerName),
       reason: report.mvp.reason,
     };
@@ -429,6 +433,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
       formation: baseFormation,
       lineup: { formation: baseFormation, players: Array(11).fill('') },
       scorers: [],
+      minutes: [],
       mvp: '',
       reason: '',
     };
@@ -451,6 +456,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
           formation: draft.formation,
           lineup: draft.lineup,
           scorers: draft.scorers,
+          goalMinutes: draft.minutes,
         }),
       });
       if (response.ok) {
@@ -567,19 +573,19 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                   {levantePlayers.map((player) => {
                     const goals = draft.scorers.filter((id) => id === player.id).length;
-                    const setScorers = (scorers: string[]) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), scorers } }));
+                    const setScorers = (scorers: string[], minutes: number[]) => setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), scorers, minutes } }));
                     return (
                       <div key={`${match.matchday}-scorer-${player.id}`} className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-sm ${goals > 0 ? 'border-[#a91d43]/40 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
                         <span className="min-w-0 truncate">{player.displayName}</span>
                         <span className="flex shrink-0 items-center gap-1">
                           <button type="button" aria-label={`Quitar un gol a ${player.displayName}`} disabled={goals === 0} onClick={() => {
                             const index = draft.scorers.lastIndexOf(player.id);
-                            setScorers(draft.scorers.filter((_, position) => position !== index));
+                            setScorers(draft.scorers.filter((_, position) => position !== index), draft.minutes.filter((_, position) => position !== index));
                           }} className="grid size-6 place-items-center rounded-full border border-slate-300 bg-white disabled:opacity-40">
                             <Minus className="size-3" />
                           </button>
                           <b className="w-4 text-center">{goals}</b>
-                          <button type="button" aria-label={`Añadir un gol a ${player.displayName}`} onClick={() => setScorers([...draft.scorers, player.id])} className="grid size-6 place-items-center rounded-full border border-slate-300 bg-white">
+                          <button type="button" aria-label={`Añadir un gol a ${player.displayName}`} onClick={() => setScorers([...draft.scorers, player.id], [...draft.minutes, 0])} className="grid size-6 place-items-center rounded-full border border-slate-300 bg-white">
                             <Plus className="size-3" />
                           </button>
                         </span>
@@ -587,6 +593,36 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                     );
                   })}
                 </div>
+                {draft.scorers.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Minuto de cada gol (opcional, solo para el calendario)</p>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {draft.scorers.map((playerId, index) => (
+                        <label key={`${match.matchday}-goal-${index}`} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                          <span className="min-w-0 truncate">⚽ {levantePlayers.find((player) => player.id === playerId)?.displayName ?? playerId}</span>
+                          <span className="flex shrink-0 items-center gap-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={130}
+                              inputMode="numeric"
+                              placeholder="min"
+                              aria-label={`Minuto del gol ${index + 1}`}
+                              value={draft.minutes[index] ? draft.minutes[index] : ''}
+                              onChange={(event) => {
+                                const minutes = draft.scorers.map((_, position) => draft.minutes[position] ?? 0);
+                                minutes[index] = Math.max(0, Math.min(130, Math.floor(Number(event.target.value) || 0)));
+                                setReports((current) => ({ ...current, [match.matchday]: { ...draftFor(match.matchday), minutes } }));
+                              }}
+                              className="h-9 w-20"
+                            />
+                            <span className="text-slate-400">&apos;</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

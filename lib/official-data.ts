@@ -11,6 +11,7 @@ export interface OfficialReportRow {
   formation: string;
   lineup: string;
   scorers: string;
+  goalMinutes: string;
   mvp: string;
   reason: string;
 }
@@ -34,7 +35,7 @@ function merge<T extends { matchday: number }>(base: T[], own: T[]): Array<T & {
 
 const REPORTS_SQL = `
   SELECT matchday, home_score AS homeScore, away_score AS awayScore,
-    formation, lineup, scorers, mvp, reason
+    formation, lineup, scorers, goal_minutes AS goalMinutes, mvp, reason
   FROM community_reports WHERE community_slug = ?
 `;
 const MVPS_SQL = 'SELECT matchday, player_id AS playerId, reason FROM community_mvps WHERE community_slug = ?';

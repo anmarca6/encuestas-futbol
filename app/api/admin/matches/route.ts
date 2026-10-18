@@ -18,11 +18,6 @@ function ensureLineup(value: unknown): SavedLineup | null {
   return { formation: candidate.formation as SavedLineup['formation'], players: players as string[] };
 }
 
-function normalizeScorerList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((entry): entry is string => typeof entry === 'string' && levantePlayers.some((player) => player.id === entry));
-}
-
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
@@ -38,6 +33,7 @@ export async function GET(request: NextRequest) {
     formation: row.formation,
     lineup: JSON.parse(row.lineup) as SavedLineup,
     scorers: JSON.parse(row.scorers) as string[],
+    goalMinutes: JSON.parse(row.goalMinutes || '[]') as number[],
     mvp: row.mvp,
     reason: row.reason,
     inherited: row.inherited,
@@ -63,6 +59,7 @@ export async function POST(request: NextRequest) {
     formation?: string;
     lineup?: SavedLineup | null;
     scorers?: string[];
+    goalMinutes?: Array<number | null>;
   };
 
   const community = await resolveAdminCommunity(admin, body.community);
@@ -72,7 +69,14 @@ export async function POST(request: NextRequest) {
   const awayScore = Number(body.awayScore);
   const formation = body.formation?.trim() ?? '';
   const lineup = ensureLineup(body.lineup ?? null);
-  const scorers = normalizeScorerList(body.scorers ?? []);
+  // Cada gol lleva su minuto (opcional, solo informativo): se filtran juntos para que sigan alineados.
+  const rawScorers = Array.isArray(body.scorers) ? body.scorers : [];
+  const validScorerIndexes = rawScorers.flatMap((entry, index) => (typeof entry === 'string' && levantePlayers.some((player) => player.id === entry) ? [index] : []));
+  const scorers = validScorerIndexes.map((index) => rawScorers[index]);
+  const goalMinutes = validScorerIndexes.map((index) => {
+    const minute = Number(body.goalMinutes?.[index]);
+    return Number.isInteger(minute) && minute >= 1 && minute <= 130 ? minute : 0;
+  });
 
   if (!Number.isInteger(matchday) || matchday < 1) {
     return NextResponse.json({ error: 'Jornada no válida.' }, { status: 400 });
@@ -90,14 +94,15 @@ export async function POST(request: NextRequest) {
   await ensureCommunitySchema();
   await getDatabase().prepare(`
     INSERT INTO community_reports (
-      community_slug, matchday, home_score, away_score, formation, lineup, scorers, mvp, reason, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      community_slug, matchday, home_score, away_score, formation, lineup, scorers, goal_minutes, mvp, reason, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(community_slug, matchday) DO UPDATE SET
       home_score = excluded.home_score,
       away_score = excluded.away_score,
       formation = excluded.formation,
       lineup = excluded.lineup,
       scorers = excluded.scorers,
+      goal_minutes = excluded.goal_minutes,
       updated_at = excluded.updated_at
   `).bind(
     community,
@@ -107,6 +112,7 @@ export async function POST(request: NextRequest) {
     formation,
     JSON.stringify(lineup),
     JSON.stringify(scorers),
+    JSON.stringify(goalMinutes),
     '',
     '',
     Date.now(),

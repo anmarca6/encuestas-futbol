@@ -20,9 +20,17 @@ export async function GET(request: NextRequest) {
         .map((playerId, index) => ({ playerId, slot: slots[index] }))
         .filter((item) => item.slot?.position === position)
         .map((item) => `${nameOf(item.playerId)} (${item.slot.label})`);
-    const goalCounts = new Map<string, number>();
-    for (const playerId of JSON.parse(row.scorers) as string[]) goalCounts.set(playerId, (goalCounts.get(playerId) ?? 0) + 1);
-    // Los datos oficiales no incluyen el minuto: se indican tantos minutos 0 como goles (la pantalla los muestra como "sin minuto").
+    // Goles agrupados por jugador con su minuto (0 = minuto desconocido), en orden cronologico.
+    const scorerIds = JSON.parse(row.scorers) as string[];
+    const goalMinutes = JSON.parse(row.goalMinutes || '[]') as number[];
+    const minutesByPlayer = new Map<string, number[]>();
+    scorerIds.forEach((playerId, index) => {
+      minutesByPlayer.set(playerId, [...(minutesByPlayer.get(playerId) ?? []), goalMinutes[index] ?? 0]);
+    });
+    const firstMinute = (minutes: number[]) => Math.min(...minutes.map((minute) => (minute > 0 ? minute : 999)));
+    const levanteGoals = [...minutesByPlayer]
+      .map(([playerId, minutes]) => ({ playerName: nameOf(playerId), minutes: [...minutes].sort((a, b) => (a || 999) - (b || 999)) }))
+      .sort((a, b) => firstMinute(a.minutes) - firstMinute(b.minutes));
     const report: LevanteMatchReport = {
       formation: row.formation,
       lineup: {
@@ -31,7 +39,7 @@ export async function GET(request: NextRequest) {
         midfielders: byPosition('MIDFIELDER'),
         attackers: byPosition('FORWARD'),
       },
-      levanteGoals: [...goalCounts].map(([playerId, count]) => ({ playerName: nameOf(playerId), minutes: Array(count).fill(0) as number[] })),
+      levanteGoals,
       mvp: { playerName: nameOf(row.mvp), reason: row.reason },
     };
     return { matchday: row.matchday, report };

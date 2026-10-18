@@ -187,6 +187,14 @@ export function ensureCommunitySchema(): Promise<void> {
       `).bind(DEFAULT_COMMUNITY_SLUG).run();
     }
 
+    // Minuto de cada gol oficial (misma posicion que en `scorers`; 0 = minuto desconocido). Solo se muestra en el calendario.
+    const reportColumns = await db.prepare('PRAGMA table_info(community_reports)').bind().all<{ name: string }>();
+    if (!reportColumns.results.some((column) => column.name === 'goal_minutes')) {
+      await db.prepare("ALTER TABLE community_reports ADD COLUMN goal_minutes TEXT NOT NULL DEFAULT '[]'").bind().run().catch((error: unknown) => {
+        if (!/duplicate column/i.test(error instanceof Error ? error.message : String(error))) throw error;
+      });
+    }
+
     // Cuentas de administración: los super administradores (por defecto leo y angel_cavero) se crean la primera
     // vez con la contraseña de ADMIN_PASSWORD, que pueden cambiar después; los de comunidad los crea un super.
     await db.prepare(`
