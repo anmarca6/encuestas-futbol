@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Award, Check, ChevronLeft, ChevronRight, Goal, Loader2, Send, X } from 'lucide-react';
+import { Award, Check, ChevronLeft, ChevronRight, Goal, Loader2, Send, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,6 +18,7 @@ import { LEVANTE_TEAM, levantePlayers, matchShortLabel, type LevanteMatch } from
 import { formationOptions, type FormationId, type SavedLineup } from '@/lib/formations';
 import type { CommunityUser } from '@/lib/community-types';
 import type { PredictionDraft } from '@/lib/prediction-types';
+import type { Consensus } from '@/lib/consensus';
 import { communityFetch } from '@/lib/community-client';
 
 const stepNames = ['Formación', 'Tu XI', 'Resultado', 'Goleadores', 'MVP', 'Publicar'];
@@ -67,6 +68,8 @@ export function PredictionWizard({
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
   const wasOpen = useRef(false);
 
   useEffect(() => {
@@ -84,6 +87,7 @@ export function PredictionWizard({
       setMvp(saved?.mvp ?? null);
       setPublished(false);
       setError('');
+      setAiMessage('');
     }
     wasOpen.current = open;
   }, [existingPrediction, match?.id, open]);
@@ -109,6 +113,36 @@ export function PredictionWizard({
       else next[playerId] = nextCount;
       return next;
     });
+  };
+
+  // Modo IA: rellena todo con lo mas comun de las predicciones ya publicadas en la comunidad.
+  const fillWithAi = async (goToPublish: boolean) => {
+    setAiLoading(true);
+    setAiMessage('');
+    try {
+      const response = await communityFetch(`/api/consensus?matchId=${encodeURIComponent(match.id)}`);
+      const result = (await response.json()) as { consensus?: Consensus | null };
+      const consensus = result.consensus;
+      if (!response.ok || !consensus) {
+        setAiMessage('Todavía no hay suficientes predicciones en la comunidad para que la IA pueda proponer una. Rellénalo tú.');
+        return;
+      }
+      setFormation(consensus.formation);
+      setLineup(consensus.lineup);
+      setHome(consensus.homeScore);
+      setAway(consensus.awayScore);
+      setScorerCounts(consensus.scorers.reduce<Record<string, number>>((counts, playerId) => {
+        counts[playerId] = (counts[playerId] ?? 0) + 1;
+        return counts;
+      }, {}));
+      setMvp(consensus.mvp);
+      setAiMessage(`Listo: rellenado con lo más común de ${consensus.sample} predicciones de la comunidad. Puedes cambiar lo que quieras.`);
+      if (goToPublish) setStep(5);
+    } catch {
+      setAiMessage('No se pudo consultar a la IA. Inténtalo de nuevo o rellénalo tú.');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const publish = async () => {
@@ -180,6 +214,23 @@ export function PredictionWizard({
               <p className="text-xs font-black uppercase tracking-widest text-[#a91d43]">Paso 1</p>
               <h2 className="mt-1 text-2xl font-black text-[#071527]">Elige la formación</h2>
               <p className="mt-2 text-slate-500">Selecciona el dibujo táctico de tu once.</p>
+              <div className="mt-5 rounded-2xl border border-[#153e72]/20 bg-gradient-to-br from-sky-50 to-indigo-50 p-4">
+                <p className="flex items-center gap-2 font-black text-[#153e72]">
+                  <Sparkles className="size-5" /> Modo IA
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Rellena tu predicción con lo más común de la comunidad: la formación más usada, el XI más repetido, el marcador más votado, los goleadores más citados y el MVP favorito.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button disabled={aiLoading} onClick={() => void fillWithAi(false)} className="bg-[#153e72] font-black text-white">
+                    {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />} Rellenar con la IA
+                  </Button>
+                  <Button disabled={aiLoading} variant="outline" onClick={() => void fillWithAi(true)} className="font-black">
+                    Rellenar y publicar ya
+                  </Button>
+                </div>
+                {aiMessage && <p role="status" className="mt-3 text-sm font-bold text-[#153e72]">{aiMessage}</p>}
+              </div>
               <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {formationOptions.map((option) => (
                   <button key={option} onClick={() => { if (formation !== option) setLineup(null); setFormation(option); }} className={`relative min-h-28 rounded-2xl border-2 p-4 text-2xl font-black transition ${formation === option ? 'border-[#a91d43] bg-rose-50 text-[#a91d43]' : 'border-slate-200 bg-white text-[#153e72] hover:border-[#a91d43]/40'}`}>
