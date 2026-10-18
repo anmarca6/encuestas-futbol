@@ -39,6 +39,30 @@ export interface CommunityRankingEntry {
   matchBreakdowns: RankingMatchBreakdown[];
 }
 
+// Perfil publico de un usuario de la comunidad. Las predicciones del partido aun abierto llegan ocultas (hidden) para los demas.
+export interface PlayerProfilePrediction {
+  id: string;
+  matchId: string;
+  hidden: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+  lineup: SavedLineup | null;
+  scorers: string[];
+  mvp: string | null;
+  publishedAt: number;
+  // Puntos de esa predicion (solo si el partido ya tiene datos oficiales).
+  scored: { points: number; breakdown: PredictionScoreBreakdown } | null;
+}
+
+export interface PlayerProfile {
+  user: Pick<CommunityUser, 'id' | 'nickname' | 'avatarUrl'>;
+  isSelf: boolean;
+  position: number | null;
+  rankedUsers: number;
+  points: number;
+  predictions: PlayerProfilePrediction[];
+}
+
 export interface AdminCommunity extends CommunityHeaderFields, CommunityHeroFields {
   slug: string;
   name: string;

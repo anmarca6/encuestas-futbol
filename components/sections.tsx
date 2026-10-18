@@ -83,12 +83,15 @@ import type { PredictionDraft } from '@/lib/prediction-types';
 import { formations, type SavedLineup } from '@/lib/formations';
 import { MAX_POINTS_PER_MATCH, predictionPoints } from '@/lib/scoring-rules';
 import { communityFetch } from '@/lib/community-client';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
 import type { CommunityHero } from '@/lib/community-identity';
 import type {
   CommunityPrediction,
   CommunityRankingEntry,
   CommunityUser,
+  PlayerProfile,
+  PlayerProfilePrediction,
 } from '@/lib/community-types';
 import {
   formatPredictionDeadline,
@@ -1319,6 +1322,7 @@ export function StandsSection({
   user: CommunityUser | null;
   onEdit: (prediction: PredictionDraft) => void;
 }) {
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [predictions, setPredictions] = useState<CommunityPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -1360,6 +1364,7 @@ export function StandsSection({
           Cargando predicciones…
         </p>
       )}
+      <PlayerProfileDialog userId={profileUserId} onClose={() => setProfileUserId(null)} />
       <div className="grid gap-4 sm:grid-cols-2">
         {predictions.map((prediction) => (
           <Card
@@ -1371,7 +1376,14 @@ export function StandsSection({
                 <div className="flex items-center gap-3">
                   <CommunityAvatar nickname={prediction.user.nickname} avatarUrl={prediction.user.avatarUrl} />
                   <div>
-                    <b className="block">@{prediction.user.nickname}</b>
+                    <button
+                      type="button"
+                      onClick={() => setProfileUserId(prediction.user.id)}
+                      title={`Ver el perfil de @${prediction.user.nickname}`}
+                      className="block text-left font-bold underline-offset-2 hover:text-[#a91d43] hover:underline"
+                    >
+                      @{prediction.user.nickname}
+                    </button>
                     <small className="text-slate-400">Afición granota</small>
                   </div>
                 </div>
@@ -1426,7 +1438,144 @@ export function StandsSection({
   );
 }
 
+// Perfil publico de otro usuario: posicion, puntos y sus predicciones (la del partido abierto se revela al cerrar el plazo).
+function PlayerPredictionCard({ prediction, user }: { prediction: PlayerProfilePrediction; user: PlayerProfile['user'] }) {
+  const [open, setOpen] = useState(false);
+  const match = levanteMatches.find((item) => item.id === prediction.matchId);
+  const labels: Array<[string, number]> = prediction.scored
+    ? [
+        ['Formación', prediction.scored.breakdown.formation],
+        ['XI', prediction.scored.breakdown.lineup],
+        ['Resultado', prediction.scored.breakdown.result],
+        ['Goleadores', prediction.scored.breakdown.scorers],
+        ['MVP', prediction.scored.breakdown.mvp],
+      ]
+    : [];
+  return (
+    <Card className="border-0 shadow-sm ring-1 ring-slate-200">
+      <CardContent>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <small className="font-black uppercase tracking-wider text-[#a91d43]">
+              {match ? matchdayLongLabel(match.matchday) : 'Predicción'}
+            </small>
+            <p className="mt-1 font-bold text-[#071527]">{match ? `${match.homeTeam} — ${match.awayTeam}` : prediction.matchId}</p>
+          </div>
+          {prediction.scored && (
+            <span className="shrink-0 rounded-full bg-[#071527] px-3 py-1 text-sm font-black text-white">{prediction.scored.points} pts</span>
+          )}
+        </div>
+        {prediction.hidden ? (
+          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-3 text-sm font-bold text-amber-800">
+            🔒 Se verá cuando cierre el plazo de este partido.
+          </p>
+        ) : (
+          <>
+            <strong className="mt-3 block rounded-2xl bg-slate-50 py-2 text-center text-2xl text-[#071527]">
+              {prediction.homeScore} — {prediction.awayScore}
+            </strong>
+            {prediction.scored && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {labels.map(([label, points]) => (
+                  <span
+                    key={label}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-black ${points > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}
+                  >
+                    {label} {points > 0 ? `+${points}` : '0'}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              className="mt-3 flex w-full items-center justify-between gap-2 rounded-lg border border-[#153e72]/20 bg-sky-50 px-3 py-1.5 text-xs font-black text-[#153e72] hover:bg-sky-100"
+            >
+              {open ? 'Ocultar predicción completa' : 'Ver predicción completa'}
+              <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && (
+              <PredictionDetail
+                match={match}
+                prediction={{
+                  id: prediction.id,
+                  matchId: prediction.matchId,
+                  homeScore: prediction.homeScore ?? 0,
+                  awayScore: prediction.awayScore ?? 0,
+                  lineup: prediction.lineup,
+                  scorers: prediction.scorers,
+                  mvp: prediction.mvp,
+                  publishedAt: prediction.publishedAt,
+                  user,
+                }}
+              />
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlayerProfileDialog({ userId, onClose }: { userId: string | null; onClose: () => void }) {
+  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setProfile(null);
+    setError('');
+    if (!userId) return;
+    let cancelled = false;
+    void communityFetch(`/api/player?id=${encodeURIComponent(userId)}`)
+      .then(async (response) => {
+        const result = (await response.json()) as { profile?: PlayerProfile; error?: string };
+        if (!response.ok || !result.profile) throw new Error(result.error ?? 'No se pudo cargar el perfil.');
+        if (!cancelled) setProfile(result.profile);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : 'No se pudo cargar el perfil.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  return (
+    <Dialog open={userId !== null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3 text-xl font-black text-[#071527]">
+            {profile && <CommunityAvatar nickname={profile.user.nickname} avatarUrl={profile.user.avatarUrl} size="lg" />}
+            {profile ? `@${profile.user.nickname}${profile.isSelf ? ' (tú)' : ''}` : 'Perfil'}
+          </DialogTitle>
+          <DialogDescription>
+            {profile
+              ? profile.position
+                ? `${profile.position}.º de ${profile.rankedUsers} en la clasificación · ${profile.points} pts`
+                : 'Todavía no tiene puntos en la clasificación.'
+              : error || 'Cargando perfil…'}
+          </DialogDescription>
+        </DialogHeader>
+        {profile && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">
+              Predicciones ({profile.predictions.length})
+            </h3>
+            {profile.predictions.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">Aún no ha publicado ninguna predicción.</p>
+            ) : (
+              profile.predictions.map((prediction) => (
+                <PlayerPredictionCard key={prediction.id} prediction={prediction} user={profile.user} />
+              ))
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CommunityRankingSection({ user }: { user: CommunityUser | null }) {
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [ranking, setRanking] = useState<CommunityRankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1519,7 +1668,14 @@ export function CommunityRankingSection({ user }: { user: CommunityUser | null }
                       <div className="flex items-center gap-3">
                         <CommunityAvatar nickname={entry.nickname} avatarUrl={entry.avatarUrl} />
                         <div>
-                          <strong className="text-[#071527]">@{entry.nickname}</strong>
+                          <button
+                            type="button"
+                            onClick={() => setProfileUserId(entry.userId)}
+                            title={`Ver el perfil de @${entry.nickname}`}
+                            className="text-left font-bold text-[#071527] underline-offset-2 hover:text-[#a91d43] hover:underline"
+                          >
+                            @{entry.nickname}
+                          </button>
                           {entry.userId === user?.id && (
                             <span className="ml-2 rounded-full bg-[#153e72] px-2 py-0.5 text-[10px] font-black uppercase text-white">Tú</span>
                           )}
@@ -1563,8 +1719,9 @@ export function CommunityRankingSection({ user }: { user: CommunityUser | null }
         </CardContent>
       </Card>
       <p className="mt-4 text-center text-xs text-slate-400">
-        {MAX_POINTS_PER_MATCH} puntos disponibles por jornada: formación, XI, resultado, goleadores y MVP.
+        {MAX_POINTS_PER_MATCH} puntos disponibles por jornada: formación, XI, resultado, goleadores y MVP. Pulsa un usuario para ver sus predicciones.
       </p>
+      <PlayerProfileDialog userId={profileUserId} onClose={() => setProfileUserId(null)} />
     </>
   );
 }
