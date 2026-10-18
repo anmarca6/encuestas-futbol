@@ -272,11 +272,20 @@ export function PredictionWizard({
               <h2 className="mt-1 text-2xl font-black text-[#071527]">¿Quién marca?</h2>
               <p className="mt-2 text-slate-500">Asigna exactamente {levanteGoals} {levanteGoals === 1 ? 'gol' : 'goles'}. Un jugador puede marcar más de una vez.</p>
               <div className={`mt-4 rounded-xl p-3 text-center text-sm font-black ${selectedGoals === levanteGoals ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>{selectedGoals} de {levanteGoals} goles asignados</div>
+              {selectedGoals > 0 && (
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2" aria-label="Goleadores elegidos">
+                  {Object.entries(scorerCounts).map(([playerId, count]) => (
+                    <span key={playerId} className="rounded-full bg-[#a91d43] px-3 py-1 text-xs font-black text-white">
+                      ⚽ {levantePlayers.find((player) => player.id === playerId)?.displayName ?? playerId}{count > 1 ? ` ×${count}` : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
               {levanteGoals === 0 ? <p className="mt-10 text-center text-slate-500">Has pronosticado que el Levante no marcará, así que no necesitas elegir goleadores.</p> : (
                 <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {levantePlayers.map((player) => {
                     const count = scorerCounts[player.id] ?? 0;
-                    return <div key={player.id} className="flex items-center gap-3 rounded-2xl border bg-white p-3"><PlayerPhoto player={player} size="sm" /><strong className="min-w-0 flex-1 truncate text-sm">{player.displayName}</strong><Button variant="outline" size="icon-sm" disabled={count === 0} onClick={() => changeScorer(player.id, -1)}>−</Button><b className="w-4 text-center">{count}</b><Button variant="outline" size="icon-sm" disabled={selectedGoals >= levanteGoals} onClick={() => changeScorer(player.id, 1)}>+</Button></div>;
+                    return <div key={player.id} className={`flex items-center gap-3 rounded-2xl border-2 p-3 transition ${count > 0 ? 'border-[#a91d43] bg-rose-50 shadow-sm ring-2 ring-[#a91d43]/20' : 'border-slate-200 bg-white'}`}><PlayerPhoto player={player} size="sm" /><strong className={`min-w-0 flex-1 truncate text-sm ${count > 0 ? 'text-[#a91d43]' : ''}`}>{count > 0 && '⚽ '}{player.displayName}</strong><Button variant="outline" size="icon-sm" disabled={count === 0} onClick={() => changeScorer(player.id, -1)}>−</Button><b className={`w-4 text-center ${count > 0 ? 'text-lg text-[#a91d43]' : ''}`}>{count}</b><Button variant="outline" size="icon-sm" disabled={selectedGoals >= levanteGoals} onClick={() => changeScorer(player.id, 1)}>+</Button></div>;
                   })}
                 </div>
               )}
