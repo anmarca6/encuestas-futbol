@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, Plus, Save, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ interface DragState {
   startY: number;
   x: number;
   y: number;
+  grabX: number;
+  grabY: number;
   active: boolean;
   overId: string | null;
 }
@@ -303,7 +306,14 @@ export function LineupBuilder({
                 }}
                 onPointerDown={(event) => {
                   if (!player || event.button !== 0) return;
-                  setDrag({ slotId: slot.id, playerId: player.id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, active: false, overId: null });
+                  // grab: donde dentro del jugador se agarra (respecto a su centro), para que el muñeco quede pegado a la mano.
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setDrag({
+                    slotId: slot.id, playerId: player.id,
+                    startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY,
+                    grabX: event.clientX - (rect.left + rect.width / 2), grabY: event.clientY - (rect.top + rect.height / 2),
+                    active: false, overId: null,
+                  });
                 }}
                 onDragStart={(event) => event.preventDefault()}
                 style={{ left: `${slot.left}%`, top: `${slot.top}%` }}
@@ -330,21 +340,23 @@ export function LineupBuilder({
               </button>
             );
           })}
-          {drag?.active && (() => {
-            const dragged = levantePlayers.find((item) => item.id === drag.playerId);
-            return dragged ? (
-              <div
-                style={{ left: drag.x, top: drag.y }}
-                className="pointer-events-none fixed z-50 flex w-[4.6rem] -translate-x-1/2 -translate-y-1/2 scale-110 flex-col items-center opacity-90 drop-shadow-xl sm:w-[5.25rem]"
-              >
-                <PlayerPhoto player={dragged} />
-                <span className="mt-1 w-full truncate rounded-full bg-[#071527]/85 px-1.5 py-1 text-center text-[9px] font-black text-white shadow">
-                  {dragged.displayName}
-                </span>
-              </div>
-            ) : null;
-          })()}
         </section>
+        {drag?.active && (() => {
+          const dragged = levantePlayers.find((item) => item.id === drag.playerId);
+          // En el body (no dentro de la ventana de Participa, que esta animada con transform) para que "fixed" use coordenadas de pantalla.
+          return dragged ? createPortal(
+            <div
+              style={{ left: drag.x - drag.grabX, top: drag.y - drag.grabY }}
+              className="pointer-events-none fixed z-[100] flex w-[4.6rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center opacity-90 drop-shadow-xl sm:w-[5.25rem]"
+            >
+              <PlayerPhoto player={dragged} />
+              <span className="mt-1 w-full truncate rounded-full bg-[#071527]/85 px-1.5 py-1 text-center text-[9px] font-black text-white shadow">
+                {dragged.displayName}
+              </span>
+            </div>,
+            document.body,
+          ) : null;
+        })()}
         <aside className="space-y-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="font-black text-[#071527]">Jugadores disponibles</h2>
