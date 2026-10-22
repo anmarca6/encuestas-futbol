@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, Plus, Save, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,21 @@ const positionNames: Record<PlayerPosition, string> = {
 };
 type Assignments = Partial<Record<string, string>>;
 
+// Arrastre de un jugador del campo a otra posicion: por debajo de este desplazamiento (px) se considera un toque normal.
+const DRAG_THRESHOLD = 8;
+// Distancia maxima (px) entre el puntero y el centro de una posicion para soltar sobre ella.
+const DROP_RADIUS = 52;
+interface DragState {
+  slotId: string;
+  playerId: string;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  active: boolean;
+  overId: string | null;
+}
+
 export function PlayerPhoto({
   player,
   size = 'md',
@@ -49,6 +64,7 @@ export function PlayerPhoto({
           src={player.image}
           width={80}
           height={100}
+          draggable={false}
           alt={player.displayName}
           className="h-full w-full object-contain object-bottom"
         />
@@ -112,6 +128,10 @@ export function LineupBuilder({
     initialLineup ? assignmentsFromLineup(initialLineup) : {},
   );
   const [activeSlot, setActiveSlot] = useState<FormationSlot | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const suppressClick = useRef(false);
+  const fieldRef = useRef<HTMLElement>(null);
   const formation = formations[formationId];
   const selectedIds = useMemo(
     () =>
@@ -138,6 +158,77 @@ export function LineupBuilder({
     setAssignments((current) => ({ ...current, [activeSlot.id]: playerId }));
     setActiveSlot(null);
   };
+  // Un jugador cabe en una posicion si no hay restriccion o si es de esa linea (portero, defensa, centrocampista, delantero).
+  const canPlace = (playerId: string, slot: FormationSlot) =>
+    unrestricted || levantePlayers.find((item) => item.id === playerId)?.position === slot.position;
+  const slotAt = (x: number, y: number): FormationSlot | null => {
+    const rect = fieldRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    let best: FormationSlot | null = null;
+    let bestDistance = DROP_RADIUS;
+    for (const slot of formation.slots) {
+      const distance = Math.hypot(
+        x - (rect.left + (rect.width * slot.left) / 100),
+        y - (rect.top + (rect.height * slot.top) / 100),
+      );
+      if (distance <= bestDistance) {
+        best = slot;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  };
+  // Soltar sobre otra posicion: el jugador pasa a ella y, si estaba ocupada, su ocupante toma el hueco de origen (intercambio).
+  const dropOn = (fromId: string, target: FormationSlot) =>
+    setAssignments((current) => {
+      const fromSlot = formation.slots.find((slot) => slot.id === fromId);
+      const moving = current[fromId];
+      const displaced = current[target.id];
+      if (!fromSlot || !moving || fromId === target.id) return current;
+      if (!canPlace(moving, target) || (displaced && !canPlace(displaced, fromSlot))) return current;
+      const next = { ...current, [target.id]: moving };
+      if (displaced) next[fromId] = displaced;
+      else delete next[fromId];
+      return next;
+    });
+  useEffect(() => {
+    dragRef.current = drag;
+  });
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (event: PointerEvent) =>
+      setDrag((current) => {
+        if (!current) return current;
+        const active =
+          current.active ||
+          Math.hypot(event.clientX - current.startX, event.clientY - current.startY) > DRAG_THRESHOLD;
+        const over = active ? slotAt(event.clientX, event.clientY) : null;
+        return { ...current, x: event.clientX, y: event.clientY, active, overId: over && over.id !== current.slotId ? over.id : null };
+      });
+    const onUp = (event: PointerEvent) => {
+      const current = dragRef.current;
+      if (current?.active) {
+        // El "click" que sigue a soltar no debe abrir el selector de jugadores.
+        suppressClick.current = true;
+        window.setTimeout(() => { suppressClick.current = false; }, 0);
+        const target = slotAt(event.clientX, event.clientY);
+        if (target) dropOn(current.slotId, target);
+      }
+      setDrag(null);
+    };
+    const onCancel = () => setDrag(null);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+    };
+    // slotAt y dropOn leen siempre la formacion actual: la formacion no cambia mientras se arrastra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, formationId, unrestricted]);
   const save = () => {
     if (selectedIds.length !== 11) return;
     onSave({
@@ -182,6 +273,7 @@ export function LineupBuilder({
       </fieldset>}
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section
+          ref={fieldRef}
           aria-label={`Campo de fútbol, formación ${formationId}`}
           className="relative mx-auto aspect-[3/4.4] w-full max-w-xl overflow-hidden rounded-[2rem] border-4 border-white bg-[linear-gradient(90deg,rgba(255,255,255,.04)_50%,transparent_50%),linear-gradient(#197a55,#126645)] bg-[size:25%_100%,100%_100%] shadow-xl"
         >
@@ -197,12 +289,25 @@ export function LineupBuilder({
             const player = levantePlayers.find(
               (item) => item.id === assignments[slot.id],
             );
+            const moving = drag?.active === true && drag.slotId === slot.id;
+            const dropTarget =
+              drag?.active === true &&
+              drag.overId === slot.id &&
+              canPlace(drag.playerId, slot) &&
+              (!assignments[slot.id] || canPlace(assignments[slot.id]!, formation.slots.find((item) => item.id === drag.slotId)!));
             return (
               <button
                 key={slot.id}
-                onClick={() => setActiveSlot(slot)}
+                onClick={() => {
+                  if (!suppressClick.current) setActiveSlot(slot);
+                }}
+                onPointerDown={(event) => {
+                  if (!player || event.button !== 0) return;
+                  setDrag({ slotId: slot.id, playerId: player.id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, active: false, overId: null });
+                }}
+                onDragStart={(event) => event.preventDefault()}
                 style={{ left: `${slot.left}%`, top: `${slot.top}%` }}
-                className="absolute flex min-h-16 w-[4.6rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl px-1 py-1 text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-[5.25rem]"
+                className={`absolute flex min-h-16 w-[4.6rem] -translate-x-1/2 -translate-y-1/2 select-none flex-col items-center justify-center rounded-2xl px-1 py-1 text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-[5.25rem] ${player ? 'cursor-grab touch-none' : ''} ${moving ? 'opacity-40' : ''} ${dropTarget ? 'bg-white/25 ring-2 ring-white' : ''}`}
                 aria-label={`${player ? 'Cambiar' : 'Elegir'} ${positionNames[slot.position]} ${slot.label}`}
               >
                 {player ? (
@@ -225,6 +330,20 @@ export function LineupBuilder({
               </button>
             );
           })}
+          {drag?.active && (() => {
+            const dragged = levantePlayers.find((item) => item.id === drag.playerId);
+            return dragged ? (
+              <div
+                style={{ left: drag.x, top: drag.y }}
+                className="pointer-events-none fixed z-50 flex w-[4.6rem] -translate-x-1/2 -translate-y-1/2 scale-110 flex-col items-center opacity-90 drop-shadow-xl sm:w-[5.25rem]"
+              >
+                <PlayerPhoto player={dragged} />
+                <span className="mt-1 w-full truncate rounded-full bg-[#071527]/85 px-1.5 py-1 text-center text-[9px] font-black text-white shadow">
+                  {dragged.displayName}
+                </span>
+              </div>
+            ) : null;
+          })()}
         </section>
         <aside className="space-y-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -233,6 +352,7 @@ export function LineupBuilder({
               {unrestricted
                 ? 'Toca cualquier hueco del campo y coloca al jugador que quieras.'
                 : 'Toca una posición del campo y elige un jugador de esa línea.'}
+              {' '}Para cambiar a un jugador de sitio, arrástralo hasta otra posición: si está ocupada, se intercambian.
             </p>
           </div>
           <div className="rounded-2xl bg-sky-50 p-4 text-sm text-[#153e72]">
