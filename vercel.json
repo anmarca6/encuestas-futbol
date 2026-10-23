@@ -6,5 +6,6 @@
       "includeFiles": "dist/**"
     }
   },
+  "crons": [{ "path": "/api/cron/push-reminders", "schedule": "*/45 * * * *" }],
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
