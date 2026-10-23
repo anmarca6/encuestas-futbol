@@ -1,6 +1,48 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M22 19.2727C22 20.779 20.779 22 19.2727 22H14.7273C13.221 22 12 20.779 12 19.2727V12H19.2727C20.779 12 22 13.221 22 14.7273V19.2727Z" fill="#68C4FF"/>
-<path d="M20 2C21.1046 2 22 2.89543 22 4V7C22 8.10457 21.1046 9 20 9H17C15.8954 9 15 8.10457 15 7V4C15 2.89543 15.8954 2 17 2H20Z" fill="#0C79D8"/>
-<path d="M7 15C8.10457 15 9 15.8954 9 17V20C9 21.1046 8.10457 22 7 22H4C2.89543 22 2 21.1046 2 20V17C2 15.8954 2.89543 15 4 15H7Z" fill="#0C79D8"/>
-<path d="M12 12H4.72727C3.22104 12 2 10.779 2 9.27273V4.72727C2 3.22104 3.22104 2 4.72727 2H9.27273C10.779 2 12 3.22104 12 4.72727V12Z" fill="#2E9EFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="64" height="64">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#16356b"/>
+      <stop offset="1" stop-color="#071527"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fd357"/>
+      <stop offset="1" stop-color="#4fae3c"/>
+    </linearGradient>
+    <clipPath id="body"><ellipse cx="256" cy="372" rx="152" ry="104"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <g id="frog" transform="translate(256 262) scale(0.9) translate(-256 -262)">
+    <!-- patas delanteras -->
+    <ellipse cx="128" cy="418" rx="52" ry="30" fill="#4fae3c"/>
+    <ellipse cx="384" cy="418" rx="52" ry="30" fill="#4fae3c"/>
+    <!-- cuerpo con la camiseta a rayas azul y granate -->
+    <ellipse cx="256" cy="372" rx="152" ry="104" fill="url(#skin)"/>
+    <g clip-path="url(#body)">
+      <rect x="90" y="318" width="332" height="200" fill="#1f4e9c"/>
+      <g fill="#a91d43">
+        <rect x="132" y="318" width="40" height="200"/>
+        <rect x="212" y="318" width="40" height="200"/>
+        <rect x="292" y="318" width="40" height="200"/>
+        <rect x="372" y="318" width="40" height="200"/>
+      </g>
+    </g>
+    <!-- cabeza -->
+    <ellipse cx="256" cy="262" rx="170" ry="124" fill="url(#skin)"/>
+    <!-- ojos -->
+    <circle cx="170" cy="160" r="68" fill="#6cc24a"/>
+    <circle cx="342" cy="160" r="68" fill="#6cc24a"/>
+    <circle cx="170" cy="160" r="50" fill="#ffffff"/>
+    <circle cx="342" cy="160" r="50" fill="#ffffff"/>
+    <circle cx="178" cy="166" r="26" fill="#0b1a2e"/>
+    <circle cx="334" cy="166" r="26" fill="#0b1a2e"/>
+    <circle cx="188" cy="155" r="9" fill="#ffffff"/>
+    <circle cx="344" cy="155" r="9" fill="#ffffff"/>
+    <!-- mofletes y fosas nasales -->
+    <circle cx="132" cy="276" r="22" fill="#ff9db0" opacity=".85"/>
+    <circle cx="380" cy="276" r="22" fill="#ff9db0" opacity=".85"/>
+    <circle cx="238" cy="232" r="5" fill="#2f7a2a"/>
+    <circle cx="274" cy="232" r="5" fill="#2f7a2a"/>
+    <!-- sonrisa -->
+    <path d="M128 276 Q256 372 384 276" fill="none" stroke="#1f5a1c" stroke-width="13" stroke-linecap="round"/>
+  </g>
 </svg>
