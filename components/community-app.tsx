@@ -102,6 +102,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
           predict={predict}
           hasPrediction={currentPrediction?.matchId === nextMatch?.id}
           openRules={() => setActive('reglas')}
+          user={user}
           hero={hero}
           footballData={footballData}
           mvpOverrides={mvpOverrides}

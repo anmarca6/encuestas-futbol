@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
@@ -14,7 +14,16 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = { title: 'Granota App · Levante UD', description: 'La app de la afición del Levante UD.' };
+export const metadata: Metadata = {
+  title: 'Granota App · Levante UD',
+  description: 'La app de la afición del Levante UD.',
+  // Manifiesto e iconos: permiten instalar la app en la pantalla de inicio (necesario para los avisos en iPhone).
+  manifest: '/manifest.webmanifest',
+  icons: { icon: '/favicon.svg', apple: '/apple-touch-icon.png' },
+  appleWebApp: { capable: true, title: 'Granota App', statusBarStyle: 'black-translucent' },
+};
+
+export const viewport: Viewport = { themeColor: '#071527' };
 
 export default function RootLayout({
   children,

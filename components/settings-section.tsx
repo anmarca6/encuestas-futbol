@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { CommunityUser } from '@/lib/community-types';
 import { communityFetch } from '@/lib/community-client';
+import { PushToggle } from '@/components/push-notifications';
 
 export function SettingsSection({ user, onUserUpdated, onBack, onLogout }: { user: CommunityUser | null; onUserUpdated: (user: CommunityUser) => void; onBack: () => void; onLogout: () => Promise<void> }) {
   const { language, setLanguage, brightness, setBrightness, theme, setTheme } = useAppPreferences();
@@ -135,6 +136,10 @@ export function SettingsSection({ user, onUserUpdated, onBack, onLogout }: { use
             <Slider min={70} max={120} step={5} value={[brightness]} onValueChange={(value) => setBrightness(Array.isArray(value) ? value[0] : value)} className="mt-7" aria-label="Brillo de la aplicación" />
             <div className="mt-3 flex justify-between text-xs font-bold text-slate-400"><span>70%</span><span>100%</span><span>120%</span></div>
           </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm ring-slate-200">
+          <CardContent><PushToggle user={user} /></CardContent>
         </Card>
 
         <div className="border-t border-slate-200 pt-5">

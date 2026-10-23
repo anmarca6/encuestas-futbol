@@ -41,6 +41,7 @@ import {
   LineupSummary,
   PlayerPhoto,
 } from '@/components/lineup-builder';
+import { PushToggle } from '@/components/push-notifications';
 import {
   Drawer,
   DrawerContent,
@@ -277,10 +278,12 @@ export function HomeSection({
   hero,
   footballData,
   mvpOverrides,
+  user,
 }: {
   predict: () => void;
   hasPrediction: boolean;
   openRules: () => void;
+  user: CommunityUser | null;
   hero: CommunityHero | null;
   footballData: FootballDataPayload | null;
   mvpOverrides: MvpOverride[] | null;
@@ -368,6 +371,9 @@ export function HomeSection({
             </div>
           </div>
         </section>
+      )}
+      {user && next && !countdown.closed && (
+        <div className="mt-6 empty:hidden"><PushToggle user={user} compact hideWhenOn /></div>
       )}
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_.6fr]">
         <div className="flex flex-col gap-6">
@@ -1122,6 +1128,7 @@ export function PredictSection({
           </p>
         </div>
       </div>
+      <div className="mb-6 empty:hidden"><PushToggle user={user} compact /></div>
       <PredictionPointsCard />
       <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
         <div className="space-y-6">
