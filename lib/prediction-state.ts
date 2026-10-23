@@ -3,6 +3,8 @@ import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { sessionCookieName } from '@/lib/community-shared';
 import { getNextLevanteMatch, withLocalMatchIds } from '@/lib/levante-services';
 import { loadScheduleMatches } from '@/lib/football-schedule';
+import { applyKickoffOverrides } from '@/lib/kickoff-shared';
+import { loadKickoffOverrides } from '@/lib/kickoffs';
 import { levanteMatches } from '@/lib/levante-data';
 import { loadOfficialReports } from '@/lib/official-data';
 import type { CommunityUser } from '@/lib/community-types';
@@ -13,7 +15,7 @@ export async function nextOpenMatch(communitySlug: string) {
   const played = new Set((await loadOfficialReports(communitySlug)).map((report) => report.matchday));
   // Mismo calendario que ve la pantalla (fechas y horas oficiales de la API); si no esta disponible, el local.
   const schedule = await loadScheduleMatches();
-  const matches = schedule ? withLocalMatchIds(schedule) : levanteMatches;
+  const matches = applyKickoffOverrides(schedule ? withLocalMatchIds(schedule) : levanteMatches, await loadKickoffOverrides());
   return getNextLevanteMatch(matches.filter((match) => !played.has(match.matchday)));
 }
 

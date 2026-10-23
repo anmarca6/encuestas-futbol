@@ -15,6 +15,7 @@ import { SettingsSection } from '@/components/settings-section';
 import type { CommunityUser } from '@/lib/community-types';
 import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
+import { applyKickoffOverrides, type KickoffOverrides } from '@/lib/kickoff-shared';
 import type { PredictionDraft } from '@/lib/prediction-types';
 import type { MvpOverride } from '@/components/sections';
 import { applyLocalPostponements, getNextLevanteMatch, withLocalMatchIds } from '@/lib/levante-services';
@@ -62,13 +63,23 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
       .then(async (response) => (await response.json()) as { predictions?: CommunityPrediction[] })
       .then((result) => setMyPredictions(result.predictions ?? []))
       .catch(() => setMyPredictions([]));
-    void fetch('/api/football')
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Football data unavailable');
-        return (await response.json()) as FootballDataPayload;
-      })
-      .then((data) => setFootballData({ ...data, matches: applyLocalPostponements(data.matches) }))
-      .catch(() => setFootballData(null));
+    // Las horas de inicio fijadas desde el admin mandan sobre las del calendario oficial (y sobre las locales si la API no responde).
+    const kickoffs = fetch('/api/kickoffs', { cache: 'no-store' })
+      .then(async (response) => ((await response.json()) as { overrides?: KickoffOverrides }).overrides ?? {})
+      .catch(() => ({}) as KickoffOverrides);
+    void Promise.all([
+      fetch('/api/football')
+        .then(async (response) => {
+          if (!response.ok) throw new Error('Football data unavailable');
+          return (await response.json()) as FootballDataPayload;
+        })
+        .catch(() => null),
+      kickoffs,
+    ]).then(([data, overrides]) => {
+      if (data) return setFootballData({ ...data, matches: applyKickoffOverrides(applyLocalPostponements(data.matches), overrides) });
+      // Sin calendario oficial: si hay horas guardadas se aplican sobre el calendario local (sin clasificacion: la pantalla usa la suya).
+      setFootballData(Object.keys(overrides).length ? { matches: applyKickoffOverrides(levanteMatches, overrides), standings: [], currentMatchday: null, updatedAt: new Date().toISOString() } : null);
+    });
     void communityFetch('/api/mvp')
       .then(async (response) => (await response.json()) as { overrides?: MvpOverride[] })
       .then((result) => setMvpOverrides(result.overrides ?? []))

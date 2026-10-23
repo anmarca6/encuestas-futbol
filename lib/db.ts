@@ -195,6 +195,15 @@ export function ensureCommunitySchema(): Promise<void> {
       });
     }
 
+    // Hora de inicio de cada partido fijada desde el admin (HH:MM, hora de Madrid); manda sobre la del calendario oficial.
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS match_kickoffs (
+        matchday INTEGER PRIMARY KEY NOT NULL,
+        kickoff_time TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `).bind().run();
+
     // Avisos push: una fila por dispositivo suscrito (endpoint unico) y un registro de los avisos ya enviados para no repetirlos.
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS push_subscriptions (

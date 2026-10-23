@@ -15,6 +15,8 @@ import { LEVANTE_TEAM, matchdayLongLabel, matchdayShortLabel, levanteMatchReport
 import { formations, formationOptions, type SavedLineup } from '@/lib/formations';
 import { resolveMvp, type MvpOverride } from '@/components/sections';
 import type { FootballDataPayload } from '@/lib/football-data-types';
+import { KICKOFF_TIME_PATTERN, type KickoffOverrides } from '@/lib/kickoff-shared';
+import { formatPredictionDeadline } from '@/lib/prediction-deadline';
 import type { AdminCommunity } from '@/lib/community-types';
 import { ADMIN_USERNAME_PATTERN, MIN_ADMIN_PASSWORD_LENGTH, type AdminAccountInfo, type AdminSessionInfo } from '@/lib/admin-shared';
 import { DEFAULT_COMMUNITY_SLUG, isValidCommunitySlug, slugifyCommunityName } from '@/lib/community-shared';
@@ -366,6 +368,37 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
   const [loading, setLoading] = useState(true);
   const [savingMatchday, setSavingMatchday] = useState<number | null>(null);
   const [savedMatchday, setSavedMatchday] = useState<number | null>(null);
+  // Hora de inicio guardada por jornada (global: es la misma para todas las comunidades) y la que se esta escribiendo.
+  const [kickoffs, setKickoffs] = useState<KickoffOverrides>({});
+  const [kickoffDrafts, setKickoffDrafts] = useState<Record<number, string>>({});
+  const [kickoffBusy, setKickoffBusy] = useState<number | null>(null);
+  const [kickoffError, setKickoffError] = useState('');
+
+  const loadKickoffs = () =>
+    fetch('/api/admin/kickoffs')
+      .then(async (response) => ((await response.json()) as { overrides?: KickoffOverrides }).overrides ?? {})
+      .then(setKickoffs)
+      .catch(() => setKickoffs({}));
+
+  const saveKickoff = async (matchday: number, time: string | null) => {
+    setKickoffBusy(matchday);
+    setKickoffError('');
+    try {
+      const response = await fetch(time === null ? `/api/admin/kickoffs?matchday=${matchday}` : '/api/admin/kickoffs', time === null
+        ? { method: 'DELETE' }
+        : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ matchday, time }) });
+      if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? 'No se pudo guardar la hora.');
+      setKickoffDrafts((current) => {
+        const { [matchday]: _removed, ...rest } = current;
+        return rest;
+      });
+      await loadKickoffs();
+    } catch (failure) {
+      setKickoffError(failure instanceof Error ? failure.message : 'No se pudo guardar la hora.');
+    } finally {
+      setKickoffBusy(null);
+    }
+  };
 
   const loadReports = async () => {
     const response = await fetch(`/api/admin/matches?community=${encodeURIComponent(communitySlug)}`);
@@ -390,7 +423,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
   };
 
   useEffect(() => {
-    void loadReports().finally(() => setLoading(false));
+    void Promise.all([loadReports(), loadKickoffs()]).finally(() => setLoading(false));
   }, []);
 
   const draftFromStaticReport = (matchday: number): MatchReportDraft | null => {
@@ -510,6 +543,46 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                   {savingMatchday === match.matchday ? <Loader2 className="animate-spin" /> : savedMatchday === match.matchday ? 'Guardado ✓' : 'Guardar'}
                 </Button>
               </div>
+              {(() => {
+                const saved = kickoffs[match.matchday];
+                const value = kickoffDrafts[match.matchday] ?? saved ?? match.kickoffTime ?? '';
+                const valid = KICKOFF_TIME_PATTERN.test(value);
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <label htmlFor={`kickoff-${match.matchday}`} className="mb-1 block text-xs font-black uppercase text-slate-400">Hora de inicio del partido (hora de Madrid)</label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        id={`kickoff-${match.matchday}`}
+                        type="time"
+                        value={value}
+                        onChange={(event) => setKickoffDrafts((current) => ({ ...current, [match.matchday]: event.target.value }))}
+                        className="h-11 w-36"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void saveKickoff(match.matchday, value)}
+                        disabled={!valid || kickoffBusy === match.matchday || value === saved}
+                        className="bg-[#153e72] font-black text-white"
+                      >
+                        {kickoffBusy === match.matchday ? <Loader2 className="animate-spin" /> : 'Guardar hora'}
+                      </Button>
+                      {saved && (
+                        <Button type="button" variant="outline" onClick={() => void saveKickoff(match.matchday, null)} disabled={kickoffBusy === match.matchday}>
+                          Quitar hora guardada
+                        </Button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {saved
+                        ? `Hora guardada (${saved}). Las predicciones cierran el ${formatPredictionDeadline({ ...match, kickoffTime: saved })}. Se aplica a todas las comunidades.`
+                        : match.kickoffTime
+                          ? `Ahora se usa la hora del calendario (${match.kickoffTime}). Guarda una hora para fijarla a mano en todas las comunidades.`
+                          : 'Este partido no tiene hora: la app muestra "Horario de cierre pendiente" y no envía avisos de cierre hasta que la guardes.'}
+                    </p>
+                    {kickoffError && kickoffBusy === null && <p role="alert" className="mt-1 text-xs font-bold text-[#a91d43]">{kickoffError}</p>}
+                  </div>
+                );
+              })()}
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
                   <label className="mb-1 block text-xs font-black uppercase text-slate-400">Resultado local</label>
