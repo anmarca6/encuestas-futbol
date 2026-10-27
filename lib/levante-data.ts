@@ -28,6 +28,9 @@ import nakohaImage from '@/JugadoresDelLevante2627/nakoha.webp';
 import iGaldinImage from '@/JugadoresDelLevante2627/ihor.webp';
 import calatravaImage from '@/JugadoresDelLevante2627/calatrava.webp';
 import aldiNurgaliImage from '@/JugadoresDelLevante2627/nurgali.webp';
+import luismiPerezImage from '@/JugadoresDelLevante2627/LuismiPérez.webp';
+import pabloRosonImage from '@/JugadoresDelLevante2627/PabloRosón.webp';
+import aitorManzanedoImage from '@/JugadoresDelLevante2627/AitorManzanedo.webp';
 
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
@@ -445,6 +448,14 @@ export const levantePlayers: LevantePlayer[] = [
     possibleDeparture: false,
   },
   {
+    id: 'aitor-manzanedo',
+    number: 31,
+    displayName: 'Aitor Manzanedo',
+    position: 'DEFENDER',
+    image: aitorManzanedoImage.src,
+    possibleDeparture: false,
+  },
+  {
     id: 'marc-santos',
     number: 33,
     displayName: 'Marc Santos',
@@ -525,6 +536,14 @@ export const levantePlayers: LevantePlayer[] = [
     possibleDeparture: false,
   },
   {
+    id: 'pablo-roson',
+    number: 28,
+    displayName: 'Pablo Rosón',
+    position: 'MIDFIELDER',
+    image: pabloRosonImage.src,
+    possibleDeparture: false,
+  },
+  {
     id: 'm-usedo',
     number: 34,
     displayName: 'M. Usedo',
@@ -586,6 +605,14 @@ export const levantePlayers: LevantePlayer[] = [
     displayName: 'Etta Eyong',
     position: 'FORWARD',
     image: ettaEyongImage.src,
+    possibleDeparture: false,
+  },
+  {
+    id: 'luismi-perez',
+    number: 26,
+    displayName: 'Luismi Pérez',
+    position: 'FORWARD',
+    image: luismiPerezImage.src,
     possibleDeparture: false,
   },
 ];
