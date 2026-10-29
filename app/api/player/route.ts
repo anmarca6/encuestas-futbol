@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { resolveCommunity } from '@/lib/community';
 import { computeCommunityRanking } from '@/lib/ranking';
-import { currentUser, nextOpenMatch } from '@/lib/prediction-state';
+import { currentUser, unrevealedMatchIds } from '@/lib/prediction-state';
 import { loadOfficialReports } from '@/lib/official-data';
 import { levanteMatchReports, levanteMatches } from '@/lib/levante-data';
 import type { PlayerProfile, PlayerProfilePrediction } from '@/lib/community-types';
 
-// Perfil de otro usuario de la comunidad con sus predicciones. La del partido todavia abierto no se revela a los demas.
+// Perfil de otro usuario de la comunidad con sus predicciones. Las de partidos aun sin jugar y con plazo abierto no se revelan a los demas.
 export async function GET(request: NextRequest) {
   await ensureCommunitySchema();
   const community = await resolveCommunity(request);
@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
 
   const viewer = await currentUser(request, community.slug);
   const isSelf = viewer?.id === target.id;
-  const [ranking, open, officialReports, rows] = await Promise.all([
+  const [ranking, unrevealed, officialReports, rows] = await Promise.all([
     computeCommunityRanking(community.slug),
-    nextOpenMatch(community.slug),
+    unrevealedMatchIds(community.slug),
     loadOfficialReports(community.slug),
     getDatabase().prepare(`
       SELECT id, match_id AS matchId, home_score AS homeScore, away_score AS awayScore,
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
   const entry = index >= 0 ? ranking[index] : null;
 
   const predictions: PlayerProfilePrediction[] = rows.results.map((row) => {
-    // El partido abierto sigue siendo secreto para el resto: se revela al cerrar el plazo.
-    const hidden = !isSelf && row.matchId === open?.id;
+    // Los partidos sin jugar y con plazo abierto (el proximo, o uno aplazado con pronosticos ya hechos) siguen siendo secretos para el resto.
+    const hidden = !isSelf && unrevealed.has(row.matchId);
     const match = levanteMatches.find((item) => item.id === row.matchId);
     const scored = entry?.matchBreakdowns.find((item) => item.matchday === match?.matchday);
     return {

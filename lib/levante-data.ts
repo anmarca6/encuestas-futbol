@@ -45,6 +45,8 @@ export const isCupMatch = (match: { matchday: number }) => isCupMatchday(match.m
 export const matchdayShortLabel = (matchday: number) => (isCupMatchday(matchday) ? 'Copa' : `J${matchday}`);
 export const matchdayLongLabel = (matchday: number) =>
   isCupMatchday(matchday) ? `Copa del Rey · ${matchday - CUP_MATCHDAY_OFFSET}.ª ronda` : `Jornada ${matchday}`;
+// Partido aplazado con nueva fecha ya fijada (sigue siendo pronosticable en su nueva fecha).
+export const isRescheduledMatch = (match: { originalDate?: string; status: MatchStatus }) => Boolean(match.originalDate) && match.status === 'SCHEDULED';
 export const matchShortLabel = (match: { matchday: number }) => matchdayShortLabel(match.matchday);
 export const matchLongLabel = (match: { matchday: number }) => matchdayLongLabel(match.matchday);
 
@@ -68,6 +70,8 @@ export interface LevanteMatch {
   status: MatchStatus;
   goals: MatchGoal[];
   tags: string[];
+  // Si el partido se aplazo y ya tiene nueva fecha: la fecha original. Con esto el partido sigue "programado" (en su nueva fecha) pero se muestra como aplazado.
+  originalDate?: string;
 }
 export interface LevanteMatchReport {
   formation: string;
@@ -238,12 +242,13 @@ const leagueMatches: LevanteMatch[] = matchSeeds.map(
   }),
 );
 
-// Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora]
-type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null];
+// Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora, fecha original si se aplazo]
+type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null, string?];
 const cupSeeds: CupSeed[] = [
-  [1, '2026-10-28', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', '19:00'],
+  // Aplazado: se iba a jugar el 28/10 y se juega el jueves 5/11 a las 19:00. Los pronosticos ya hechos se conservan (se guardan por partido).
+  [1, '2026-11-05', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', '19:00', '2026-10-28'],
 ];
-const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime]) => ({
+const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime, originalDate]) => ({
   id: `copa-2026-27-r${round}`,
   season: LEVANTE_SEASON,
   competition: COPA_DEL_REY,
@@ -257,6 +262,7 @@ const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTea
   status,
   goals: [],
   tags: [],
+  ...(originalDate ? { originalDate } : {}),
 }));
 
 export const levanteMatches: LevanteMatch[] = [...leagueMatches, ...cupMatches];

@@ -62,6 +62,7 @@ import {
   levanteMatchReports,
   levanteMatches,
   levantePlayers,
+  isRescheduledMatch,
   type LevanteMatch,
   type LevanteMatchReport,
   type LevantePlayer,
@@ -177,9 +178,13 @@ function CompactMatch({ match }: { match: LevanteMatch }) {
         <TeamIdentity teamName={match.awayTeam} size="sm" shortOnMobile />
         <small className="block text-slate-400">
           {match.status === 'POSTPONED' ? 'Fecha por confirmar' : formatDate(match.date, true)}
+          {isRescheduledMatch(match) && match.kickoffTime ? ` · ${match.kickoffTime} h` : ''}
         </small>
+        {isRescheduledMatch(match) && match.originalDate && (
+          <small className="block text-[11px] font-bold text-amber-700">Antes: {formatDate(match.originalDate, true)}</small>
+        )}
       </div>
-      {match.status === 'POSTPONED' ? (
+      {match.status === 'POSTPONED' || isRescheduledMatch(match) ? (
         <span className="whitespace-nowrap rounded-lg bg-amber-50 px-2 py-1 text-xs font-black text-amber-700">
           Aplazado
         </span>
@@ -333,6 +338,11 @@ export function HomeSection({
               <p className="mt-5 text-sm font-bold uppercase tracking-wider text-slate-400">
                 {formatDate(next.date, true)} · {matchdayLongLabel(next.matchday)}
               </p>
+              {isRescheduledMatch(next) && next.originalDate && (
+                <p className="mt-1 text-xs font-black uppercase tracking-wider text-amber-300">
+                  Partido aplazado · antes el {formatDate(next.originalDate, true)}
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-4 text-2xl font-black sm:text-4xl">
                 <TeamIdentity teamName={next.homeTeam} size="xl" bareCrest />
                 <span className="text-[#d04a68]">vs</span>
@@ -555,7 +565,7 @@ function CalendarMatch({
   );
   return (
     <Card
-      className={`border-0 py-0 shadow-sm ring-1 ${match.status === 'FINISHED' ? 'ring-slate-200' : match.status === 'POSTPONED' ? 'ring-amber-200' : 'ring-sky-200/80'}`}
+      className={`border-0 py-0 shadow-sm ring-1 ${match.status === 'FINISHED' ? 'ring-slate-200' : match.status === 'POSTPONED' || isRescheduledMatch(match) ? 'ring-amber-200' : 'ring-sky-200/80'}`}
     >
       <CardContent className="px-3 py-4 sm:px-5">
         {isCupMatch(match) && (
@@ -578,7 +588,7 @@ function CalendarMatch({
               <span className="rounded-lg bg-[#071527] px-2 py-1.5 text-center text-xs font-black text-white">
                 {match.homeScore} — {match.awayScore}
               </span>
-            ) : match.status === 'POSTPONED' ? (
+            ) : match.status === 'POSTPONED' || isRescheduledMatch(match) ? (
               <span className="rounded-lg bg-amber-50 px-2 py-1.5 text-center text-xs font-black text-amber-700">
                 Aplazado
               </span>
@@ -607,6 +617,11 @@ function CalendarMatch({
             </button>
           )}
         </div>
+        {isRescheduledMatch(match) && match.originalDate && (
+          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-800">
+            Aplazado: se juega el {formatDate(match.date)}{match.kickoffTime ? ` a las ${match.kickoffTime} h` : ''} (antes, el {formatDate(match.originalDate)}). Los pronósticos ya hechos se conservan.
+          </p>
+        )}
         {open && (
           <div className="mt-4 border-t border-slate-100 pt-4 text-sm">
             {report ? (

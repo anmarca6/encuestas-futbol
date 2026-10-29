@@ -3,7 +3,7 @@ import { isPredictionClosed } from '@/lib/prediction-deadline';
 const todayInMadrid = (now: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
 // "Pendiente" = aun se puede pronosticar: con hora de inicio conocida, el partido deja de ser el proximo en cuanto vence el plazo
 // (2 horas antes del saque). Sin hora, se da un dia de margen por si la fecha local esta desfasada respecto a la oficial.
-const hasEnded = (match: LevanteMatch, now: Date) => {
+export const hasEnded = (match: LevanteMatch, now: Date) => {
   if (match.status === 'FINISHED' || match.status === 'POSTPONED') return true;
   if (match.kickoffTime) return isPredictionClosed(match, now);
   return match.date < todayInMadrid(new Date(now.getTime() - 24 * 60 * 60 * 1000));
