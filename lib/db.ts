@@ -204,7 +204,7 @@ export function ensureCommunitySchema(): Promise<void> {
       )
     `).bind().run();
 
-    // Avisos push: una fila por dispositivo suscrito (endpoint unico) y un registro de los avisos ya enviados para no repetirlos.
+    // Avisos push: una fila por dispositivo suscrito (endpoint unico). Los avisos los envia a mano el admin de cada comunidad.
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS push_subscriptions (
         endpoint TEXT PRIMARY KEY NOT NULL,
@@ -216,15 +216,6 @@ export function ensureCommunitySchema(): Promise<void> {
       )
     `).bind().run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id)').bind().run();
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS push_reminders_sent (
-        user_id TEXT NOT NULL,
-        match_id TEXT NOT NULL,
-        kind TEXT NOT NULL,
-        sent_at INTEGER NOT NULL,
-        PRIMARY KEY (user_id, match_id, kind)
-      )
-    `).bind().run();
 
     // Cuentas de administración: los super administradores (por defecto leo y angel_cavero) se crean la primera
     // vez con la contraseña de ADMIN_PASSWORD, que pueden cambiar después; los de comunidad los crea un super.

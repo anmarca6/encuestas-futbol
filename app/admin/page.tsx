@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Minus, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
+import { Bell, Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Minus, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1857,6 +1857,120 @@ function PasswordPanel() {
 }
 
 // Título de una pestaña: compacto, sin tarjeta, para dejar sitio al contenido.
+// Aviso push manual a los usuarios de la comunidad que tienen los avisos activados en su dispositivo.
+function PushSender({ communitySlug, communityName }: { communitySlug: string; communityName: string }) {
+  const MAX_TITLE = 60;
+  const MAX_BODY = 180;
+  type Audience = { configured: boolean; devices: number; users: number };
+  type SendResult = { devices: number; sent: number; failed: number; removed: number; errors: Array<{ service: string; status: number | null; count: number; message: string }> };
+  const [audience, setAudience] = useState<Audience | null>(null);
+  const [title, setTitle] = useState('Granota App');
+  const [message, setMessage] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<SendResult | null>(null);
+  const [error, setError] = useState('');
+
+  const loadAudience = () =>
+    fetch(`/api/admin/push?community=${encodeURIComponent(communitySlug)}`)
+      .then(async (response) => (response.ok ? ((await response.json()) as Audience) : null))
+      .then(setAudience)
+      .catch(() => setAudience(null));
+  useEffect(() => {
+    void loadAudience();
+  }, []);
+
+  const send = async () => {
+    setSending(true);
+    setError('');
+    setResult(null);
+    try {
+      const response = await fetch('/api/admin/push', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ community: communitySlug, title, message }),
+      });
+      const body = (await response.json().catch(() => ({}))) as SendResult & { error?: string };
+      if (!response.ok) throw new Error(body.error ?? 'No se pudo enviar el aviso.');
+      setResult(body);
+      setMessage('');
+      void loadAudience();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'No se pudo enviar el aviso.');
+    } finally {
+      setSending(false);
+      setConfirming(false);
+    }
+  };
+
+  const devices = audience?.devices ?? 0;
+  const canSend = Boolean(message.trim()) && devices > 0 && !sending && audience?.configured !== false;
+  return (
+    <Card className="border-0 shadow-sm ring-slate-200">
+      <CardContent className="space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          {audience === null ? (
+            'Comprobando cuántos usuarios tienen los avisos activados…'
+          ) : audience.configured === false ? (
+            <span className="font-bold text-[#a91d43]">Los avisos no están configurados en el servidor (faltan las claves VAPID).</span>
+          ) : (
+            <>
+              <strong className="text-[#071527]">{audience.users} {audience.users === 1 ? 'usuario' : 'usuarios'}</strong> de {communityName} {audience.users === 1 ? 'tiene' : 'tienen'} los avisos activados ({audience.devices} {audience.devices === 1 ? 'dispositivo' : 'dispositivos'}).
+              {' '}Cada usuario los activa desde Inicio o Ajustes; en iPhone, además, con la web añadida a la pantalla de inicio.
+            </>
+          )}
+        </div>
+        <div>
+          <label htmlFor="push-title" className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
+          <Input id="push-title" value={title} maxLength={MAX_TITLE} onChange={(event) => { setTitle(event.target.value); setConfirming(false); }} className="h-11" />
+        </div>
+        <div>
+          <label htmlFor="push-message" className="mb-1 flex items-center justify-between text-xs font-black uppercase text-slate-400">
+            <span>Mensaje</span>
+            <span className={message.length > MAX_BODY - 20 ? 'text-[#a91d43]' : ''}>{message.length}/{MAX_BODY}</span>
+          </label>
+          <Textarea id="push-message" value={message} maxLength={MAX_BODY} rows={3} placeholder="Ej.: Esta tarde cierra la porra del Levante-Atlético. ¡Publica tu previa!" onChange={(event) => { setMessage(event.target.value); setConfirming(false); }} />
+        </div>
+        {message.trim() && (
+          <div className="rounded-2xl bg-[#071527] p-4 text-white">
+            <p className="text-[10px] font-black uppercase tracking-widest text-sky-200">Así se verá en el móvil</p>
+            <strong className="mt-1 block">{title.trim() || 'Granota App'}</strong>
+            <p className="text-sm text-slate-200">{message.trim()}</p>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {confirming ? (
+            <>
+              <Button onClick={() => void send()} disabled={sending} className="bg-[#a91d43] font-black text-white">
+                {sending ? <Loader2 className="animate-spin" /> : `Sí, enviar a ${devices} ${devices === 1 ? 'dispositivo' : 'dispositivos'}`}
+              </Button>
+              <Button variant="outline" onClick={() => setConfirming(false)} disabled={sending}>Cancelar</Button>
+            </>
+          ) : (
+            <Button onClick={() => setConfirming(true)} disabled={!canSend} className="bg-[#153e72] font-black text-white">
+              <Bell className="size-4" /> Enviar aviso
+            </Button>
+          )}
+          {devices === 0 && audience?.configured !== false && audience !== null && <span className="text-xs font-bold text-amber-700">Nadie tiene los avisos activados todavía.</span>}
+        </div>
+        {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}
+        {result && (
+          <div role="status" className={`rounded-xl p-3 text-sm ${result.failed ? 'bg-amber-50 text-amber-900' : 'bg-emerald-50 text-emerald-900'}`}>
+            <strong className="block">Enviado a {result.sent} de {result.devices} {result.devices === 1 ? 'dispositivo' : 'dispositivos'}.</strong>
+            <span className="block text-xs">Que el servicio de Apple o Google lo acepte no garantiza que se muestre: depende de que el móvil lo reciba.</span>
+            {result.removed > 0 && <span className="mt-1 block text-xs">{result.removed} {result.removed === 1 ? 'dispositivo ya no existía' : 'dispositivos ya no existían'} (app desinstalada o permiso retirado) y se {result.removed === 1 ? 'ha borrado' : 'han borrado'} de la lista.</span>}
+            {result.errors.map((item) => (
+              <span key={`${item.service}-${item.status}`} className="mt-1 block text-xs font-bold">
+                {item.count} {item.count === 1 ? 'fallo' : 'fallos'} con {item.service} (código {item.status ?? 'sin respuesta'}){item.message ? `: ${item.message}` : ''}
+              </span>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
     <div>
@@ -1866,7 +1980,7 @@ function SectionHeading({ title, description }: { title: string; description: st
   );
 }
 
-type AdminTab = 'comunidades' | 'administradores' | 'mvp' | 'partidos' | 'moderacion' | 'contrasena';
+type AdminTab = 'comunidades' | 'administradores' | 'mvp' | 'partidos' | 'moderacion' | 'avisos' | 'contrasena';
 
 export default function AdminPage() {
   // undefined = comprobando sesión · null = sin sesión
@@ -1914,6 +2028,7 @@ export default function AdminPage() {
     { id: 'mvp', label: 'MVP', icon: Star },
     { id: 'partidos', label: 'Formación, resultado y goles', icon: ClipboardList },
     { id: 'moderacion', label: 'Moderación', icon: MessageSquare },
+    { id: 'avisos', label: 'Avisos', icon: Bell },
     { id: 'contrasena', label: 'Mi contraseña', icon: KeyRound },
   ];
   const availableTabs = tabs.filter((item) => isSuper || !item.superOnly);
@@ -2059,6 +2174,15 @@ export default function AdminPage() {
               description={`Predicciones publicadas por los usuarios de ${managedName}. Abre un usuario para ver sus predicciones y borra una o todas si el apodo falta al respeto.`}
             />
             <PredictionsModeration key={managedSlug} communitySlug={managedSlug} />
+          </section>
+        )}
+        {activeTab === 'avisos' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Avisos a los usuarios"
+              description={`Envía una notificación al móvil de los usuarios de ${managedName} que tengan los avisos activados.`}
+            />
+            <PushSender key={managedSlug} communitySlug={managedSlug} communityName={managedName} />
           </section>
         )}
         {activeTab === 'contrasena' && (

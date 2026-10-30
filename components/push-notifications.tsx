@@ -122,8 +122,8 @@ export function PushToggle({ user, compact = false, hideWhenOn = false }: { user
   const message: Record<PushStatus, string> = {
     checking: '',
     unavailable: '',
-    on: 'Te avisaremos en este dispositivo cuando se acerque el cierre y aún no hayas publicado tu previa.',
-    off: 'Recibe un aviso en este dispositivo cuando se acerque el cierre y aún no hayas publicado tu previa.',
+    on: 'Recibirás en este dispositivo los avisos y recordatorios de tu comunidad.',
+    off: 'Activa los avisos para enterarte de los recordatorios y novedades de tu comunidad.',
     denied: 'Has bloqueado las notificaciones. Para activarlas, permite las notificaciones de esta web en los ajustes del navegador.',
     unsupported: 'Este navegador no admite avisos. Prueba con Chrome, Edge o Firefox.',
     'needs-install': 'En iPhone, primero añade la web a tu pantalla de inicio (Compartir → Añadir a pantalla de inicio) y ábrela desde su icono para activar los avisos.',
@@ -136,7 +136,7 @@ export function PushToggle({ user, compact = false, hideWhenOn = false }: { user
         {status === 'on' ? <BellRing className="size-5" /> : status === 'off' ? <Bell className="size-5" /> : <BellOff className="size-5" />}
       </span>
       <div className="min-w-0 flex-1">
-        <strong className="block font-black text-[#071527]">Avisos de cierre</strong>
+        <strong className="block font-black text-[#071527]">Avisos de la comunidad</strong>
         <p className="mt-1 text-sm text-slate-600">{message[status]}</p>
         {canAct && !user && <p className="mt-2 text-xs text-amber-700">Publica tu primera previa para crear tu perfil y poder activar los avisos.</p>}
         {canAct && (
@@ -146,7 +146,7 @@ export function PushToggle({ user, compact = false, hideWhenOn = false }: { user
             variant={status === 'on' ? 'outline' : 'default'}
             className={`mt-3 ${status === 'on' ? '' : 'bg-[#153e72] font-black text-white'}`}
           >
-            {busy ? 'Un momento…' : status === 'on' ? 'Desactivar avisos' : 'Avisarme del cierre'}
+            {busy ? 'Un momento…' : status === 'on' ? 'Desactivar avisos' : 'Activar avisos'}
           </Button>
         )}
         {error && <p role="alert" className="mt-2 text-xs font-bold text-[#a91d43]">{error}</p>}
