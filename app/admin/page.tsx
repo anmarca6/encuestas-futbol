@@ -1861,8 +1861,8 @@ function PasswordPanel() {
 function PushSender({ communitySlug, communityName }: { communitySlug: string; communityName: string }) {
   const MAX_TITLE = 60;
   const MAX_BODY = 180;
-  type Audience = { configured: boolean; devices: number; users: number };
-  type SendResult = { devices: number; sent: number; failed: number; removed: number; errors: Array<{ service: string; status: number | null; count: number; message: string }> };
+  type Audience = { configured: boolean; devices: number; users: number; match: string | null; pendingDevices: number; pendingUsers: number };
+  type SendResult = { match: string | null; devices: number; sent: number; failed: number; removed: number; errors: Array<{ service: string; status: number | null; count: number; message: string }> };
   const [audience, setAudience] = useState<Audience | null>(null);
   const [title, setTitle] = useState('Granota App');
   const [message, setMessage] = useState('');
@@ -1903,7 +1903,7 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
     }
   };
 
-  const devices = audience?.devices ?? 0;
+  const devices = audience?.pendingDevices ?? 0;
   const canSend = Boolean(message.trim()) && devices > 0 && !sending && audience?.configured !== false;
   return (
     <Card className="border-0 shadow-sm ring-slate-200">
@@ -1915,8 +1915,8 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
             <span className="font-bold text-[#a91d43]">Los avisos no están configurados en el servidor (faltan las claves VAPID).</span>
           ) : (
             <>
-              <strong className="text-[#071527]">{audience.users} {audience.users === 1 ? 'usuario' : 'usuarios'}</strong> de {communityName} {audience.users === 1 ? 'tiene' : 'tienen'} los avisos activados ({audience.devices} {audience.devices === 1 ? 'dispositivo' : 'dispositivos'}).
-              {' '}Cada usuario los activa desde Inicio o Ajustes; en iPhone, además, con la web añadida a la pantalla de inicio.
+              <strong className="text-[#071527]">{audience.pendingUsers} {audience.pendingUsers === 1 ? 'usuario' : 'usuarios'}</strong> de {communityName} {audience.pendingUsers === 1 ? 'recibiría' : 'recibirían'} el aviso ({audience.pendingDevices} {audience.pendingDevices === 1 ? 'dispositivo' : 'dispositivos'}): los que aún no han publicado su previa{audience.match ? ` de ${audience.match}` : ''}.
+              {' '}En total hay {audience.users} {audience.users === 1 ? 'usuario' : 'usuarios'} con los avisos activados ({audience.devices} {audience.devices === 1 ? 'dispositivo' : 'dispositivos'}). Los avisos vienen activados por defecto: cada usuario solo tiene que aceptar el permiso del navegador; en iPhone, además, con la web añadida a la pantalla de inicio.
             </>
           )}
         </div>
@@ -1951,12 +1951,12 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
               <Bell className="size-4" /> Enviar aviso
             </Button>
           )}
-          {devices === 0 && audience?.configured !== false && audience !== null && <span className="text-xs font-bold text-amber-700">Nadie tiene los avisos activados todavía.</span>}
+          {devices === 0 && audience?.configured !== false && audience !== null && <span className="text-xs font-bold text-amber-700">{audience.devices === 0 ? 'Nadie tiene los avisos activados todavía.' : 'Todos los que tienen los avisos ya han publicado su previa.'}</span>}
         </div>
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}
         {result && (
           <div role="status" className={`rounded-xl p-3 text-sm ${result.failed ? 'bg-amber-50 text-amber-900' : 'bg-emerald-50 text-emerald-900'}`}>
-            <strong className="block">Enviado a {result.sent} de {result.devices} {result.devices === 1 ? 'dispositivo' : 'dispositivos'}.</strong>
+            <strong className="block">Enviado a {result.sent} de {result.devices} {result.devices === 1 ? 'dispositivo' : 'dispositivos'} (usuarios sin previa{result.match ? ` de ${result.match}` : ''}).</strong>
             <span className="block text-xs">Que el servicio de Apple o Google lo acepte no garantiza que se muestre: depende de que el móvil lo reciba.</span>
             {result.removed > 0 && <span className="mt-1 block text-xs">{result.removed} {result.removed === 1 ? 'dispositivo ya no existía' : 'dispositivos ya no existían'} (app desinstalada o permiso retirado) y se {result.removed === 1 ? 'ha borrado' : 'han borrado'} de la lista.</span>}
             {result.errors.map((item) => (

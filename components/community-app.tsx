@@ -12,6 +12,7 @@ import {
 import { PredictionWizard } from '@/components/prediction-wizard';
 import { Registration } from '@/components/registration';
 import { SettingsSection } from '@/components/settings-section';
+import { PushAutoEnable } from '@/components/push-notifications';
 import type { CommunityUser } from '@/lib/community-types';
 import type { CommunityPrediction } from '@/lib/community-types';
 import type { FootballDataPayload } from '@/lib/football-data-types';
@@ -95,6 +96,7 @@ export function CommunityApp({ identity, hero }: { identity: CommunityIdentity; 
   };
   return (
     <>
+    <PushAutoEnable user={user} />
     <AppShell
       active={active}
       identity={identity}

@@ -5,7 +5,7 @@ import { communityPushAudience, sendPushToCommunity } from '@/lib/push';
 const MAX_TITLE = 60;
 const MAX_BODY = 180;
 
-// Cuantos dispositivos de la comunidad tienen los avisos activados.
+// Cuantos dispositivos de la comunidad tienen los avisos y cuantos recibirian el siguiente (los que aun no han hecho la previa).
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(await communityPushAudience(community), { headers: { 'Cache-Control': 'no-store' } });
 }
 
-// Envia un aviso a los usuarios de la comunidad que tienen los avisos activados.
+// Envia un aviso a los usuarios de la comunidad que aun no han hecho su previa del proximo partido.
 export async function POST(request: NextRequest) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;

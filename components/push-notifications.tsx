@@ -17,10 +17,19 @@ function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
 }
 
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const OPT_OUT_KEY = 'granota_push_optout';
+const ASKED_KEY = 'granota_push_asked';
+const REASK_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const CHANGED_EVENT = 'granota-push-changed';
+const readFlag = (key: string) => { try { return window.localStorage.getItem(key); } catch { return null; } };
+const writeFlag = (key: string, value: string | null) => {
+  try { if (value === null) window.localStorage.removeItem(key); else window.localStorage.setItem(key, value); } catch { /* sin almacenamiento: se pregunta en cada visita */ }
+};
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
 
-// Avisos push del cierre de predicciones: estado del dispositivo y acciones de activar / desactivar.
-function usePushReminders(userId: string | undefined) {
+// Avisos push: estado del dispositivo y acciones de activar / desactivar. Con auto, los avisos se activan solos (por defecto)
+// salvo que el usuario los haya desactivado: si el permiso ya estaba dado, al instante; si no, en su primer toque en la pantalla.
+function usePushReminders(userId: string | undefined, auto = false) {
   const [status, setStatus] = useState<PushStatus>('checking');
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -43,7 +52,10 @@ function usePushReminders(userId: string | undefined) {
       const subscription = await registration.pushManager.getSubscription();
       update(subscription && Notification.permission === 'granted' ? 'on' : 'off');
     })().catch(() => update('unsupported'));
-    return () => { cancelled = true; };
+    // Si otra parte de la app activa o desactiva los avisos, este estado se pone al dia.
+    const onChanged = (event: Event) => update((event as CustomEvent<PushStatus>).detail);
+    window.addEventListener(CHANGED_EVENT, onChanged);
+    return () => { cancelled = true; window.removeEventListener(CHANGED_EVENT, onChanged); };
   }, []);
 
   // Si en este dispositivo ya hay una suscripcion, se vuelve a asociar al usuario con sesion (por si antes entro otra cuenta).
@@ -81,7 +93,9 @@ function usePushReminders(userId: string | undefined) {
         body: JSON.stringify(subscription.toJSON()),
       });
       if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? 'No se pudo activar el aviso.');
+      writeFlag(OPT_OUT_KEY, null);
       setStatus('on');
+      window.dispatchEvent(new CustomEvent<PushStatus>(CHANGED_EVENT, { detail: 'on' }));
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'No se pudo activar el aviso.');
     } finally {
@@ -103,7 +117,9 @@ function usePushReminders(userId: string | undefined) {
         });
         await subscription.unsubscribe();
       }
+      writeFlag(OPT_OUT_KEY, '1');
       setStatus('off');
+      window.dispatchEvent(new CustomEvent<PushStatus>(CHANGED_EVENT, { detail: 'off' }));
     } catch {
       setError('No se pudo desactivar el aviso.');
     } finally {
@@ -111,7 +127,31 @@ function usePushReminders(userId: string | undefined) {
     }
   }, []);
 
+  // Activacion automatica: solo con sesion, sin haberlos desactivado el usuario y sin permiso bloqueado.
+  useEffect(() => {
+    if (!auto || status !== 'off' || !userId || !publicKey || readFlag(OPT_OUT_KEY)) return;
+    if (Notification.permission === 'granted') {
+      void enable();
+      return;
+    }
+    // Sin permiso todavia: el navegador lo pide al primer toque (iPhone y Firefox lo exigen), y si se ignora no se insiste hasta pasados unos dias.
+    const askedAt = Number(readFlag(ASKED_KEY) ?? 0);
+    if (Notification.permission !== 'default' || Date.now() - askedAt < REASK_AFTER_MS) return;
+    const ask = () => {
+      writeFlag(ASKED_KEY, String(Date.now()));
+      void enable();
+    };
+    window.addEventListener('pointerup', ask, { once: true });
+    return () => window.removeEventListener('pointerup', ask);
+  }, [auto, status, userId, publicKey, enable]);
+
   return { status, busy, error, enable, disable };
+}
+
+// Activa los avisos por defecto en cuanto el usuario tiene sesion; no pinta nada. Se monta una vez en la app.
+export function PushAutoEnable({ user }: { user: CommunityUser | null }) {
+  usePushReminders(user?.id, true);
+  return null;
 }
 
 // hideWhenOn: en pantallas de paso (Inicio) solo se muestra mientras el aviso no esta activado.
@@ -122,8 +162,8 @@ export function PushToggle({ user, compact = false, hideWhenOn = false }: { user
   const message: Record<PushStatus, string> = {
     checking: '',
     unavailable: '',
-    on: 'Recibirás en este dispositivo los avisos y recordatorios de tu comunidad.',
-    off: 'Activa los avisos para enterarte de los recordatorios y novedades de tu comunidad.',
+    on: 'Recibirás en este dispositivo un aviso si se acerca el cierre y aún no has publicado tu previa.',
+    off: 'Los avisos están desactivados en este dispositivo. Actívalos para que te recordemos que se acaba el plazo si aún no has hecho tu previa.',
     denied: 'Has bloqueado las notificaciones. Para activarlas, permite las notificaciones de esta web en los ajustes del navegador.',
     unsupported: 'Este navegador no admite avisos. Prueba con Chrome, Edge o Firefox.',
     'needs-install': 'En iPhone, primero añade la web a tu pantalla de inicio (Compartir → Añadir a pantalla de inicio) y ábrela desde su icono para activar los avisos.',
