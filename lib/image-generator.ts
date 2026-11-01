@@ -1,12 +1,14 @@
 // Generador de imagenes estadisticas del panel de administracion. Todo se dibuja en el navegador con los datos que se escriben
 // en el formulario: nada de esto se guarda en la base de datos ni afecta a la app.
 
-export type ImageLayout = 'barras' | 'ranking' | 'podio';
+export type ImageLayout = 'barras' | 'ranking' | 'podio' | 'comparar';
 export type ImageBackground = 'nocturna' | 'interior' | 'ninguno';
 
 export interface ImageRow {
   label: string;
   value: number;
+  // Jugador de la fila (foto en el podio).
+  playerId?: string;
 }
 
 export interface ImageCard {
@@ -31,6 +33,8 @@ export interface ImageSpec {
   playerCaption: string;
   playerSub: string;
   footer: string;
+  // Unidad del valor en el podio: singular y plural ("MVP", "MVPs").
+  unit: [string, string];
 }
 
 export const IMAGE_WIDTH = 1080;
@@ -73,6 +77,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   playerCaption: 'Roger Brugué · 5 goles',
   playerSub: 'Máximo goleador del equipo',
   footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante UD en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
+  unit: ['MVP', 'MVPs'],
 };
 
 // Tarjetas sugeridas a partir de los datos: el tramo mas alto, el total y los tramos sin ninguno.
@@ -94,6 +99,8 @@ export function suggestCards(rows: ImageRow[]): ImageCard[] {
 export interface ImageAssets {
   background: HTMLImageElement | null;
   player: HTMLImageElement | null;
+  // Fotos de los jugadores de las filas del podio, por id.
+  rowPlayers: Record<string, HTMLImageElement>;
 }
 
 const HEAD_FONT = '"Barlow Condensed", Impact, "Arial Narrow", sans-serif';
@@ -221,8 +228,8 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
   ctx.fillRect(0, 0, W, H);
 
   // Jugador (recortado, con el borde inferior difuminado)
-  const hasPlayer = Boolean(assets.player);
-  if (assets.player) {
+  const hasPlayer = Boolean(assets.player) && spec.layout !== 'podio';
+  if (hasPlayer && assets.player) {
     const image = assets.player;
     const height = 400;
     const width = (image.naturalWidth / image.naturalHeight) * height;
@@ -304,9 +311,9 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
 
   // Panel del grafico
   const px = 44;
-  const py = 640;
+  const py = spec.layout === 'podio' ? 490 : 640;
   const pw = W - 88;
-  const ph = 470;
+  const ph = spec.layout === 'podio' ? 620 : 470;
   const panel = ctx.createLinearGradient(0, py, 0, py + ph);
   panel.addColorStop(0, 'rgba(10,22,48,.66)');
   panel.addColorStop(1, 'rgba(6,14,30,.84)');
@@ -407,22 +414,35 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       setSpacing(ctx, 0);
     }
   } else if (spec.layout === 'podio') {
-    // Podio: las tres primeras filas (ya ordenadas de mayor a menor) en 2º - 1º - 3º; el resto, en una linea debajo.
+    // Podio: las tres primeras filas (de mayor a menor) en 2º - 1º - 3º, con la foto de cada jugador sobre su escalon;
+    // el resto, en una linea arriba.
     const ranked = [...rows].sort((a, b) => b.value - a.value);
     const slots = [
-      { place: 1, row: ranked[1], height: 170, color: ['#8fa3c4', '#4a5d80'] },
-      { place: 0, row: ranked[0], height: 250, color: ['#ffd36b', '#b8800f'] },
-      { place: 2, row: ranked[2], height: 120, color: ['#e0955a', '#8a4a1f'] },
+      { place: 1, row: ranked[1], height: 140, color: ['#8fa3c4', '#4a5d80'] },
+      { place: 0, row: ranked[0], height: 190, color: ['#ffd36b', '#b8800f'] },
+      { place: 2, row: ranked[2], height: 100, color: ['#e0955a', '#8a4a1f'] },
     ];
-    const baseline = ranked.length > 3 ? 1030 : 1060;
-    const colW = (pw - 72 - 40) / 3;
+    const baseline = 1020;
     const left = px + 36;
+    const colW = (pw - 72 - 40) / 3;
+    const unitOf = (value: number) => (value === 1 ? spec.unit[0] : spec.unit[1]);
     ctx.textAlign = 'center';
     slots.forEach((slot, index) => {
       if (!slot.row) return;
       const cx = left + index * (colW + 20) + colW / 2;
       const top = baseline - slot.height;
       const gold = slot.place === 0;
+      const photo = slot.row.playerId ? assets.rowPlayers[slot.row.playerId] : undefined;
+      if (photo) {
+        const photoH = 250;
+        const photoW = Math.min((photo.naturalWidth / photo.naturalHeight) * photoH, colW + 20);
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.55)';
+        ctx.shadowBlur = 26;
+        ctx.shadowOffsetY = 10;
+        ctx.drawImage(photo, cx - photoW / 2, top + 34 - photoH, photoW, photoH);
+        ctx.restore();
+      }
       ctx.save();
       if (gold) {
         ctx.shadowColor = 'rgba(255,211,107,.55)';
@@ -436,14 +456,14 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       ctx.fill();
       ctx.restore();
       ctx.fillStyle = gold ? '#4a3205' : '#0a1630';
-      ctx.font = `900 ${gold ? 120 : 92}px ${HEAD_FONT}`;
-      ctx.fillText(String(slot.place + 1), cx, top + (gold ? 112 : 88));
+      ctx.font = `900 ${gold ? 96 : 76}px ${HEAD_FONT}`;
+      ctx.fillText(String(slot.place + 1), cx, top + (gold ? 92 : 72));
       ctx.fillStyle = '#fff';
-      fitFont(ctx, slot.row.label.toUpperCase(), 900, 36, HEAD_FONT, colW - 8, 20);
-      ctx.fillText(slot.row.label.toUpperCase(), cx, top - 52);
+      fitFont(ctx, slot.row.label.toUpperCase(), 900, 34, HEAD_FONT, colW, 20);
+      ctx.fillText(slot.row.label.toUpperCase(), cx, baseline + 46);
       ctx.fillStyle = gold ? '#ffd36b' : MUTE;
-      ctx.font = `800 26px ${HEAD_FONT}`;
-      ctx.fillText(`${label(slot.row.value)} ${slot.row.value === 1 ? 'MVP' : 'MVPs'}`, cx, top - 18);
+      ctx.font = `800 24px ${HEAD_FONT}`;
+      ctx.fillText(`${label(slot.row.value)} ${unitOf(slot.row.value)}`.trim().toUpperCase(), cx, baseline + 76);
     });
     ctx.strokeStyle = 'rgba(160,190,240,.3)';
     ctx.lineWidth = 2;
@@ -453,11 +473,69 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
     ctx.stroke();
     if (ranked.length > 3) {
       ctx.fillStyle = MUTE;
-      ctx.font = `700 21px ${BODY_FONT}`;
+      ctx.font = `700 20px ${BODY_FONT}`;
       const rest = ranked.slice(3).map((row) => `${row.label} (${label(row.value)})`).join(' · ');
-      wrap(ctx, `También: ${rest}`, pw - 72).slice(0, 2).forEach((line, index) => ctx.fillText(line, px + pw / 2, baseline + 40 + index * 26));
+      wrap(ctx, `También: ${rest}`, pw - 72).slice(0, 2).forEach((line, index) => ctx.fillText(line, px + pw / 2, py + 34 + index * 25));
     }
     ctx.textAlign = 'left';
+  } else if (spec.layout === 'comparar') {
+    // Comparativa: filas de dos en dos (usuarios / realidad) como columnas juntas; la etiqueta del grupo es la de la primera.
+    const left = px + 36;
+    const inner = pw - 72;
+    const groups = Math.floor(rows.length / 2);
+    const groupGap = 40;
+    const groupW = (inner - groupGap * Math.max(groups - 1, 0)) / Math.max(groups, 1);
+    const barW = Math.min((groupW - 16) / 2, 140);
+    const baseline = 980;
+    const barMax = 230;
+    const colors = [['#4b9bff', BLUE_DARK], [RED_LIGHT, '#a91d43']];
+    ctx.textAlign = 'center';
+    for (let group = 0; group < groups; group += 1) {
+      const gx = left + group * (groupW + groupGap) + groupW / 2;
+      [0, 1].forEach((side) => {
+        const row = rows[group * 2 + side];
+        const cx = gx + (side === 0 ? -(barW / 2 + 4) : barW / 2 + 4);
+        const barH = max > 0 ? Math.max((row.value / max) * barMax, 6) : 6;
+        const top = baseline - barH;
+        const fill = ctx.createLinearGradient(0, top, 0, baseline);
+        fill.addColorStop(0, colors[side][0]);
+        fill.addColorStop(1, colors[side][1]);
+        ctx.save();
+        if (side === 1) {
+          ctx.shadowColor = 'rgba(255,90,122,.5)';
+          ctx.shadowBlur = 24;
+        }
+        ctx.fillStyle = fill;
+        roundRect(ctx, cx - barW / 2, top, barW, barH, Math.min(14, barH / 2));
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = side === 1 ? RED_LIGHT : '#fff';
+        ctx.font = `900 ${barW < 90 ? 40 : 52}px ${HEAD_FONT}`;
+        ctx.fillText(`${label(row.value)}%`, cx, top - 12, barW + 24);
+      });
+      ctx.fillStyle = '#dbe6f8';
+      ctx.font = `800 28px ${HEAD_FONT}`;
+      ctx.fillText(rows[group * 2].label.toUpperCase(), gx, baseline + 44, groupW);
+    }
+    ctx.strokeStyle = 'rgba(160,190,240,.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left, baseline + 10);
+    ctx.lineTo(left + inner, baseline + 10);
+    ctx.stroke();
+    // Leyenda arriba del panel: azul = usuarios, rojo = realidad (los nombres salen de las etiquetas del divisor).
+    ctx.font = `800 20px ${HEAD_FONT}`;
+    setSpacing(ctx, 2);
+    ctx.textAlign = 'left';
+    [0, 1].forEach((side) => {
+      const lx = left + side * 250;
+      ctx.fillStyle = colors[side][0];
+      roundRect(ctx, lx, py + 28, 22, 22, 6);
+      ctx.fill();
+      ctx.fillStyle = '#dbe6f8';
+      ctx.fillText((spec.dividerLabels[side] || (side === 0 ? 'Usuarios' : 'Realidad')).toUpperCase(), lx + 32, py + 46);
+    });
+    setSpacing(ctx, 0);
   } else {
     // Ranking: una barra horizontal por fila.
     const top = py + 30;
@@ -548,7 +626,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   assign('playerId', text(source.playerId, 60));
   assign('playerCaption', text(source.playerCaption, 40));
   assign('playerSub', text(source.playerSub, 50));
-  if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio') out.layout = source.layout;
+  if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio' || source.layout === 'comparar') out.layout = source.layout;
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {
@@ -556,10 +634,14 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
       .map((row) => {
         const item = (row ?? {}) as Record<string, unknown>;
         const value = Number(item.value);
-        return typeof item.label === 'string' && Number.isFinite(value) && value >= 0 ? { label: item.label.trim().slice(0, 30), value } : null;
+        const playerId = typeof item.playerId === 'string' && item.playerId ? item.playerId.slice(0, 60) : undefined;
+        return typeof item.label === 'string' && Number.isFinite(value) && value >= 0 ? { label: item.label.trim().slice(0, 30), value, ...(playerId ? { playerId } : {}) } : null;
       })
       .filter((row): row is ImageRow => row !== null)
       .slice(0, MAX_ROWS);
+  }
+  if (Array.isArray(source.unit) && source.unit.length === 2 && source.unit.every((item) => typeof item === 'string')) {
+    out.unit = [String(source.unit[0]).slice(0, 24), String(source.unit[1]).slice(0, 24)];
   }
   if (typeof source.dividerAfter === 'number' && Number.isFinite(source.dividerAfter)) out.dividerAfter = Math.max(0, Math.min(MAX_ROWS, Math.round(source.dividerAfter)));
   if (Array.isArray(source.dividerLabels) && source.dividerLabels.length === 2 && source.dividerLabels.every((item) => typeof item === 'string')) {

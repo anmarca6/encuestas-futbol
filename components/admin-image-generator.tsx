@@ -21,7 +21,7 @@ import {
   type ImageAssets,
   type ImageSpec,
 } from '@/lib/image-generator';
-import { IMAGE_TEMPLATES, buildTemplate, isTemplateId, type ImageTemplateId, type MatchStats, type TemplateResult } from '@/lib/image-stats';
+import { EMPTY_IMAGE_DATA, IMAGE_TEMPLATES, buildTemplate, isTemplateId, type ImageData, type ImageTemplateId, type TemplateResult } from '@/lib/image-stats';
 
 // Enlace que acompana a cada publicacion en X (X lo cuenta como 23 caracteres).
 const SHARE_URL = 'https://encuestas-futbol.vercel.app/ismaelete';
@@ -58,6 +58,24 @@ function Field({ id, label, children }: { id?: string; label: string; children: 
 const titleOf = (spec: ImageSpec) => `${spec.title} ${spec.titleAccent}`.trim() || 'Imagen sin título';
 const playerName = (id: string) => levantePlayers.find((item) => item.id === id)?.displayName ?? null;
 
+// Fotos de los jugadores del podio (solo hay en ese tipo de grafico).
+async function loadRowPlayers(saved: ImageSpec): Promise<Record<string, HTMLImageElement>> {
+  const ids = saved.layout === 'podio' ? [...new Set(saved.rows.map((row) => row.playerId).filter((id): id is string => Boolean(id)))] : [];
+  const loaded = await Promise.all(ids.map(async (id) => {
+    const src = levantePlayers.find((item) => item.id === id)?.image;
+    if (!src) return null;
+    try {
+      return [id, await loadImage(src)] as const;
+    } catch {
+      return null;
+    }
+  }));
+  return Object.fromEntries(loaded.filter((entry): entry is readonly [string, HTMLImageElement] => entry !== null));
+}
+
+// Huella de lo que cambia cuando entran datos nuevos (para avisar de que una imagen guardada se ha quedado atras).
+const dataSignature = (value: ImageSpec) => JSON.stringify([value.rows, value.cards, value.subtitle]);
+
 // Miniatura para el historial.
 function makeThumb(canvas: HTMLCanvasElement) {
   const small = document.createElement('canvas');
@@ -70,7 +88,7 @@ function makeThumb(canvas: HTMLCanvasElement) {
 // Generador de imagenes estadisticas. Cada imagen se guarda sola en el historial (ficha + miniatura) para poder reabrirla y editarla.
 export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [spec, setSpec] = useState<ImageSpec>(DEFAULT_SPEC);
-  const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null });
+  const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null, rowPlayers: {} });
   const [assetsReady, setAssetsReady] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
   const [assetError, setAssetError] = useState('');
@@ -84,6 +102,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [reloading, setReloading] = useState(false);
   const [pickerError, setPickerError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [outdated, setOutdated] = useState(false);
+  const openedRef = useRef<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // PNG ya preparado: el menu de compartir del movil exige llamarse en el mismo toque, sin esperas intermedias.
@@ -118,12 +138,13 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
           const response = await fetch(`/api/admin/images?id=${encodeURIComponent(item.id)}`, { cache: 'no-store' });
           const { image } = (await response.json()) as { image: { spec: ImageSpec } };
           const saved = sanitizeSpec(image.spec);
-          const [background, playerImage] = await Promise.all([
+          const [background, playerImage, rowPlayers] = await Promise.all([
             saved.background === 'ninguno' ? Promise.resolve(null) : loadImage(BACKGROUNDS[saved.background].src),
             saved.playerId ? loadImage(levantePlayers.find((entry) => entry.id === saved.playerId)?.image ?? '') : Promise.resolve(null),
+            loadRowPlayers(saved),
           ]);
           const canvas = document.createElement('canvas');
-          renderInfographic(canvas, saved, { background, player: playerImage });
+          renderInfographic(canvas, saved, { background, player: playerImage, rowPlayers });
           const thumb = makeThumb(canvas);
           await fetch('/api/admin/images', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: item.id, thumb, thumbOnly: true }) });
           if (!cancelled) setImages((list) => list?.map((entry) => (entry.id === item.id ? { ...entry, thumb } : entry)) ?? list);
@@ -137,7 +158,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fontsReady, imagesLoaded]);
 
-  // Fondo y foto del jugador: se cargan al elegirlos.
+  // Fondo y fotos de los jugadores: se cargan al elegirlos.
+  const rowPlayersKey = spec.layout === 'podio' ? spec.rows.map((row) => row.playerId ?? '').join('|') : '';
   useEffect(() => {
     let cancelled = false;
     setAssetError('');
@@ -146,12 +168,15 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     Promise.all([
       backgroundSrc ? loadImage(backgroundSrc) : Promise.resolve(null),
       player?.image ? loadImage(player.image) : Promise.resolve(null),
+      loadRowPlayers(spec),
     ])
-      .then(([background, playerImage]) => { if (!cancelled) setAssets({ background, player: playerImage }); })
+      .then(([background, playerImage, rowPlayers]) => { if (!cancelled) setAssets({ background, player: playerImage, rowPlayers }); })
       .catch(() => { if (!cancelled) setAssetError('No se ha podido cargar el fondo o la foto del jugador.'); })
       .finally(() => { if (!cancelled) setAssetsReady(true); });
     return () => { cancelled = true; };
-  }, [spec.background, player]);
+    // spec se lee entero, pero solo importan el fondo, el jugador y las fotos del podio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spec.background, player, rowPlayersKey]);
 
   useEffect(() => {
     if (!fontsReady || !current || !canvasRef.current) return;
@@ -196,11 +221,10 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
 
   // Datos reales de la app (resultados, goles y minutos) convertidos en la ficha de la plantilla.
   const buildFor = async (id: ImageTemplateId): Promise<TemplateResult> => {
-    if (id === 'libre') return buildTemplate(id, [], playerName);
+    if (id === 'libre') return buildTemplate(id, EMPTY_IMAGE_DATA, playerName);
     const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('No se pudieron cargar los datos de la app.');
-    const { matches } = (await response.json()) as { matches: MatchStats[] };
-    return buildTemplate(id, matches, playerName);
+    return buildTemplate(id, (await response.json()) as ImageData, playerName);
   };
 
   // Elegir una plantilla crea la imagen al instante y la deja guardada en el historial.
@@ -222,6 +246,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       setTweetText(null);
       setShareMessage(null);
       setWarnings(result.warnings);
+      setOutdated(false);
+      openedRef.current = body.id;
       setSaveState('idle');
       setEditing(false);
       setCurrent({ id: body.id, template: id });
@@ -242,13 +268,26 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       const body = (await response.json().catch(() => ({}))) as { image?: { id: string; template: string; spec: ImageSpec }; error?: string };
       if (!response.ok || !body.image) throw new Error(body.error ?? 'No se pudo abrir la imagen.');
       dirtyRef.current = false;
-      setSpec(sanitizeSpec(body.image.spec));
+      const saved = sanitizeSpec(body.image.spec);
+      const template = isTemplateId(body.image.template) ? body.image.template : 'libre';
+      setSpec(saved);
       setTweetText(null);
       setShareMessage(null);
       setWarnings([]);
+      setOutdated(false);
       setSaveState('idle');
       setEditing(false);
-      setCurrent({ id: body.image.id, template: isTemplateId(body.image.template) ? body.image.template : 'libre' });
+      setCurrent({ id: body.image.id, template });
+      // Cada jornada nueva debe reflejarse: se comparan los datos guardados con los actuales de la app y, si difieren, se avisa.
+      openedRef.current = body.image.id;
+      if (template !== 'libre') {
+        const openedId = body.image.id;
+        void buildFor(template)
+          .then((result) => {
+            if (openedRef.current === openedId && result.spec.rows && dataSignature(sanitizeSpec(result.spec)) !== dataSignature(saved)) setOutdated(true);
+          })
+          .catch(() => undefined);
+      }
     } catch (failure) {
       setPickerError(failure instanceof Error ? failure.message : 'No se pudo abrir la imagen.');
       setCurrent(null);
@@ -269,6 +308,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   };
 
   const newImage = () => {
+    openedRef.current = null;
     dirtyRef.current = false;
     setCurrent(null);
     setEditing(false);
@@ -284,6 +324,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       const result = await buildFor(current.template);
       update(result.spec);
       setWarnings(result.warnings);
+      setOutdated(false);
     } catch (failure) {
       setWarnings([failure instanceof Error ? failure.message : 'No se pudieron cargar los datos de la app.']);
     } finally {
@@ -455,6 +496,15 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
               </Button>
             </div>
 
+            {outdated && current.template !== 'libre' && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sky-50 p-3 ring-1 ring-sky-200">
+                <p className="text-sm font-bold text-sky-900">Hay datos más recientes en la app que los de esta imagen (nuevas jornadas, goles, MVP o pronósticos).</p>
+                <Button type="button" disabled={reloading} onClick={() => void reloadData()} className="bg-[#153e72] font-black text-white">
+                  {reloading ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} Actualizar con los últimos datos
+                </Button>
+              </div>
+            )}
+
             <div className={editing ? 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]' : ''}>
               {editing && (
                 <div className="space-y-5">
@@ -478,7 +528,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                           <NativeSelect id="img-layout" value={spec.layout} onChange={(event) => update({ layout: event.target.value as ImageSpec['layout'] })} className="w-full">
                             <NativeSelectOption value="barras">Barras verticales (tramos, jornadas…)</NativeSelectOption>
                             <NativeSelectOption value="ranking">Ranking horizontal (jugadores, equipos…)</NativeSelectOption>
-                            <NativeSelectOption value="podio">Podio (los tres primeros)</NativeSelectOption>
+                            <NativeSelectOption value="podio">Podio (los tres primeros, con foto)</NativeSelectOption>
+                            <NativeSelectOption value="comparar">Comparativa (pares de columnas)</NativeSelectOption>
                           </NativeSelect>
                         </Field>
                         <Field label="Porcentajes">
@@ -501,6 +552,12 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                           {spec.rows.map((row, index) => (
                             <div key={index} className="flex items-center gap-2">
                               <Input aria-label={`Etiqueta ${index + 1}`} value={row.label} maxLength={30} onChange={(event) => setRow(index, { label: event.target.value })} className="h-10 flex-1" />
+                              {spec.layout === 'podio' && (
+                                <NativeSelect aria-label={`Foto del jugador ${index + 1}`} value={row.playerId ?? ''} onChange={(event) => setRow(index, { playerId: event.target.value || undefined })} className="h-10 w-40">
+                                  <NativeSelectOption value="">Sin foto</NativeSelectOption>
+                                  {levantePlayers.map((item) => <NativeSelectOption key={item.id} value={item.id}>{item.displayName}</NativeSelectOption>)}
+                                </NativeSelect>
+                              )}
                               <Input aria-label={`Valor ${index + 1}`} type="number" min={0} step="any" value={Number.isFinite(row.value) ? row.value : 0} onChange={(event) => setRow(index, { value: Math.max(0, Number(event.target.value) || 0) })} className="h-10 w-24" />
                               <Button type="button" size="icon" variant="outline" aria-label="Quitar fila" onClick={() => update({ rows: spec.rows.filter((_, position) => position !== index) })}><Minus className="size-4" /></Button>
                             </div>

@@ -11,16 +11,30 @@ export interface MatchStats {
   concededMinutes: number[];
   // Ids de jugador de cada gol del Levante.
   scorers: string[];
-  // Id del jugador elegido MVP de la jornada ('' si todavia no hay).
-  mvp: string;
 }
 
-export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'libre';
+// Todo lo que la app sabe y que alimenta las plantillas; se pide de nuevo cada vez que se crea o se recarga una imagen,
+// asi cada jornada nueva queda reflejada.
+export interface ImageData {
+  matches: MatchStats[];
+  // MVP de cada jornada de Liga con MVP elegido (aunque su informe oficial aun no este completo).
+  mvps: Array<{ matchday: number; playerId: string }>;
+  // Los once de cada jornada de Liga con once oficial.
+  lineups: Array<{ matchday: number; players: string[] }>;
+  // Pronosticos de los usuarios de la comunidad por partido jugado, segun el resultado que dan al Levante.
+  predictions: Array<{ matchday: number; win: number; draw: number; loss: number }>;
+}
+
+export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [] };
+
+export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'libre';
 
 export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: string; description: string }> = [
   { id: 'marca', label: '¿Cuándo marca el Levante UD?', name: '¿Cuándo marca el Levante UD?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
   { id: 'encaja', label: '¿Cuándo encaja el Levante UD?', name: '¿Cuándo encaja el Levante UD?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
   { id: 'mvp', label: 'Podio de MVP', name: 'Podio de MVP', description: 'Los jugadores con más MVP de la jornada hasta ahora, en un podio.' },
+  { id: 'xi', label: 'Podio de titulares', name: 'Podio de titulares', description: 'Los futbolistas que más veces han estado en el once inicial, en un podio con su foto.' },
+  { id: 'prono', label: 'Pronósticos vs realidad', name: 'Pronósticos vs realidad', description: 'Qué porcentaje de usuarios da victoria, empate o derrota al Levante UD, comparado con cómo han salido los partidos.' },
   { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
@@ -141,40 +155,144 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
   };
 }
 
-// "Podio de MVP": quien ha sido MVP mas veces. El MVP de la ultima jornada puede cambiar, asi que se avisa.
-function buildMvp(stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
-  const withMvp = stats.filter((item) => item.mvp && playerName(item.mvp));
+// Ordena (id -> veces) de mas a menos; a igualdad, quien aparece antes en la lista.
+function rankCounts(ids: string[]): Array<[string, number]> {
   const counts = new Map<string, number>();
-  for (const item of withMvp) counts.set(item.mvp, (counts.get(item.mvp) ?? 0) + 1);
-  // Mas MVP primero; a igualdad, el que lo fue antes.
-  const firstSeen = (id: string) => withMvp.findIndex((item) => item.mvp === id);
-  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || firstSeen(a[0]) - firstSeen(b[0]));
+  for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || ids.indexOf(a[0]) - ids.indexOf(b[0]));
+}
+
+const podiumRows = (ranked: Array<[string, number]>, playerName: (id: string) => string | null) =>
+  ranked.slice(0, 8).map(([id, count]) => ({ label: playerName(id) ?? id, value: count, playerId: id }));
+
+// "Podio de MVP": quien ha sido MVP mas veces. El MVP de la ultima jornada puede cambiar, asi que se avisa.
+function buildMvp(mvps: ImageData['mvps'], playerName: (id: string) => string | null): TemplateResult {
+  const valid = mvps.filter((item) => playerName(item.playerId)).sort((a, b) => a.matchday - b.matchday);
+  const ranked = rankCounts(valid.map((item) => item.playerId));
   if (ranked.length === 0) return { spec: {}, warnings: ['Todavía no hay ningún MVP elegido.'] };
-  const lastDay = Math.max(...withMvp.map((item) => item.matchday));
+  const last = valid[valid.length - 1];
   const [topId, topCount] = ranked[0];
   const tiedTop = ranked.filter(([, count]) => count === topCount).length;
-  const unique = ranked.length;
+  const days = `J${valid[0].matchday}–J${last.matchday}`;
 
   return {
-    warnings: [`El MVP de la J${lastDay} (${playerName(withMvp.find((item) => item.matchday === lastDay)!.mvp)}) puede no ser el definitivo: revisa el podio antes de publicar.`],
+    warnings: [`El MVP de la J${last.matchday} (${playerName(last.playerId)}) puede no ser el definitivo: revisa el podio antes de publicar.`],
     spec: {
       kicker: DEFAULT_SPEC.kicker,
       title: 'Podio de',
       titleAccent: 'MVP del Levante UD',
-      subtitle: `${withMvp.length} ${plural(withMvp.length, 'jornada', 'jornadas')} con MVP (${range(withMvp)}) y ${unique} ${plural(unique, 'jugador distinto', 'jugadores distintos')}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
+      subtitle: `${valid.length} ${plural(valid.length, 'jornada', 'jornadas')} con MVP (${days}) y ${ranked.length} ${plural(ranked.length, 'jugador distinto', 'jugadores distintos')}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
       layout: 'podio',
-      rows: ranked.slice(0, 8).map(([id, count]) => ({ label: playerName(id) ?? id, value: count })),
+      unit: ['MVP', 'MVPs'],
+      rows: podiumRows(ranked, playerName),
       showPercent: false,
       dividerAfter: 0,
       cards: [
         { value: String(topCount), text: `${plural(topCount, 'MVP', 'MVPs')} para ${playerName(topId) ?? topId}${tiedTop > 1 ? ' (y empata)' : ''}` },
-        { value: String(withMvp.length), text: `${plural(withMvp.length, 'jornada', 'jornadas')} con MVP elegido` },
-        { value: String(unique), text: `${plural(unique, 'jugador ha sido', 'jugadores han sido')} MVP` },
+        { value: String(valid.length), text: `${plural(valid.length, 'jornada', 'jornadas')} con MVP elegido` },
+        { value: String(ranked.length), text: `${plural(ranked.length, 'jugador ha sido', 'jugadores han sido')} MVP` },
       ],
-      playerId: topId,
-      playerCaption: `${playerName(topId) ?? topId} · ${topCount} ${plural(topCount, 'MVP', 'MVPs')}`,
-      playerSub: tiedTop > 1 ? 'Líder del podio (empatado)' : 'Líder del podio',
-      footer: `${SOURCE} · MVP de cada jornada de LaLiga elegido en la comunidad (${range(withMvp)}).`,
+      playerId: '',
+      playerCaption: '',
+      playerSub: '',
+      footer: `${SOURCE} · MVP de cada jornada de LaLiga elegido en la comunidad (${days}).`,
+    },
+  };
+}
+
+// "Podio de titulares": quien ha estado mas veces en el once inicial oficial.
+function buildStarters(lineups: ImageData['lineups'], playerName: (id: string) => string | null): TemplateResult {
+  const valid = lineups.filter((item) => item.players.length > 0).sort((a, b) => a.matchday - b.matchday);
+  const ranked = rankCounts(valid.flatMap((item) => item.players.filter((id) => playerName(id))));
+  if (ranked.length === 0) return { spec: {}, warnings: ['Todavía no hay ningún once oficial guardado.'] };
+  const [topId, topCount] = ranked[0];
+  const tiedTop = ranked.filter(([, count]) => count === topCount).length;
+  const everPresent = ranked.filter(([, count]) => count === valid.length).length;
+  const days = `J${valid[0].matchday}–J${valid[valid.length - 1].matchday}`;
+
+  return {
+    warnings: [],
+    spec: {
+      kicker: DEFAULT_SPEC.kicker,
+      title: 'Podio de',
+      titleAccent: 'titulares del Levante UD',
+      subtitle: `Quién ha estado más veces en el once inicial en ${valid.length} ${plural(valid.length, 'jornada', 'jornadas')} de LaLiga.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
+      layout: 'podio',
+      unit: ['vez en el XI', 'veces en el XI'],
+      rows: podiumRows(ranked, playerName),
+      showPercent: false,
+      dividerAfter: 0,
+      cards: [
+        { value: String(topCount), text: `${plural(topCount, 'vez', 'veces')} en el XI de ${playerName(topId) ?? topId}${tiedTop > 1 ? ' (y empata)' : ''}` },
+        { value: String(valid.length), text: plural(valid.length, 'once analizado', 'onces analizados') },
+        { value: String(everPresent), text: `${plural(everPresent, 'jugador no se ha perdido', 'jugadores no se han perdido')} ninguno` },
+      ],
+      playerId: '',
+      playerCaption: '',
+      playerSub: '',
+      footer: `${SOURCE} · Once inicial oficial de cada jornada de LaLiga (${days}).`,
+    },
+  };
+}
+
+// Reparte 100 entre las partes sin que la suma se desvie por los redondeos.
+function percents(parts: number[]) {
+  const total = parts.reduce((sum, part) => sum + part, 0);
+  if (total === 0) return parts.map(() => 0);
+  const exact = parts.map((part) => (part / total) * 100);
+  const floors = exact.map(Math.floor);
+  let missing = 100 - floors.reduce((sum, value) => sum + value, 0);
+  const order = exact.map((value, index) => ({ index, remainder: value - Math.floor(value) })).sort((a, b) => b.remainder - a.remainder);
+  for (const item of order) {
+    if (missing <= 0) break;
+    floors[item.index] += 1;
+    missing -= 1;
+  }
+  return floors;
+}
+
+// "Pronosticos vs realidad": resultado que dan los usuarios al Levante frente a como han salido los partidos.
+function buildPredictions(data: ImageData): TemplateResult {
+  const played = new Map(data.matches.map((item) => [item.matchday, item]));
+  const rated = data.predictions.filter((item) => played.has(item.matchday) && item.win + item.draw + item.loss > 0);
+  if (rated.length === 0) return { spec: {}, warnings: ['Todavía no hay pronósticos de partidos ya jugados.'] };
+  const users = [rated.reduce((sum, item) => sum + item.win, 0), rated.reduce((sum, item) => sum + item.draw, 0), rated.reduce((sum, item) => sum + item.loss, 0)];
+  const real = [0, 0, 0];
+  for (const item of rated) {
+    const match = played.get(item.matchday)!;
+    real[match.scored > match.conceded ? 0 : match.scored === match.conceded ? 1 : 2] += 1;
+  }
+  const total = users[0] + users[1] + users[2];
+  const userPct = percents(users);
+  const realPct = percents(real);
+  const names = ['Gana el Levante UD', 'Empate', 'Pierde el Levante UD'];
+  const short = ['victoria', 'empate', 'derrota'];
+  const topUser = userPct.indexOf(Math.max(...userPct));
+  const topReal = realPct.indexOf(Math.max(...realPct));
+  const days = `J${Math.min(...rated.map((item) => item.matchday))}–J${Math.max(...rated.map((item) => item.matchday))}`;
+
+  return {
+    warnings: [],
+    spec: {
+      kicker: DEFAULT_SPEC.kicker,
+      title: 'Pronósticos',
+      titleAccent: 'contra la realidad',
+      subtitle: `${total} pronósticos en ${rated.length} ${plural(rated.length, 'partido jugado', 'partidos jugados')}: ${userPct[0]}% da victoria al Levante UD, ${userPct[1]}% empate y ${userPct[2]}% derrota.`,
+      layout: 'comparar',
+      unit: DEFAULT_SPEC.unit,
+      rows: names.flatMap((name, index) => [{ label: name, value: userPct[index] }, { label: name, value: realPct[index] }]),
+      showPercent: false,
+      dividerAfter: 0,
+      dividerLabels: ['Lo que pronostican', 'Lo que ha pasado'],
+      cards: [
+        { value: `${userPct[topUser]}%`, text: `de los usuarios apuestan por ${short[topUser]}` },
+        { value: `${realPct[topReal]}%`, text: `de los partidos han acabado en ${short[topReal]}` },
+        { value: String(total), text: `pronósticos analizados (${rated.length} ${plural(rated.length, 'partido', 'partidos')})` },
+      ],
+      playerId: '',
+      playerCaption: '',
+      playerSub: '',
+      footer: `${SOURCE} · Pronósticos de la comunidad en partidos de LaLiga ya jugados (${days}) frente a su resultado real.`,
     },
   };
 }
@@ -206,9 +324,12 @@ function buildBlank(): TemplateResult {
   };
 }
 
-export function buildTemplate(id: ImageTemplateId, stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
+export function buildTemplate(id: ImageTemplateId, data: ImageData, playerName: (id: string) => string | null): TemplateResult {
+  const stats = data.matches;
   if (id === 'libre') return buildBlank();
+  if (id === 'mvp') return buildMvp(data.mvps, playerName);
+  if (id === 'xi') return buildStarters(data.lineups, playerName);
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
-  if (id === 'mvp') return buildMvp(stats, playerName);
+  if (id === 'prono') return buildPredictions(data);
   return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
 }
