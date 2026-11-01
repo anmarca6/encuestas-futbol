@@ -3,6 +3,7 @@
 
 export type ImageLayout = 'barras' | 'ranking' | 'podio' | 'comparar';
 export type ImageBackground = 'nocturna' | 'interior' | 'ninguno';
+export type ImageLogo = 'ninguno' | 'ismaelete';
 
 export interface ImageRow {
   label: string;
@@ -35,6 +36,8 @@ export interface ImageSpec {
   footer: string;
   // Unidad del valor en el podio: singular y plural ("MVP", "MVPs").
   unit: [string, string];
+  // Logo de la comunidad en la esquina superior derecha.
+  logo: ImageLogo;
 }
 
 export const IMAGE_WIDTH = 1080;
@@ -45,6 +48,10 @@ export const MAX_ROWS = 12;
 export const BACKGROUNDS: Record<Exclude<ImageBackground, 'ninguno'>, { src: string; label: string; credit: string }> = {
   nocturna: { src: '/ciutat-nocturna.jpg', label: 'Ciutat de València (de noche)', credit: 'Foto del estadio: TaronjaSatsuma, CC BY-SA 4.0 (Wikimedia Commons).' },
   interior: { src: '/ciutat-interior.jpg', label: 'Ciutat de València (de día)', credit: 'Foto del estadio: Francesc Fort, CC BY-SA 4.0 (Wikimedia Commons).' },
+};
+
+export const LOGOS: Record<Exclude<ImageLogo, 'ninguno'>, { src: string; label: string }> = {
+  ismaelete: { src: '/ismaelete_profile.jpg', label: 'Ismaelete' },
 };
 
 export const QUARTER_LABELS = ["1-15'", "16-30'", "31-45'", "46-60'", "61-75'", "76-90'", '90+'];
@@ -78,6 +85,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   playerSub: 'Máximo goleador del equipo',
   footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante UD en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
   unit: ['MVP', 'MVPs'],
+  logo: 'ninguno',
 };
 
 // Tarjetas sugeridas a partir de los datos: el tramo mas alto, el total y los tramos sin ninguno.
@@ -101,6 +109,7 @@ export interface ImageAssets {
   player: HTMLImageElement | null;
   // Fotos de los jugadores de las filas del podio, por id.
   rowPlayers: Record<string, HTMLImageElement>;
+  logo: HTMLImageElement | null;
 }
 
 const HEAD_FONT = '"Barlow Condensed", Impact, "Arial Narrow", sans-serif';
@@ -253,6 +262,28 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       ctx.drawImage(layer, W - 10 - width, 275, width, height);
       ctx.restore();
     }
+  }
+
+  // Logo de la comunidad: circulo con aro rojo arriba a la derecha
+  if (spec.logo !== 'ninguno' && assets.logo) {
+    const size = 124;
+    const lx = W - 64 - size;
+    const ly = 40;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.55)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 8;
+    ctx.beginPath();
+    ctx.arc(lx + size / 2, ly + size / 2, size / 2 + 6, 0, Math.PI * 2);
+    ctx.fillStyle = RED;
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(lx + size / 2, ly + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(assets.logo, lx, ly, size, size);
+    ctx.restore();
   }
 
   // Cabecera
@@ -628,6 +659,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   assign('playerSub', text(source.playerSub, 50));
   if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio' || source.layout === 'comparar') out.layout = source.layout;
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
+  if (source.logo === 'ninguno' || source.logo === 'ismaelete') out.logo = source.logo;
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {
     out.rows = source.rows

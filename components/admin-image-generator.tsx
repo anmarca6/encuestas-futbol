@@ -10,6 +10,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { levantePlayers } from '@/lib/levante-data';
 import {
   BACKGROUNDS,
+  LOGOS,
   DEFAULT_SPEC,
   MAX_ROWS,
   QUARTER_LABELS,
@@ -74,7 +75,7 @@ async function loadRowPlayers(saved: ImageSpec): Promise<Record<string, HTMLImag
 }
 
 // Huella de lo que cambia cuando entran datos nuevos (para avisar de que una imagen guardada se ha quedado atras).
-const dataSignature = (value: ImageSpec) => JSON.stringify([value.rows, value.cards, value.subtitle]);
+const dataSignature = (value: ImageSpec) => JSON.stringify([value.rows, value.cards, value.subtitle, value.logo]);
 
 // Miniatura para el historial.
 function makeThumb(canvas: HTMLCanvasElement) {
@@ -88,7 +89,7 @@ function makeThumb(canvas: HTMLCanvasElement) {
 // Generador de imagenes estadisticas. Cada imagen se guarda sola en el historial (ficha + miniatura) para poder reabrirla y editarla.
 export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [spec, setSpec] = useState<ImageSpec>(DEFAULT_SPEC);
-  const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null, rowPlayers: {} });
+  const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null, rowPlayers: {}, logo: null });
   const [assetsReady, setAssetsReady] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
   const [assetError, setAssetError] = useState('');
@@ -138,13 +139,14 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
           const response = await fetch(`/api/admin/images?id=${encodeURIComponent(item.id)}`, { cache: 'no-store' });
           const { image } = (await response.json()) as { image: { spec: ImageSpec } };
           const saved = sanitizeSpec(image.spec);
-          const [background, playerImage, rowPlayers] = await Promise.all([
+          const [background, playerImage, rowPlayers, logo] = await Promise.all([
             saved.background === 'ninguno' ? Promise.resolve(null) : loadImage(BACKGROUNDS[saved.background].src),
             saved.playerId ? loadImage(levantePlayers.find((entry) => entry.id === saved.playerId)?.image ?? '') : Promise.resolve(null),
             loadRowPlayers(saved),
+            saved.logo === 'ninguno' ? Promise.resolve(null) : loadImage(LOGOS[saved.logo].src),
           ]);
           const canvas = document.createElement('canvas');
-          renderInfographic(canvas, saved, { background, player: playerImage, rowPlayers });
+          renderInfographic(canvas, saved, { background, player: playerImage, rowPlayers, logo });
           const thumb = makeThumb(canvas);
           await fetch('/api/admin/images', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: item.id, thumb, thumbOnly: true }) });
           if (!cancelled) setImages((list) => list?.map((entry) => (entry.id === item.id ? { ...entry, thumb } : entry)) ?? list);
@@ -169,14 +171,15 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       backgroundSrc ? loadImage(backgroundSrc) : Promise.resolve(null),
       player?.image ? loadImage(player.image) : Promise.resolve(null),
       loadRowPlayers(spec),
+      spec.logo === 'ninguno' ? Promise.resolve(null) : loadImage(LOGOS[spec.logo].src),
     ])
-      .then(([background, playerImage, rowPlayers]) => { if (!cancelled) setAssets({ background, player: playerImage, rowPlayers }); })
+      .then(([background, playerImage, rowPlayers, logo]) => { if (!cancelled) setAssets({ background, player: playerImage, rowPlayers, logo }); })
       .catch(() => { if (!cancelled) setAssetError('No se ha podido cargar el fondo o la foto del jugador.'); })
       .finally(() => { if (!cancelled) setAssetsReady(true); });
     return () => { cancelled = true; };
     // spec se lee entero, pero solo importan el fondo, el jugador y las fotos del podio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spec.background, player, rowPlayersKey]);
+  }, [spec.background, spec.logo, player, rowPlayersKey]);
 
   useEffect(() => {
     if (!fontsReady || !current || !canvasRef.current) return;
@@ -618,6 +621,12 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                           <NativeSelect id="img-bg" value={spec.background} onChange={(event) => update({ background: event.target.value as ImageSpec['background'] })} className="w-full">
                             {Object.entries(BACKGROUNDS).map(([key, item]) => <NativeSelectOption key={key} value={key}>{item.label}</NativeSelectOption>)}
                             <NativeSelectOption value="ninguno">Sin foto (degradado)</NativeSelectOption>
+                          </NativeSelect>
+                        </Field>
+                        <Field id="img-logo" label="Logo de la comunidad">
+                          <NativeSelect id="img-logo" value={spec.logo} onChange={(event) => update({ logo: event.target.value as ImageSpec['logo'] })} className="w-full">
+                            <NativeSelectOption value="ninguno">Sin logo</NativeSelectOption>
+                            {Object.entries(LOGOS).map(([key, item]) => <NativeSelectOption key={key} value={key}>{item.label}</NativeSelectOption>)}
                           </NativeSelect>
                         </Field>
                         <Field id="img-player" label="Jugador destacado">

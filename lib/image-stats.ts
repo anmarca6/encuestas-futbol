@@ -279,6 +279,7 @@ function buildPredictions(data: ImageData): TemplateResult {
       titleAccent: 'contra la realidad',
       subtitle: `${total} pronósticos en ${rated.length} ${plural(rated.length, 'partido jugado', 'partidos jugados')}: ${userPct[0]}% da victoria al Levante UD, ${userPct[1]}% empate y ${userPct[2]}% derrota.`,
       layout: 'comparar',
+      logo: 'ismaelete',
       unit: DEFAULT_SPEC.unit,
       rows: names.flatMap((name, index) => [{ label: name, value: userPct[index] }, { label: name, value: realPct[index] }]),
       showPercent: false,
