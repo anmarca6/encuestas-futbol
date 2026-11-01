@@ -55,6 +55,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
   const [templateError, setTemplateError] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // PNG ya preparado: el menu de compartir del movil exige llamarse en el mismo toque, sin esperas intermedias.
+  const shareFileRef = useRef<File | null>(null);
 
   const update = (patch: Partial<ImageSpec>) => setSpec((current) => ({ ...current, ...patch }));
   const player = useMemo(() => levantePlayers.find((item) => item.id === spec.playerId) ?? null, [spec.playerId]);
@@ -105,7 +107,14 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
 
   useEffect(() => {
     if (!fontsReady || !canvasRef.current) return;
-    renderInfographic(canvasRef.current, spec, assets);
+    const canvas = canvasRef.current;
+    renderInfographic(canvas, spec, assets);
+    shareFileRef.current = null;
+    const timer = window.setTimeout(() => {
+      // JPEG: pesa unas diez veces menos que el PNG y X rechaza imagenes de mas de 5 MB.
+      canvas.toBlob((blob) => { if (blob) shareFileRef.current = new File([blob], 'granota-estadistica.jpg', { type: 'image/jpeg' }); }, 'image/jpeg', 0.92);
+    }, 300);
+    return () => window.clearTimeout(timer);
   }, [spec, assets, fontsReady]);
 
   const setRow = (index: number, patch: Partial<ImageSpec['rows'][number]>) =>
@@ -166,10 +175,23 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     }
   };
 
-  // X no permite adjuntar una imagen desde un enlace: se copia la imagen y se abre el editor de X (en la cuenta con la que el usuario
-  // tenga la sesion iniciada) con el texto y el enlace listos; solo hay que pegar la imagen en la publicacion.
+  // En el movil se abre el menu de compartir con la imagen ya adjunta: al elegir X sale la publicacion con la imagen puesta.
+  // En el ordenador, X no permite adjuntar una imagen desde un enlace: se copia la imagen y se abre el editor de X (en la cuenta con la
+  // que el usuario tenga la sesion iniciada) con el texto y el enlace listos; solo hay que pegar la imagen en la publicacion.
   const onShareX = async () => {
     setShareMessage(null);
+    const file = shareFileRef.current;
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (mobile && file && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text: `${tweet} ${SHARE_URL}` });
+        setShareMessage({ ok: true, text: 'Compartido. Si has elegido X, la publicación ya llevaba la imagen adjunta.' });
+        return;
+      } catch (failure) {
+        if (failure instanceof DOMException && failure.name === 'AbortError') return;
+        // Cualquier otro fallo: se sigue con el metodo de copiar y pegar.
+      }
+    }
     const popup = window.open('', '_blank');
     let copied = true;
     try {
