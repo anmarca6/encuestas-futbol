@@ -204,6 +204,15 @@ export function ensureCommunitySchema(): Promise<void> {
       )
     `).bind().run();
 
+    // Goles de los rivales (goleador y minuto) para el generador de imagenes del admin. No se muestran en la app.
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS rival_goals (
+        matchday INTEGER PRIMARY KEY NOT NULL,
+        goals TEXT NOT NULL DEFAULT '[]',
+        updated_at INTEGER NOT NULL
+      )
+    `).bind().run();
+
     // Avisos push: una fila por dispositivo suscrito (endpoint unico). Los avisos los envia a mano el admin de cada comunidad.
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS push_subscriptions (

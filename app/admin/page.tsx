@@ -36,6 +36,7 @@ import {
 import { fitImageToDataUrl, resizeImageToDataUrl } from '@/lib/image-resize';
 import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
 import { ImageGenerator } from '@/components/admin-image-generator';
+import type { RivalGoal } from '@/lib/rival-goals';
 import {
   DEFAULT_SOCIAL_NETWORKS,
   MAX_COMMUNITY_LINKS,
@@ -374,6 +375,25 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
   const [kickoffDrafts, setKickoffDrafts] = useState<Record<number, string>>({});
   const [kickoffBusy, setKickoffBusy] = useState<number | null>(null);
   const [kickoffError, setKickoffError] = useState('');
+  // Goles de los rivales (solo para el generador de imagenes): los guardados y los que se estan editando.
+  const [rivalSaved, setRivalSaved] = useState<Record<number, RivalGoal[]>>({});
+  const [rivalDrafts, setRivalDrafts] = useState<Record<number, RivalGoal[]>>({});
+
+  const loadRivalGoals = () =>
+    fetch('/api/admin/rival-goals')
+      .then(async (response) => ((await response.json()) as { goals?: Record<number, RivalGoal[]> }).goals ?? {})
+      .then(setRivalSaved)
+      .catch(() => setRivalSaved({}));
+
+  // Goles del rival de un partido: lo que se esta editando, si no lo guardado y, si no, los del calendario local (partidos ya cargados en la app).
+  const rivalGoalsFor = (matchday: number): RivalGoal[] => {
+    const own = rivalDrafts[matchday] ?? rivalSaved[matchday];
+    if (own) return own;
+    return (levanteMatches.find((item) => item.matchday === matchday)?.goals ?? [])
+      .filter((goal) => goal.team !== LEVANTE_TEAM)
+      .map((goal) => ({ player: goal.playerName, minute: goal.minute }));
+  };
+  const setRivalGoals = (matchday: number, goals: RivalGoal[]) => setRivalDrafts((current) => ({ ...current, [matchday]: goals }));
 
   const loadKickoffs = () =>
     fetch('/api/admin/kickoffs')
@@ -424,7 +444,7 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
   };
 
   useEffect(() => {
-    void Promise.all([loadReports(), loadKickoffs()]).finally(() => setLoading(false));
+    void Promise.all([loadReports(), loadKickoffs(), loadRivalGoals()]).finally(() => setLoading(false));
   }, []);
 
   const draftFromStaticReport = (matchday: number): MatchReportDraft | null => {
@@ -494,6 +514,19 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
         }),
       });
       if (response.ok) {
+        // Los goles del rival solo se guardan si se han tocado.
+        if (rivalDrafts[matchday]) {
+          await fetch('/api/admin/rival-goals', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ matchday, goals: rivalDrafts[matchday] }),
+          });
+          setRivalDrafts((current) => {
+            const { [matchday]: _saved, ...rest } = current;
+            return rest;
+          });
+          await loadRivalGoals();
+        }
         await loadReports();
         setSavedMatchday(matchday);
         window.setTimeout(() => setSavedMatchday((current) => (current === matchday ? null : current)), 2000);
@@ -698,6 +731,53 @@ function MatchReportEditor({ communitySlug, matchday, onMatchdayChange }: { comm
                   </div>
                 )}
               </div>
+              {(() => {
+                const rival = match.homeTeam === LEVANTE_TEAM ? match.awayTeam : match.homeTeam;
+                const rivalScore = match.homeTeam === LEVANTE_TEAM ? draft.awayScore : draft.homeScore;
+                const goals = rivalGoalsFor(match.matchday);
+                const edit = (index: number, patch: Partial<RivalGoal>) => setRivalGoals(match.matchday, goals.map((goal, position) => (position === index ? { ...goal, ...patch } : goal)));
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500">Goles del rival: {rival}</p>
+                    <p className={`mb-2 text-xs font-bold ${goals.length === rivalScore ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      Goles del rival: {rivalScore} · goles anotados: {goals.length}. Solo sirven para generar imágenes: no se muestran en la app ni dan puntos.
+                    </p>
+                    <div className="space-y-2">
+                      {goals.map((goal, index) => (
+                        <div key={`${match.matchday}-rival-${index}`} className="flex items-center gap-2">
+                          <Input
+                            aria-label={`Goleador del rival ${index + 1}`}
+                            placeholder="Goleador"
+                            maxLength={40}
+                            value={goal.player}
+                            onChange={(event) => edit(index, { player: event.target.value })}
+                            className="h-9 flex-1"
+                          />
+                          <Input
+                            type="number"
+                            min={1}
+                            max={130}
+                            inputMode="numeric"
+                            placeholder="min"
+                            aria-label={`Minuto del gol del rival ${index + 1}`}
+                            value={goal.minute ? goal.minute : ''}
+                            onChange={(event) => edit(index, { minute: Math.max(0, Math.min(130, Math.floor(Number(event.target.value) || 0))) })}
+                            className="h-9 w-20"
+                          />
+                          <span className="text-slate-400">&apos;</span>
+                          <button type="button" aria-label={`Quitar el gol ${index + 1} del rival`} onClick={() => setRivalGoals(match.matchday, goals.filter((_, position) => position !== index))} className="grid size-8 place-items-center rounded-full border border-slate-300 bg-white">
+                            <Minus className="size-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" size="sm" variant="outline" className="mt-2" disabled={goals.length >= 20} onClick={() => setRivalGoals(match.matchday, [...goals, { player: '', minute: 0 }])}>
+                      <Plus className="size-4" /> Añadir gol del rival
+                    </Button>
+                    {rivalDrafts[match.matchday] && <p className="mt-2 text-xs font-bold text-[#153e72]">Cambios sin guardar: se guardan con el botón Guardar de arriba.</p>}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         );
@@ -2070,7 +2150,7 @@ export default function AdminPage() {
     ? communities?.find((community) => community.slug === managedSlug)?.name ?? managedSlug
     : admin.communityName ?? managedSlug;
 
-  const communityTabs: AdminTab[] = ['mvp', 'partidos', 'moderacion'];
+  const communityTabs: AdminTab[] = ['mvp', 'partidos', 'moderacion', 'imagenes'];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
@@ -2197,9 +2277,9 @@ export default function AdminPage() {
           <section className="space-y-4" role="tabpanel">
             <SectionHeading
               title="Generador de imágenes"
-              description="Crea imágenes estadísticas (como la de los goles por minuto) con los datos que escribas aquí. No se guardan en la app: descarga el PNG y compártelo."
+              description="Crea imágenes estadísticas (como la de los goles por minuto) con los datos de la app o con los que escribas aquí. Las imágenes no se guardan: descarga el PNG, cópialo o publícalo en X."
             />
-            <ImageGenerator />
+            <ImageGenerator key={managedSlug} communitySlug={managedSlug} />
           </section>
         )}
       </main>

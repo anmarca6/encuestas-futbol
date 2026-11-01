@@ -224,7 +224,7 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
   const hasPlayer = Boolean(assets.player);
   if (assets.player) {
     const image = assets.player;
-    const height = 420;
+    const height = 400;
     const width = (image.naturalWidth / image.naturalHeight) * height;
     const layer = document.createElement('canvas');
     layer.width = Math.ceil(width * IMAGE_SCALE);
@@ -243,7 +243,7 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       ctx.shadowColor = 'rgba(0,0,0,.6)';
       ctx.shadowBlur = 40;
       ctx.shadowOffsetY = 20;
-      ctx.drawImage(layer, W - 10 - width, 225, width, height);
+      ctx.drawImage(layer, W - 10 - width, 275, width, height);
       ctx.restore();
     }
   }

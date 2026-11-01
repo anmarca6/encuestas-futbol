@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, Download, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
+import { Check, Copy, Download, Loader2, Minus, Plus, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ import {
   type ImageAssets,
   type ImageSpec,
 } from '@/lib/image-generator';
+import { IMAGE_TEMPLATES, buildTemplate, type ImageTemplateId, type MatchStats } from '@/lib/image-stats';
 
 // Enlace que acompana a cada publicacion en X (X lo cuenta como 23 caracteres).
 const SHARE_URL = 'https://encuestas-futbol.vercel.app/ismaelete';
@@ -39,7 +40,7 @@ function Field({ id, label, children }: { id?: string; label: string; children: 
 }
 
 // Generador de imagenes estadisticas: los datos solo viven en esta pantalla (no se guardan) y la imagen se descarga como PNG.
-export function ImageGenerator() {
+export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [spec, setSpec] = useState<ImageSpec>(DEFAULT_SPEC);
   const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null });
   const [fontsReady, setFontsReady] = useState(false);
@@ -49,11 +50,40 @@ export function ImageGenerator() {
   const [assetError, setAssetError] = useState('');
   const [tweetText, setTweetText] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [template, setTemplate] = useState<ImageTemplateId>('marca');
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
+  const [templateError, setTemplateError] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const update = (patch: Partial<ImageSpec>) => setSpec((current) => ({ ...current, ...patch }));
   const player = useMemo(() => levantePlayers.find((item) => item.id === spec.playerId) ?? null, [spec.playerId]);
   const sortedPlayers = useMemo(() => [...levantePlayers].sort((a, b) => a.displayName.localeCompare(b.displayName, 'es')), []);
+
+  // Rellena la imagen con los datos reales de la app (resultados, goles y minutos) segun la plantilla elegida.
+  const applyTemplate = async (id: ImageTemplateId) => {
+    setTemplate(id);
+    setTemplateBusy(true);
+    setTemplateError('');
+    try {
+      const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('No se pudieron cargar los datos de la app.');
+      const { matches } = (await response.json()) as { matches: MatchStats[] };
+      const result = buildTemplate(id, matches, (playerId) => levantePlayers.find((item) => item.id === playerId)?.displayName ?? null);
+      update(result.spec);
+      setTemplateWarnings(result.warnings);
+    } catch (failure) {
+      setTemplateError(failure instanceof Error ? failure.message : 'No se pudieron cargar los datos de la app.');
+    } finally {
+      setTemplateBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    void applyTemplate('marca');
+    // Solo al abrir la pestaña: despues los datos se recargan a mano.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     void ensureImageFonts().then(() => setFontsReady(true));
@@ -171,6 +201,26 @@ export function ImageGenerator() {
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-5">
+        <Card className="border-0 shadow-sm ring-slate-200">
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <Field id="img-template" label="Plantilla (con datos de la app)">
+                <NativeSelect id="img-template" value={template} disabled={templateBusy} onChange={(event) => void applyTemplate(event.target.value as ImageTemplateId)} className="w-full">
+                  {IMAGE_TEMPLATES.map((item) => <NativeSelectOption key={item.id} value={item.id}>{item.label}</NativeSelectOption>)}
+                </NativeSelect>
+              </Field>
+              <Button type="button" variant="outline" disabled={templateBusy} onClick={() => void applyTemplate(template)} className="font-black">
+                {templateBusy ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} Recargar datos
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Elegir una plantilla rellena el gráfico con los resultados, goles y minutos guardados en el panel (incluidos los goles del rival). Después puedes retocar cualquier campo.
+            </p>
+            {templateWarnings.map((warning) => <p key={warning} className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">{warning}</p>)}
+            {templateError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{templateError}</p>}
+          </CardContent>
+        </Card>
+
         <Card className="border-0 shadow-sm ring-slate-200">
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2 font-black text-[#071527]"><Sparkles className="size-4 text-[#a91d43]" /> Rellenar con IA</div>
