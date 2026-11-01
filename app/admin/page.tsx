@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Bell, Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, KeyRound, Loader2, MessageSquare, Minus, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
+import { Bell, Check, ChevronDown, ClipboardList, Copy, Globe, ImagePlus, Images, KeyRound, Loader2, MessageSquare, Minus, Pencil, Plus, Search, Shield, Star, Trash2, UserCog, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +35,7 @@ import {
 } from '@/lib/community-identity';
 import { fitImageToDataUrl, resizeImageToDataUrl } from '@/lib/image-resize';
 import { CommunityHeroCard, StandardHeroCard } from '@/components/community-hero';
+import { ImageGenerator } from '@/components/admin-image-generator';
 import {
   DEFAULT_SOCIAL_NETWORKS,
   MAX_COMMUNITY_LINKS,
@@ -1980,7 +1981,7 @@ function SectionHeading({ title, description }: { title: string; description: st
   );
 }
 
-type AdminTab = 'comunidades' | 'administradores' | 'mvp' | 'partidos' | 'moderacion' | 'avisos' | 'contrasena';
+type AdminTab = 'comunidades' | 'administradores' | 'mvp' | 'partidos' | 'moderacion' | 'avisos' | 'contrasena' | 'imagenes';
 
 export default function AdminPage() {
   // undefined = comprobando sesión · null = sin sesión
@@ -2030,6 +2031,7 @@ export default function AdminPage() {
     { id: 'moderacion', label: 'Moderación', icon: MessageSquare },
     { id: 'avisos', label: 'Avisos', icon: Bell },
     { id: 'contrasena', label: 'Mi contraseña', icon: KeyRound },
+    { id: 'imagenes', label: 'Generador de imágenes', icon: Images },
   ];
   const availableTabs = tabs.filter((item) => isSuper || !item.superOnly);
   const activeTab: AdminTab | null = admin ? (availableTabs.find((item) => item.id === tab)?.id ?? availableTabs[0].id) : null;
@@ -2189,6 +2191,15 @@ export default function AdminPage() {
           <section className="space-y-4" role="tabpanel">
             <SectionHeading title="Mi contraseña" description="Cambia la contraseña con la que entras a este panel." />
             <PasswordPanel />
+          </section>
+        )}
+        {activeTab === 'imagenes' && (
+          <section className="space-y-4" role="tabpanel">
+            <SectionHeading
+              title="Generador de imágenes"
+              description="Crea imágenes estadísticas (como la de los goles por minuto) con los datos que escribas aquí. No se guardan en la app: descarga el PNG y compártelo."
+            />
+            <ImageGenerator />
           </section>
         )}
       </main>
