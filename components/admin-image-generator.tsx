@@ -106,6 +106,37 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       .catch(() => setImages([]));
   }, []);
 
+  // Las imagenes del historial que aun no tienen miniatura (p. ej. la de ejemplo) se dibujan en segundo plano una sola vez.
+  const imagesLoaded = images !== null;
+  useEffect(() => {
+    if (!fontsReady || !imagesLoaded) return;
+    let cancelled = false;
+    void (async () => {
+      for (const item of (images ?? []).filter((entry) => !entry.thumb)) {
+        if (cancelled) return;
+        try {
+          const response = await fetch(`/api/admin/images?id=${encodeURIComponent(item.id)}`, { cache: 'no-store' });
+          const { image } = (await response.json()) as { image: { spec: ImageSpec } };
+          const saved = sanitizeSpec(image.spec);
+          const [background, playerImage] = await Promise.all([
+            saved.background === 'ninguno' ? Promise.resolve(null) : loadImage(BACKGROUNDS[saved.background].src),
+            saved.playerId ? loadImage(levantePlayers.find((entry) => entry.id === saved.playerId)?.image ?? '') : Promise.resolve(null),
+          ]);
+          const canvas = document.createElement('canvas');
+          renderInfographic(canvas, saved, { background, player: playerImage });
+          const thumb = makeThumb(canvas);
+          await fetch('/api/admin/images', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: item.id, thumb, thumbOnly: true }) });
+          if (!cancelled) setImages((list) => list?.map((entry) => (entry.id === item.id ? { ...entry, thumb } : entry)) ?? list);
+        } catch {
+          // Si una falla, se seguira intentando la proxima vez que se abra el generador.
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // Solo cuando la lista se carga por primera vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontsReady, imagesLoaded]);
+
   // Fondo y foto del jugador: se cargan al elegirlos.
   useEffect(() => {
     let cancelled = false;
@@ -345,7 +376,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   };
 
   const formatDate = (value: number) => new Date(value).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const templateLabel = IMAGE_TEMPLATES.find((item) => item.id === current?.template)?.label ?? '';
+  const templateLabel = IMAGE_TEMPLATES.find((item) => item.id === current?.template)?.name ?? '';
 
   return (
     <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -395,7 +426,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                     className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#153e72] hover:bg-sky-50 disabled:opacity-60"
                   >
                     <span className="grid size-10 place-items-center rounded-xl bg-[#153e72] text-white">
-                      {creating === item.id ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+                      {creating === item.id ? <Loader2 className="size-5 animate-spin" /> : item.id === 'libre' ? <Plus className="size-5" /> : <ImagePlus className="size-5" />}
                     </span>
                     <strong className="text-base font-black leading-tight text-[#071527]">{item.label}</strong>
                     <span className="text-xs text-slate-500">{item.description}</span>

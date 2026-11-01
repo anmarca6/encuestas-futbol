@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { requireAdmin, resolveAdminCommunity } from '@/lib/admin-auth';
 import { ensureCommunitySchema, getDatabase } from '@/lib/db';
-import { sanitizeSpec } from '@/lib/image-generator';
+import { DEFAULT_SPEC, sanitizeSpec } from '@/lib/image-generator';
 import { isTemplateId } from '@/lib/image-stats';
 
 // Historial del generador de imagenes: cada administrador ve solo las suyas.
@@ -43,6 +43,15 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ image: { id: row.id, title: row.title, template: row.template, communitySlug: row.communitySlug, spec, updatedAt: row.updatedAt } }, { headers: { 'Cache-Control': 'no-store' } });
   }
+  // La primera vez que un administrador abre el historial, ya tiene la imagen "¿Cuándo marca el Levante?" para ver y editar.
+  const seeded = await db.prepare('SELECT admin_id FROM image_seeds WHERE admin_id = ?').bind(admin.id).first();
+  if (!seeded) {
+    await db.prepare('INSERT OR IGNORE INTO image_seeds (admin_id) VALUES (?)').bind(admin.id).run();
+    const now = Date.now();
+    await db.prepare(
+      'INSERT INTO generated_images (id, admin_id, community_slug, template, title, spec, thumb, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    ).bind(randomUUID(), admin.id, admin.communitySlug ?? 'granota', 'marca', `${DEFAULT_SPEC.title} ${DEFAULT_SPEC.titleAccent}`, JSON.stringify(DEFAULT_SPEC), '', now, now).run();
+  }
   const rows = await db.prepare(
     'SELECT id, title, template, thumb, updated_at AS updatedAt FROM generated_images WHERE admin_id = ? ORDER BY updated_at DESC',
   ).bind(admin.id).all<Pick<ImageRow, 'id' | 'title' | 'template' | 'thumb' | 'updatedAt'>>();
@@ -76,8 +85,16 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
-  const body = (await request.json().catch(() => null)) as { id?: string; spec?: unknown; thumb?: string; title?: string } | null;
+  const body = (await request.json().catch(() => null)) as { id?: string; spec?: unknown; thumb?: string; title?: string; thumbOnly?: boolean } | null;
   if (!body?.id || typeof body.id !== 'string') return NextResponse.json({ error: 'Imagen no válida.' }, { status: 400 });
+  // Solo la miniatura (se crea en segundo plano para las imagenes que aun no la tienen): no cambia la fecha ni la ficha.
+  if (body.thumbOnly) {
+    const thumb = thumbOf(body.thumb);
+    if (!thumb) return NextResponse.json({ error: 'Miniatura no válida.' }, { status: 400 });
+    await ensureCommunitySchema();
+    await getDatabase().prepare('UPDATE generated_images SET thumb = ? WHERE id = ? AND admin_id = ?').bind(thumb, body.id, admin.id).run();
+    return NextResponse.json({ ok: true });
+  }
   const spec = sanitizeSpec(body.spec);
   const json = JSON.stringify(spec);
   if (json.length > MAX_SPEC_LENGTH) return NextResponse.json({ error: 'La imagen es demasiado grande.' }, { status: 413 });

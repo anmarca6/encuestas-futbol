@@ -15,10 +15,10 @@ export interface MatchStats {
 
 export type ImageTemplateId = 'marca' | 'encaja' | 'libre';
 
-export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; description: string }> = [
-  { id: 'marca', label: '¿Cuándo marca el Levante?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
-  { id: 'encaja', label: '¿Cuándo encaja el Levante?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
-  { id: 'libre', label: 'En blanco', description: 'Un diseño vacío para que escribas tú los datos y los textos.' },
+export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: string; description: string }> = [
+  { id: 'marca', label: '¿Cuándo marca el Levante?', name: '¿Cuándo marca el Levante?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
+  { id: 'encaja', label: '¿Cuándo encaja el Levante?', name: '¿Cuándo encaja el Levante?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
+  { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
 export const isTemplateId = (value: unknown): value is ImageTemplateId => IMAGE_TEMPLATES.some((item) => item.id === value);

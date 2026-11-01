@@ -49,7 +49,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   kicker: 'Estadística · LaLiga 2026/27',
   title: '¿Cuándo',
   titleAccent: 'marca el Levante?',
-  subtitle: '16 goles en 11 jornadas, por tramos de 15 minutos. Los picos: del 16 al 30 y en el descuento.',
+  subtitle: "16 goles en 11 jornadas, por tramos de 15 minutos. Más goles: 16-30' y 90+.",
   layout: 'barras',
   rows: [
     { label: QUARTER_LABELS[0], value: 0 },

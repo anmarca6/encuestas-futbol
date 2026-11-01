@@ -229,6 +229,9 @@ export function ensureCommunitySchema(): Promise<void> {
     `).bind().run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_generated_images_admin ON generated_images (admin_id, updated_at)').bind().run();
 
+    // Administradores a los que ya se les creo la imagen de ejemplo del historial (para no volver a crearla si la borran).
+    await db.prepare('CREATE TABLE IF NOT EXISTS image_seeds (admin_id TEXT PRIMARY KEY NOT NULL)').bind().run();
+
     // Avisos push: una fila por dispositivo suscrito (endpoint unico). Los avisos los envia a mano el admin de cada comunidad.
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS push_subscriptions (
