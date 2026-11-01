@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
+import { Check, Copy, Download, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,11 @@ import {
   type ImageAssets,
   type ImageSpec,
 } from '@/lib/image-generator';
+
+// Enlace que acompana a cada publicacion en X (X lo cuenta como 23 caracteres).
+const SHARE_URL = 'https://encuestas-futbol.vercel.app/ismaelete';
+const TWEET_MAX = 280;
+const TWEET_URL_LENGTH = 24;
 
 const labelClass = 'mb-1 block text-xs font-black uppercase text-slate-400';
 
@@ -42,6 +47,8 @@ export function ImageGenerator() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState('');
   const [assetError, setAssetError] = useState('');
+  const [tweetText, setTweetText] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const update = (patch: Partial<ImageSpec>) => setSpec((current) => ({ ...current, ...patch }));
@@ -101,6 +108,51 @@ export function ImageGenerator() {
     } finally {
       setAiBusy(false);
     }
+  };
+
+  // Texto de la publicacion: el que haya escrito el usuario o, mientras no lo toque, uno basado en el titulo.
+  const tweet = tweetText ?? `${[spec.title, spec.titleAccent].filter(Boolean).join(' ')} 📊 #GranotaApp`;
+  const tweetLeft = TWEET_MAX - TWEET_URL_LENGTH - tweet.length;
+
+  const canvasBlob = () =>
+    new Promise<Blob>((resolve, reject) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return reject(new Error('La imagen todavía no está lista.'));
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No se pudo crear la imagen.'))), 'image/png');
+    });
+
+  const copyImage = async () => {
+    // Promesa dentro del ClipboardItem: Safari solo deja copiar si el permiso se pide en el mismo gesto del clic.
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': canvasBlob() })]);
+  };
+
+  const onCopy = async () => {
+    setShareMessage(null);
+    try {
+      await copyImage();
+      setShareMessage({ ok: true, text: 'Imagen copiada. Pégala donde quieras (Ctrl+V o mantener pulsado → Pegar).' });
+    } catch {
+      setShareMessage({ ok: false, text: 'Este navegador no deja copiar la imagen. Descárgala y adjúntala a mano.' });
+    }
+  };
+
+  // X no permite adjuntar una imagen desde un enlace: se copia la imagen y se abre el editor de X (en la cuenta con la que el usuario
+  // tenga la sesion iniciada) con el texto y el enlace listos; solo hay que pegar la imagen en la publicacion.
+  const onShareX = async () => {
+    setShareMessage(null);
+    const popup = window.open('', '_blank');
+    let copied = true;
+    try {
+      await copyImage();
+    } catch {
+      copied = false;
+    }
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(SHARE_URL)}`;
+    if (popup) popup.location.href = url;
+    else window.location.href = url;
+    setShareMessage(copied
+      ? { ok: true, text: 'Se ha abierto X con el texto y el enlace. La imagen está copiada: pégala en la publicación (Ctrl+V o mantener pulsado → Pegar).' }
+      : { ok: false, text: 'Se ha abierto X con el texto y el enlace, pero este navegador no deja copiar la imagen: descárgala y adjúntala a mano.' });
   };
 
   const download = () => {
@@ -260,6 +312,25 @@ export function ImageGenerator() {
             <Button onClick={download} disabled={!fontsReady} className="w-full bg-[#a91d43] font-black text-white">
               <Download className="size-4" /> Descargar PNG (1620×2025)
             </Button>
+            <Button variant="outline" onClick={() => void onCopy()} disabled={!fontsReady} className="w-full font-black">
+              <Copy className="size-4" /> Copiar imagen
+            </Button>
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <label htmlFor="img-tweet" className={labelClass + ' mb-0 flex items-center justify-between'}>
+                <span>Publicación en X</span>
+                <span className={tweetLeft < 0 ? 'text-[#a91d43]' : ''}>{tweetLeft}</span>
+              </label>
+              <Textarea id="img-tweet" value={tweet} rows={3} onChange={(event) => setTweetText(event.target.value)} />
+              <p className="text-xs text-slate-500">Se añade el enlace {SHARE_URL.replace('https://', '')}.</p>
+              <Button onClick={() => void onShareX()} disabled={!fontsReady || tweetLeft < 0} className="w-full bg-black font-black text-white hover:bg-slate-800">
+                <span aria-hidden className="text-base leading-none">𝕏</span> Publicar en X
+              </Button>
+            </div>
+            {shareMessage && (
+              <p role="status" className={`flex items-start gap-2 rounded-xl p-3 text-xs font-bold ${shareMessage.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'}`}>
+                {shareMessage.ok && <Check className="mt-0.5 size-4 shrink-0" />}{shareMessage.text}
+              </p>
+            )}
             <p className="text-xs text-slate-400">Formato vertical, pensado para redes sociales. La imagen se crea en tu navegador y no se guarda en la app.</p>
           </CardContent>
         </Card>
