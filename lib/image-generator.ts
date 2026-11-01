@@ -1,7 +1,7 @@
 // Generador de imagenes estadisticas del panel de administracion. Todo se dibuja en el navegador con los datos que se escriben
 // en el formulario: nada de esto se guarda en la base de datos ni afecta a la app.
 
-export type ImageLayout = 'barras' | 'ranking';
+export type ImageLayout = 'barras' | 'ranking' | 'podio';
 export type ImageBackground = 'nocturna' | 'interior' | 'ninguno';
 
 export interface ImageRow {
@@ -406,6 +406,58 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       ctx.fillText(spec.dividerLabels[1], dx + 8, 686);
       setSpacing(ctx, 0);
     }
+  } else if (spec.layout === 'podio') {
+    // Podio: las tres primeras filas (ya ordenadas de mayor a menor) en 2º - 1º - 3º; el resto, en una linea debajo.
+    const ranked = [...rows].sort((a, b) => b.value - a.value);
+    const slots = [
+      { place: 1, row: ranked[1], height: 170, color: ['#8fa3c4', '#4a5d80'] },
+      { place: 0, row: ranked[0], height: 250, color: ['#ffd36b', '#b8800f'] },
+      { place: 2, row: ranked[2], height: 120, color: ['#e0955a', '#8a4a1f'] },
+    ];
+    const baseline = ranked.length > 3 ? 1030 : 1060;
+    const colW = (pw - 72 - 40) / 3;
+    const left = px + 36;
+    ctx.textAlign = 'center';
+    slots.forEach((slot, index) => {
+      if (!slot.row) return;
+      const cx = left + index * (colW + 20) + colW / 2;
+      const top = baseline - slot.height;
+      const gold = slot.place === 0;
+      ctx.save();
+      if (gold) {
+        ctx.shadowColor = 'rgba(255,211,107,.55)';
+        ctx.shadowBlur = 34;
+      }
+      const fill = ctx.createLinearGradient(0, top, 0, baseline);
+      fill.addColorStop(0, slot.color[0]);
+      fill.addColorStop(1, slot.color[1]);
+      ctx.fillStyle = fill;
+      roundRect(ctx, cx - colW / 2, top, colW, slot.height, 18);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = gold ? '#4a3205' : '#0a1630';
+      ctx.font = `900 ${gold ? 120 : 92}px ${HEAD_FONT}`;
+      ctx.fillText(String(slot.place + 1), cx, top + (gold ? 112 : 88));
+      ctx.fillStyle = '#fff';
+      fitFont(ctx, slot.row.label.toUpperCase(), 900, 36, HEAD_FONT, colW - 8, 20);
+      ctx.fillText(slot.row.label.toUpperCase(), cx, top - 52);
+      ctx.fillStyle = gold ? '#ffd36b' : MUTE;
+      ctx.font = `800 26px ${HEAD_FONT}`;
+      ctx.fillText(`${label(slot.row.value)} ${slot.row.value === 1 ? 'MVP' : 'MVPs'}`, cx, top - 18);
+    });
+    ctx.strokeStyle = 'rgba(160,190,240,.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left, baseline + 8);
+    ctx.lineTo(left + pw - 72, baseline + 8);
+    ctx.stroke();
+    if (ranked.length > 3) {
+      ctx.fillStyle = MUTE;
+      ctx.font = `700 21px ${BODY_FONT}`;
+      const rest = ranked.slice(3).map((row) => `${row.label} (${label(row.value)})`).join(' · ');
+      wrap(ctx, `También: ${rest}`, pw - 72).slice(0, 2).forEach((line, index) => ctx.fillText(line, px + pw / 2, baseline + 40 + index * 26));
+    }
+    ctx.textAlign = 'left';
   } else {
     // Ranking: una barra horizontal por fila.
     const top = py + 30;
@@ -496,7 +548,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   assign('playerId', text(source.playerId, 60));
   assign('playerCaption', text(source.playerCaption, 40));
   assign('playerSub', text(source.playerSub, 50));
-  if (source.layout === 'barras' || source.layout === 'ranking') out.layout = source.layout;
+  if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio') out.layout = source.layout;
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {

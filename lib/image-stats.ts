@@ -11,13 +11,16 @@ export interface MatchStats {
   concededMinutes: number[];
   // Ids de jugador de cada gol del Levante.
   scorers: string[];
+  // Id del jugador elegido MVP de la jornada ('' si todavia no hay).
+  mvp: string;
 }
 
-export type ImageTemplateId = 'marca' | 'encaja' | 'libre';
+export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'libre';
 
 export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: string; description: string }> = [
   { id: 'marca', label: '¿Cuándo marca el Levante UD?', name: '¿Cuándo marca el Levante UD?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
   { id: 'encaja', label: '¿Cuándo encaja el Levante UD?', name: '¿Cuándo encaja el Levante UD?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
+  { id: 'mvp', label: 'Podio de MVP', name: 'Podio de MVP', description: 'Los jugadores con más MVP de la jornada hasta ahora, en un podio.' },
   { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
@@ -138,6 +141,44 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
   };
 }
 
+// "Podio de MVP": quien ha sido MVP mas veces. El MVP de la ultima jornada puede cambiar, asi que se avisa.
+function buildMvp(stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
+  const withMvp = stats.filter((item) => item.mvp && playerName(item.mvp));
+  const counts = new Map<string, number>();
+  for (const item of withMvp) counts.set(item.mvp, (counts.get(item.mvp) ?? 0) + 1);
+  // Mas MVP primero; a igualdad, el que lo fue antes.
+  const firstSeen = (id: string) => withMvp.findIndex((item) => item.mvp === id);
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || firstSeen(a[0]) - firstSeen(b[0]));
+  if (ranked.length === 0) return { spec: {}, warnings: ['Todavía no hay ningún MVP elegido.'] };
+  const lastDay = Math.max(...withMvp.map((item) => item.matchday));
+  const [topId, topCount] = ranked[0];
+  const tiedTop = ranked.filter(([, count]) => count === topCount).length;
+  const unique = ranked.length;
+
+  return {
+    warnings: [`El MVP de la J${lastDay} (${playerName(withMvp.find((item) => item.matchday === lastDay)!.mvp)}) puede no ser el definitivo: revisa el podio antes de publicar.`],
+    spec: {
+      kicker: DEFAULT_SPEC.kicker,
+      title: 'Podio de',
+      titleAccent: 'MVP del Levante UD',
+      subtitle: `${withMvp.length} ${plural(withMvp.length, 'jornada', 'jornadas')} con MVP (${range(withMvp)}) y ${unique} ${plural(unique, 'jugador distinto', 'jugadores distintos')}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
+      layout: 'podio',
+      rows: ranked.slice(0, 8).map(([id, count]) => ({ label: playerName(id) ?? id, value: count })),
+      showPercent: false,
+      dividerAfter: 0,
+      cards: [
+        { value: String(topCount), text: `${plural(topCount, 'MVP', 'MVPs')} para ${playerName(topId) ?? topId}${tiedTop > 1 ? ' (y empata)' : ''}` },
+        { value: String(withMvp.length), text: `${plural(withMvp.length, 'jornada', 'jornadas')} con MVP elegido` },
+        { value: String(unique), text: `${plural(unique, 'jugador ha sido', 'jugadores han sido')} MVP` },
+      ],
+      playerId: topId,
+      playerCaption: `${playerName(topId) ?? topId} · ${topCount} ${plural(topCount, 'MVP', 'MVPs')}`,
+      playerSub: tiedTop > 1 ? 'Líder del podio (empatado)' : 'Líder del podio',
+      footer: `${SOURCE} · MVP de cada jornada de LaLiga elegido en la comunidad (${range(withMvp)}).`,
+    },
+  };
+}
+
 // Plantilla en blanco: ranking de ejemplo para sustituir por los datos propios.
 function buildBlank(): TemplateResult {
   return {
@@ -168,5 +209,6 @@ function buildBlank(): TemplateResult {
 export function buildTemplate(id: ImageTemplateId, stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
   if (id === 'libre') return buildBlank();
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
+  if (id === 'mvp') return buildMvp(stats, playerName);
   return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
 }

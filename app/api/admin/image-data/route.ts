@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, resolveAdminCommunity } from '@/lib/admin-auth';
-import { LEVANTE_TEAM, levanteMatches, levantePlayers } from '@/lib/levante-data';
-import { loadOfficialReports } from '@/lib/official-data';
+import { LEVANTE_TEAM, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
+import { loadMvpOverrides, loadOfficialReports } from '@/lib/official-data';
 import { loadRivalGoals } from '@/lib/rival-goals';
 import type { MatchStats } from '@/lib/image-stats';
 
@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
   const reports = await loadOfficialReports(community);
   const rivalGoals = await loadRivalGoals();
   const idByName = new Map(levantePlayers.map((player) => [player.displayName, player.id]));
+  // Igual que en el ranking: el MVP de la pestaña propia manda; si no hay, el del informe oficial o el del calendario local.
+  const mvpOverrides = new Map((await loadMvpOverrides(community)).map((item) => [item.matchday, item.playerId]));
 
   const matches: MatchStats[] = [];
   for (const match of levanteMatches.filter((item) => item.id.startsWith('laliga-'))) {
@@ -53,6 +55,7 @@ export async function GET(request: NextRequest) {
       scoredMinutes,
       concededMinutes: rival.map((goal) => goal.minute).filter((minute) => minute > 0),
       scorers,
+      mvp: mvpOverrides.get(match.matchday) || (report ? report.mvp : idByName.get(levanteMatchReports[match.matchday]?.mvp.playerName ?? '')) || '',
     });
   }
   return NextResponse.json({ matches }, { headers: { 'Cache-Control': 'no-store' } });

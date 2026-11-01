@@ -478,6 +478,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                           <NativeSelect id="img-layout" value={spec.layout} onChange={(event) => update({ layout: event.target.value as ImageSpec['layout'] })} className="w-full">
                             <NativeSelectOption value="barras">Barras verticales (tramos, jornadas…)</NativeSelectOption>
                             <NativeSelectOption value="ranking">Ranking horizontal (jugadores, equipos…)</NativeSelectOption>
+                            <NativeSelectOption value="podio">Podio (los tres primeros)</NativeSelectOption>
                           </NativeSelect>
                         </Field>
                         <Field label="Porcentajes">
