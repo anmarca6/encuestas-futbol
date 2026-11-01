@@ -48,7 +48,7 @@ export const QUARTER_LABELS = ["1-15'", "16-30'", "31-45'", "46-60'", "61-75'", 
 export const DEFAULT_SPEC: ImageSpec = {
   kicker: 'Estadística · LaLiga 2026/27',
   title: '¿Cuándo',
-  titleAccent: 'marca el Levante?',
+  titleAccent: 'marca el Levante UD?',
   subtitle: "16 goles en 11 jornadas, por tramos de 15 minutos. Más goles: 16-30' y 90+.",
   layout: 'barras',
   rows: [
@@ -72,7 +72,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   playerId: 'roger-brugue',
   playerCaption: 'Roger Brugué · 5 goles',
   playerSub: 'Máximo goleador del equipo',
-  footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
+  footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante UD en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
 };
 
 // Tarjetas sugeridas a partir de los datos: el tramo mas alto, el total y los tramos sin ninguno.

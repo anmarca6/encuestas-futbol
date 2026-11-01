@@ -16,8 +16,8 @@ export interface MatchStats {
 export type ImageTemplateId = 'marca' | 'encaja' | 'libre';
 
 export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: string; description: string }> = [
-  { id: 'marca', label: '¿Cuándo marca el Levante?', name: '¿Cuándo marca el Levante?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
-  { id: 'encaja', label: '¿Cuándo encaja el Levante?', name: '¿Cuándo encaja el Levante?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
+  { id: 'marca', label: '¿Cuándo marca el Levante UD?', name: '¿Cuándo marca el Levante UD?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
+  { id: 'encaja', label: '¿Cuándo encaja el Levante UD?', name: '¿Cuándo encaja el Levante UD?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
   { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
@@ -53,13 +53,13 @@ function range(stats: MatchStats[]) {
 
 const SOURCE = 'Fuente: https://encuestas-futbol.vercel.app/ismaelete';
 
-// "¿Cuándo marca el Levante?": goles del Levante por tramo, con el maximo goleador como protagonista.
+// "¿Cuándo marca el Levante UD?": goles del Levante por tramo, con el maximo goleador como protagonista.
 function buildScored(stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
   const counts = histogram(stats.flatMap((item) => item.scoredMinutes));
   const known = counts.reduce((sum, count) => sum + count, 0);
   const totalGoals = stats.reduce((sum, item) => sum + item.scored, 0);
   const warnings: string[] = [];
-  if (totalGoals > known) warnings.push(`Hay ${totalGoals - known} ${plural(totalGoals - known, 'gol del Levante sin minuto', 'goles del Levante sin minuto')}: no salen en el gráfico.`);
+  if (totalGoals > known) warnings.push(`Hay ${totalGoals - known} ${plural(totalGoals - known, 'gol del Levante UD sin minuto', 'goles del Levante UD sin minuto')}: no salen en el gráfico.`);
   const second = counts.slice(3).reduce((sum, count) => sum + count, 0);
   const late = counts[5] + counts[6];
   const tops = peakLabels(counts);
@@ -75,7 +75,7 @@ function buildScored(stats: MatchStats[], playerName: (id: string) => string | n
     spec: {
       kicker: DEFAULT_SPEC.kicker,
       title: '¿Cuándo',
-      titleAccent: 'marca el Levante?',
+      titleAccent: 'marca el Levante UD?',
       subtitle: `${known} ${plural(known, 'gol', 'goles')} en ${stats.length} jornadas, por tramos de 15 minutos.${tops.length && tops.length <= 3 ? ` Más goles: ${joinLabels(tops)}.` : ''}`,
       layout: 'barras',
       rows: QUARTER_LABELS.map((label, index) => ({ label, value: counts[index] })),
@@ -90,12 +90,12 @@ function buildScored(stats: MatchStats[], playerName: (id: string) => string | n
       playerId: best && bestName ? best[0] : '',
       playerCaption: best && bestName ? `${bestName} · ${best[1]} ${plural(best[1], 'gol', 'goles')}` : '',
       playerSub: tied ? 'Uno de los máximos goleadores' : 'Máximo goleador del equipo',
-      footer: `${SOURCE} · Goles del Levante en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.`,
+      footer: `${SOURCE} · Goles del Levante UD en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.`,
     },
   };
 }
 
-// "¿Cuándo encaja el Levante?": goles del rival por tramo y porterias a cero.
+// "¿Cuándo encaja el Levante UD?": goles del rival por tramo y porterias a cero.
 function buildConceded(stats: MatchStats[]): TemplateResult {
   const counts = histogram(stats.flatMap((item) => item.concededMinutes));
   const known = counts.reduce((sum, count) => sum + count, 0);
@@ -118,7 +118,7 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
     spec: {
       kicker: DEFAULT_SPEC.kicker,
       title: '¿Cuándo',
-      titleAccent: 'encaja el Levante?',
+      titleAccent: 'encaja el Levante UD?',
       subtitle: subtitle.slice(0, 220),
       layout: 'barras',
       rows: QUARTER_LABELS.map((label, index) => ({ label, value: counts[index] })),
@@ -133,7 +133,7 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
       playerId: 'mathew-ryan',
       playerCaption: 'Mathew Ryan',
       playerSub: 'Portero del Levante UD',
-      footer: `${SOURCE} · Goles encajados por el Levante en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.${totalConceded > known ? ` Hay ${totalConceded - known} sin minuto.` : ''}`,
+      footer: `${SOURCE} · Goles encajados por el Levante UD en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.${totalConceded > known ? ` Hay ${totalConceded - known} sin minuto.` : ''}`,
     },
   };
 }

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ image: { id: row.id, title: row.title, template: row.template, communitySlug: row.communitySlug, spec, updatedAt: row.updatedAt } }, { headers: { 'Cache-Control': 'no-store' } });
   }
-  // La primera vez que un administrador abre el historial, ya tiene la imagen "¿Cuándo marca el Levante?" para ver y editar.
+  // La primera vez que un administrador abre el historial, ya tiene la imagen "¿Cuándo marca el Levante UD?" para ver y editar.
   const seeded = await db.prepare('SELECT admin_id FROM image_seeds WHERE admin_id = ?').bind(admin.id).first();
   if (!seeded) {
     await db.prepare('INSERT OR IGNORE INTO image_seeds (admin_id) VALUES (?)').bind(admin.id).run();

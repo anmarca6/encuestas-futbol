@@ -422,13 +422,14 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
                     key={item.id}
                     type="button"
                     onClick={() => void createFromTemplate(item.id)}
-                    disabled={creating !== null || opening}
-                    className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#153e72] hover:bg-sky-50 disabled:opacity-60"
+                    disabled={creating !== null || opening || item.id === 'libre'}
+                    className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#153e72] hover:bg-sky-50 disabled:opacity-60 disabled:hover:border-slate-200 disabled:hover:bg-slate-50 disabled:cursor-not-allowed"
                   >
                     <span className="grid size-10 place-items-center rounded-xl bg-[#153e72] text-white">
                       {creating === item.id ? <Loader2 className="size-5 animate-spin" /> : item.id === 'libre' ? <Plus className="size-5" /> : <ImagePlus className="size-5" />}
                     </span>
                     <strong className="text-base font-black leading-tight text-[#071527]">{item.label}</strong>
+                    {item.id === 'libre' && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black uppercase text-slate-500">Próximamente</span>}
                     <span className="text-xs text-slate-500">{item.description}</span>
                   </button>
                 ))}

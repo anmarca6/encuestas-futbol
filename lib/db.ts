@@ -229,6 +229,12 @@ export function ensureCommunitySchema(): Promise<void> {
     `).bind().run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_generated_images_admin ON generated_images (admin_id, updated_at)').bind().run();
 
+    // Las imagenes guardadas antes de escribir siempre "Levante UD" se actualizan (idempotente: ya no contienen el texto antiguo).
+    for (const [from, to] of [['el Levante?', 'el Levante UD?'], ['Goles del Levante en LaLiga', 'Goles del Levante UD en LaLiga'], ['por el Levante en LaLiga', 'por el Levante UD en LaLiga']]) {
+      await db.prepare('UPDATE generated_images SET spec = REPLACE(spec, ?, ?), title = REPLACE(title, ?, ?) WHERE spec LIKE ? OR title LIKE ?')
+        .bind(from, to, from, to, `%${from}%`, `%${from}%`).run();
+    }
+
     // Administradores a los que ya se les creo la imagen de ejemplo del historial (para no volver a crearla si la borran).
     await db.prepare('CREATE TABLE IF NOT EXISTS image_seeds (admin_id TEXT PRIMARY KEY NOT NULL)').bind().run();
 
