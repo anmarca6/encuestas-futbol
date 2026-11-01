@@ -480,8 +480,8 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
   }
 }
 
-// Respuesta de la IA -> especificacion valida (la IA solo rellena datos y textos; el diseno es fijo).
-export function sanitizeAiSpec(raw: unknown): Partial<ImageSpec> {
+// Ficha guardada o recibida del navegador -> especificacion valida: se descartan campos desconocidos y se acotan textos y cifras.
+export function sanitizeSpec(raw: unknown): ImageSpec {
   const source = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const text = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : undefined);
   const out: Partial<ImageSpec> = {};
@@ -493,7 +493,11 @@ export function sanitizeAiSpec(raw: unknown): Partial<ImageSpec> {
   assign('titleAccent', text(source.titleAccent, 40));
   assign('subtitle', text(source.subtitle, 220));
   assign('footer', text(source.footer, 240));
+  assign('playerId', text(source.playerId, 60));
+  assign('playerCaption', text(source.playerCaption, 40));
+  assign('playerSub', text(source.playerSub, 50));
   if (source.layout === 'barras' || source.layout === 'ranking') out.layout = source.layout;
+  if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {
     out.rows = source.rows
@@ -518,5 +522,5 @@ export function sanitizeAiSpec(raw: unknown): Partial<ImageSpec> {
       .filter((card) => card.value || card.text)
       .slice(0, 3);
   }
-  return out;
+  return { ...DEFAULT_SPEC, ...out };
 }

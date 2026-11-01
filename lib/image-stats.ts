@@ -13,12 +13,15 @@ export interface MatchStats {
   scorers: string[];
 }
 
-export type ImageTemplateId = 'marca' | 'encaja';
+export type ImageTemplateId = 'marca' | 'encaja' | 'libre';
 
-export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string }> = [
-  { id: 'marca', label: '¿Cuándo marca el Levante?' },
-  { id: 'encaja', label: '¿Cuándo encaja el Levante? + porterías a cero' },
+export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; description: string }> = [
+  { id: 'marca', label: '¿Cuándo marca el Levante?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
+  { id: 'encaja', label: '¿Cuándo encaja el Levante?', description: 'Goles en contra por tramos de 15 minutos y porterías a cero.' },
+  { id: 'libre', label: 'En blanco', description: 'Un diseño vacío para que escribas tú los datos y los textos.' },
 ];
+
+export const isTemplateId = (value: unknown): value is ImageTemplateId => IMAGE_TEMPLATES.some((item) => item.id === value);
 
 export interface TemplateResult {
   spec: Partial<ImageSpec>;
@@ -135,7 +138,35 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
   };
 }
 
+// Plantilla en blanco: ranking de ejemplo para sustituir por los datos propios.
+function buildBlank(): TemplateResult {
+  return {
+    warnings: [],
+    spec: {
+      kicker: DEFAULT_SPEC.kicker,
+      title: 'Título',
+      titleAccent: 'de la imagen',
+      subtitle: 'Explica aquí qué muestran los datos.',
+      layout: 'ranking',
+      rows: [
+        { label: 'Dato 1', value: 4 },
+        { label: 'Dato 2', value: 3 },
+        { label: 'Dato 3', value: 2 },
+        { label: 'Dato 4', value: 1 },
+      ],
+      showPercent: false,
+      dividerAfter: 0,
+      cards: [],
+      playerId: '',
+      playerCaption: '',
+      playerSub: '',
+      footer: SOURCE,
+    },
+  };
+}
+
 export function buildTemplate(id: ImageTemplateId, stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
+  if (id === 'libre') return buildBlank();
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
 }

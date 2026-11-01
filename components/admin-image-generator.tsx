@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, Download, Loader2, Minus, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, Copy, Download, ImagePlus, Loader2, Minus, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,19 +16,35 @@ import {
   ensureImageFonts,
   loadImage,
   renderInfographic,
-  sanitizeAiSpec,
+  sanitizeSpec,
   suggestCards,
   type ImageAssets,
   type ImageSpec,
 } from '@/lib/image-generator';
-import { IMAGE_TEMPLATES, buildTemplate, type ImageTemplateId, type MatchStats } from '@/lib/image-stats';
+import { IMAGE_TEMPLATES, buildTemplate, isTemplateId, type ImageTemplateId, type MatchStats, type TemplateResult } from '@/lib/image-stats';
 
 // Enlace que acompana a cada publicacion en X (X lo cuenta como 23 caracteres).
 const SHARE_URL = 'https://encuestas-futbol.vercel.app/ismaelete';
 const TWEET_MAX = 280;
 const TWEET_URL_LENGTH = 24;
+const AUTOSAVE_DELAY = 1500;
 
 const labelClass = 'mb-1 block text-xs font-black uppercase text-slate-400';
+
+interface SavedImage {
+  id: string;
+  title: string;
+  template: string;
+  thumb: string;
+  updatedAt: number;
+}
+
+interface CurrentImage {
+  id: string;
+  template: ImageTemplateId;
+}
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 function Field({ id, label, children }: { id?: string; label: string; children: React.ReactNode }) {
   return (
@@ -39,74 +55,75 @@ function Field({ id, label, children }: { id?: string; label: string; children: 
   );
 }
 
-// Generador de imagenes estadisticas: los datos solo viven en esta pantalla (no se guardan) y la imagen se descarga como PNG.
+const titleOf = (spec: ImageSpec) => `${spec.title} ${spec.titleAccent}`.trim() || 'Imagen sin título';
+const playerName = (id: string) => levantePlayers.find((item) => item.id === id)?.displayName ?? null;
+
+// Miniatura para el historial.
+function makeThumb(canvas: HTMLCanvasElement) {
+  const small = document.createElement('canvas');
+  small.width = 216;
+  small.height = 270;
+  small.getContext('2d')?.drawImage(canvas, 0, 0, small.width, small.height);
+  return small.toDataURL('image/jpeg', 0.72);
+}
+
+// Generador de imagenes estadisticas. Cada imagen se guarda sola en el historial (ficha + miniatura) para poder reabrirla y editarla.
 export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [spec, setSpec] = useState<ImageSpec>(DEFAULT_SPEC);
   const [assets, setAssets] = useState<ImageAssets>({ background: null, player: null });
+  const [assetsReady, setAssetsReady] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiError, setAiError] = useState('');
   const [assetError, setAssetError] = useState('');
   const [tweetText, setTweetText] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [template, setTemplate] = useState<ImageTemplateId>('marca');
-  const [templateBusy, setTemplateBusy] = useState(false);
-  const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
-  const [templateError, setTemplateError] = useState('');
+  const [images, setImages] = useState<SavedImage[] | null>(null);
+  const [current, setCurrent] = useState<CurrentImage | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState<ImageTemplateId | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  const [pickerError, setPickerError] = useState('');
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // PNG ya preparado: el menu de compartir del movil exige llamarse en el mismo toque, sin esperas intermedias.
   const shareFileRef = useRef<File | null>(null);
+  // Hay cambios sin guardar en el historial (imagen recien creada o editada).
+  const dirtyRef = useRef(false);
 
-  const update = (patch: Partial<ImageSpec>) => setSpec((current) => ({ ...current, ...patch }));
+  const update = (patch: Partial<ImageSpec>) => {
+    dirtyRef.current = true;
+    setSpec((value) => ({ ...value, ...patch }));
+  };
   const player = useMemo(() => levantePlayers.find((item) => item.id === spec.playerId) ?? null, [spec.playerId]);
   const sortedPlayers = useMemo(() => [...levantePlayers].sort((a, b) => a.displayName.localeCompare(b.displayName, 'es')), []);
 
-  // Rellena la imagen con los datos reales de la app (resultados, goles y minutos) segun la plantilla elegida.
-  const applyTemplate = async (id: ImageTemplateId) => {
-    setTemplate(id);
-    setTemplateBusy(true);
-    setTemplateError('');
-    try {
-      const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('No se pudieron cargar los datos de la app.');
-      const { matches } = (await response.json()) as { matches: MatchStats[] };
-      const result = buildTemplate(id, matches, (playerId) => levantePlayers.find((item) => item.id === playerId)?.displayName ?? null);
-      update(result.spec);
-      setTemplateWarnings(result.warnings);
-    } catch (failure) {
-      setTemplateError(failure instanceof Error ? failure.message : 'No se pudieron cargar los datos de la app.');
-    } finally {
-      setTemplateBusy(false);
-    }
-  };
-
-  useEffect(() => {
-    void applyTemplate('marca');
-    // Solo al abrir la pestaña: despues los datos se recargan a mano.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     void ensureImageFonts().then(() => setFontsReady(true));
+    fetch('/api/admin/images', { cache: 'no-store' })
+      .then(async (response) => (response.ok ? ((await response.json()) as { images: SavedImage[] }).images : []))
+      .then(setImages)
+      .catch(() => setImages([]));
   }, []);
 
   // Fondo y foto del jugador: se cargan al elegirlos.
   useEffect(() => {
     let cancelled = false;
     setAssetError('');
+    setAssetsReady(false);
     const backgroundSrc = spec.background === 'ninguno' ? null : BACKGROUNDS[spec.background].src;
     Promise.all([
       backgroundSrc ? loadImage(backgroundSrc) : Promise.resolve(null),
       player?.image ? loadImage(player.image) : Promise.resolve(null),
     ])
       .then(([background, playerImage]) => { if (!cancelled) setAssets({ background, player: playerImage }); })
-      .catch(() => { if (!cancelled) setAssetError('No se ha podido cargar el fondo o la foto del jugador.'); });
+      .catch(() => { if (!cancelled) setAssetError('No se ha podido cargar el fondo o la foto del jugador.'); })
+      .finally(() => { if (!cancelled) setAssetsReady(true); });
     return () => { cancelled = true; };
   }, [spec.background, player]);
 
   useEffect(() => {
-    if (!fontsReady || !canvasRef.current) return;
+    if (!fontsReady || !current || !canvasRef.current) return;
     const canvas = canvasRef.current;
     renderInfographic(canvas, spec, assets);
     shareFileRef.current = null;
@@ -115,7 +132,133 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       canvas.toBlob((blob) => { if (blob) shareFileRef.current = new File([blob], 'granota-estadistica.jpg', { type: 'image/jpeg' }); }, 'image/jpeg', 0.92);
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [spec, assets, fontsReady]);
+  }, [spec, assets, fontsReady, current]);
+
+  // Guardado automatico en el historial: un momento despues del ultimo cambio, con la miniatura de lo que se ve.
+  useEffect(() => {
+    if (!current || !dirtyRef.current || !fontsReady || !assetsReady) return;
+    const id = current.id;
+    const timer = window.setTimeout(async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      dirtyRef.current = false;
+      setSaveState('saving');
+      const thumb = makeThumb(canvas);
+      const title = titleOf(spec);
+      try {
+        const response = await fetch('/api/admin/images', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id, spec, thumb, title }),
+        });
+        const body = (await response.json().catch(() => ({}))) as { updatedAt?: number; error?: string };
+        if (!response.ok) throw new Error(body.error ?? 'No se pudo guardar.');
+        setImages((list) => (list ? [{ id, title, template: current.template, thumb, updatedAt: body.updatedAt ?? Date.now() }, ...list.filter((item) => item.id !== id)] : list));
+        setSaveState('saved');
+      } catch {
+        dirtyRef.current = true;
+        setSaveState('error');
+      }
+    }, AUTOSAVE_DELAY);
+    return () => window.clearTimeout(timer);
+  }, [spec, assets, fontsReady, assetsReady, current]);
+
+  // Datos reales de la app (resultados, goles y minutos) convertidos en la ficha de la plantilla.
+  const buildFor = async (id: ImageTemplateId): Promise<TemplateResult> => {
+    if (id === 'libre') return buildTemplate(id, [], playerName);
+    const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('No se pudieron cargar los datos de la app.');
+    const { matches } = (await response.json()) as { matches: MatchStats[] };
+    return buildTemplate(id, matches, playerName);
+  };
+
+  // Elegir una plantilla crea la imagen al instante y la deja guardada en el historial.
+  const createFromTemplate = async (id: ImageTemplateId) => {
+    setCreating(id);
+    setPickerError('');
+    try {
+      const result = await buildFor(id);
+      const next = { ...DEFAULT_SPEC, ...result.spec };
+      const response = await fetch('/api/admin/images', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ community: communitySlug, template: id, spec: next, title: titleOf(next) }),
+      });
+      const body = (await response.json().catch(() => ({}))) as { id?: string; updatedAt?: number; error?: string };
+      if (!response.ok || !body.id) throw new Error(body.error ?? 'No se pudo crear la imagen.');
+      dirtyRef.current = true;
+      setSpec(next);
+      setTweetText(null);
+      setShareMessage(null);
+      setWarnings(result.warnings);
+      setSaveState('idle');
+      setEditing(false);
+      setCurrent({ id: body.id, template: id });
+      setImages((list) => [{ id: body.id!, title: titleOf(next), template: id, thumb: '', updatedAt: body.updatedAt ?? Date.now() }, ...(list ?? [])]);
+    } catch (failure) {
+      setPickerError(failure instanceof Error ? failure.message : 'No se pudo crear la imagen.');
+    } finally {
+      setCreating(null);
+    }
+  };
+
+  const openImage = async (id: string) => {
+    if (current?.id === id) return;
+    setOpening(true);
+    setPickerError('');
+    try {
+      const response = await fetch(`/api/admin/images?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const body = (await response.json().catch(() => ({}))) as { image?: { id: string; template: string; spec: ImageSpec }; error?: string };
+      if (!response.ok || !body.image) throw new Error(body.error ?? 'No se pudo abrir la imagen.');
+      dirtyRef.current = false;
+      setSpec(sanitizeSpec(body.image.spec));
+      setTweetText(null);
+      setShareMessage(null);
+      setWarnings([]);
+      setSaveState('idle');
+      setEditing(false);
+      setCurrent({ id: body.image.id, template: isTemplateId(body.image.template) ? body.image.template : 'libre' });
+    } catch (failure) {
+      setPickerError(failure instanceof Error ? failure.message : 'No se pudo abrir la imagen.');
+      setCurrent(null);
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  const removeImage = async (item: SavedImage) => {
+    if (!window.confirm(`¿Borrar "${item.title}" del historial? No se puede deshacer.`)) return;
+    await fetch(`/api/admin/images?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' }).catch(() => undefined);
+    setImages((list) => list?.filter((other) => other.id !== item.id) ?? list);
+    if (current?.id === item.id) {
+      dirtyRef.current = false;
+      setCurrent(null);
+      setEditing(false);
+    }
+  };
+
+  const newImage = () => {
+    dirtyRef.current = false;
+    setCurrent(null);
+    setEditing(false);
+    setPickerError('');
+  };
+
+  // Vuelve a calcular los datos con lo que haya ahora en el panel (sustituye los datos y textos de la plantilla).
+  const reloadData = async () => {
+    if (!current || current.template === 'libre') return;
+    if (!window.confirm('Se sustituirán los datos y los textos por los actuales de la app. ¿Continuar?')) return;
+    setReloading(true);
+    try {
+      const result = await buildFor(current.template);
+      update(result.spec);
+      setWarnings(result.warnings);
+    } catch (failure) {
+      setWarnings([failure instanceof Error ? failure.message : 'No se pudieron cargar los datos de la app.']);
+    } finally {
+      setReloading(false);
+    }
+  };
 
   const setRow = (index: number, patch: Partial<ImageSpec['rows'][number]>) =>
     update({ rows: spec.rows.map((row, position) => (position === index ? { ...row, ...patch } : row)) });
@@ -128,25 +271,6 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const choosePlayer = (id: string) => {
     const chosen = levantePlayers.find((item) => item.id === id);
     update({ playerId: id, playerCaption: chosen ? chosen.displayName : '', playerSub: chosen ? spec.playerSub : '' });
-  };
-
-  const askAi = async () => {
-    setAiBusy(true);
-    setAiError('');
-    try {
-      const response = await fetch('/api/admin/image-ai', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      });
-      const body = (await response.json().catch(() => ({}))) as { spec?: unknown; error?: string };
-      if (!response.ok || !body.spec) throw new Error(body.error ?? 'No se pudo generar la ficha con IA.');
-      update(sanitizeAiSpec(body.spec));
-    } catch (failure) {
-      setAiError(failure instanceof Error ? failure.message : 'No se pudo generar la ficha con IA.');
-    } finally {
-      setAiBusy(false);
-    }
   };
 
   // Texto de la publicacion: el que haya escrito el usuario o, mientras no lo toque, uno basado en el titulo.
@@ -212,7 +336,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      const name = `${spec.title} ${spec.titleAccent}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const name = titleOf(spec).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       link.href = url;
       link.download = `granota-${name || 'estadistica'}.png`;
       link.click();
@@ -220,192 +344,245 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     }, 'image/png');
   };
 
+  const formatDate = (value: number) => new Date(value).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const templateLabel = IMAGE_TEMPLATES.find((item) => item.id === current?.template)?.label ?? '';
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="space-y-5">
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-              <Field id="img-template" label="Plantilla (con datos de la app)">
-                <NativeSelect id="img-template" value={template} disabled={templateBusy} onChange={(event) => void applyTemplate(event.target.value as ImageTemplateId)} className="w-full">
-                  {IMAGE_TEMPLATES.map((item) => <NativeSelectOption key={item.id} value={item.id}>{item.label}</NativeSelectOption>)}
-                </NativeSelect>
-              </Field>
-              <Button type="button" variant="outline" disabled={templateBusy} onClick={() => void applyTemplate(template)} className="font-black">
-                {templateBusy ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} Recargar datos
-              </Button>
+    <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside className="space-y-3">
+        <Button onClick={newImage} className="w-full bg-[#153e72] font-black text-white">
+          <Plus className="size-4" /> Nueva imagen
+        </Button>
+        <div className="max-h-72 overflow-y-auto rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200 lg:max-h-[75vh]" aria-label="Historial de imágenes">
+          <p className="px-2 pb-1 pt-1 text-xs font-black uppercase text-slate-400">Mis imágenes</p>
+          {images === null && <p className="px-2 py-3 text-sm text-slate-400">Cargando…</p>}
+          {images?.length === 0 && <p className="px-2 py-3 text-sm text-slate-500">Todavía no has creado ninguna imagen. Elige una plantilla y aparecerá aquí.</p>}
+          {images?.map((item) => (
+            <div key={item.id} className={`flex items-center gap-1 rounded-xl p-1.5 ${current?.id === item.id ? 'bg-sky-50 ring-1 ring-sky-200' : 'hover:bg-slate-50'}`}>
+              <button type="button" onClick={() => void openImage(item.id)} disabled={opening} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`Abrir ${item.title}`}>
+                {item.thumb
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={item.thumb} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover ring-1 ring-slate-200" />
+                  : <span className="grid h-14 w-11 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-300"><ImagePlus className="size-4" /></span>}
+                <span className="min-w-0">
+                  <strong className="line-clamp-2 block text-sm font-black leading-tight text-[#071527]">{item.title}</strong>
+                  <span className="block text-xs text-slate-400">{formatDate(item.updatedAt)}</span>
+                </span>
+              </button>
+              <button type="button" onClick={() => void removeImage(item)} aria-label={`Borrar ${item.title}`} className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-[#a91d43]">
+                <Trash2 className="size-4" />
+              </button>
             </div>
-            <p className="text-xs text-slate-500">
-              Elegir una plantilla rellena el gráfico con los resultados, goles y minutos guardados en el panel (incluidos los goles del rival). Después puedes retocar cualquier campo.
-            </p>
-            {templateWarnings.map((warning) => <p key={warning} className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">{warning}</p>)}
-            {templateError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{templateError}</p>}
-          </CardContent>
-        </Card>
+          ))}
+        </div>
+      </aside>
 
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2 font-black text-[#071527]"><Sparkles className="size-4 text-[#a91d43]" /> Rellenar con IA</div>
-            <p className="text-sm text-slate-500">
-              Escribe los datos con tus palabras y la IA monta el título, el gráfico y las tarjetas. Después puedes retocar todo a mano. Lo que escribas no se guarda en la app.
-            </p>
-            <Textarea
-              id="image-ai-prompt"
-              value={aiPrompt}
-              rows={4}
-              maxLength={4000}
-              placeholder="Ej.: Goles encajados por el Levante según el minuto: 1-15: 2, 16-30: 3, 31-45: 1, 46-60: 4, 61-75: 2, 76-90: 5, 90+: 3. Son 20 goles en 11 jornadas."
-              onChange={(event) => setAiPrompt(event.target.value)}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={() => void askAi()} disabled={aiBusy || !aiPrompt.trim()} className="bg-[#153e72] font-black text-white">
-                {aiBusy ? <Loader2 className="animate-spin" /> : <Sparkles className="size-4" />} Generar con IA
-              </Button>
-              {aiBusy && <span className="text-xs text-slate-500">Pensando… puede tardar unos segundos.</span>}
-            </div>
-            {aiError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{aiError}</p>}
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="img-layout" label="Tipo de gráfico">
-                <NativeSelect id="img-layout" value={spec.layout} onChange={(event) => update({ layout: event.target.value as ImageSpec['layout'] })} className="w-full">
-                  <NativeSelectOption value="barras">Barras verticales (tramos, jornadas…)</NativeSelectOption>
-                  <NativeSelectOption value="ranking">Ranking horizontal (jugadores, equipos…)</NativeSelectOption>
-                </NativeSelect>
-              </Field>
-              <Field label="Porcentajes">
-                <label className="flex h-9 items-center gap-2 text-sm font-bold text-slate-600">
-                  <input type="checkbox" checked={spec.showPercent} onChange={(event) => update({ showPercent: event.target.checked })} className="size-4" />
-                  Mostrar % sobre el total
-                </label>
-              </Field>
-            </div>
-
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className={labelClass + ' mb-0'}>Datos ({spec.rows.length}/{MAX_ROWS})</span>
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => update({ rows: QUARTER_LABELS.map((label) => ({ label, value: 0 })), dividerAfter: 3 })}>Tramos de 15 min</Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => update({ rows: [] })}>Vaciar</Button>
-                </div>
+      <div className="min-w-0">
+        {!current && (
+          <Card className="border-0 shadow-sm ring-slate-200">
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="text-lg font-black text-[#071527]">Crea una imagen</h3>
+                <p className="text-sm text-slate-500">Elige una plantilla y la imagen se genera sola con los datos de la app. Se guarda en tu historial y podrás editarla cuando quieras.</p>
               </div>
-              <div className="space-y-2">
-                {spec.rows.map((row, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input aria-label={`Etiqueta ${index + 1}`} value={row.label} maxLength={30} onChange={(event) => setRow(index, { label: event.target.value })} className="h-10 flex-1" />
-                    <Input aria-label={`Valor ${index + 1}`} type="number" min={0} step="any" value={Number.isFinite(row.value) ? row.value : 0} onChange={(event) => setRow(index, { value: Math.max(0, Number(event.target.value) || 0) })} className="h-10 w-24" />
-                    <Button type="button" size="icon" variant="outline" aria-label="Quitar fila" onClick={() => update({ rows: spec.rows.filter((_, position) => position !== index) })}><Minus className="size-4" /></Button>
-                  </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {IMAGE_TEMPLATES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void createFromTemplate(item.id)}
+                    disabled={creating !== null || opening}
+                    className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#153e72] hover:bg-sky-50 disabled:opacity-60"
+                  >
+                    <span className="grid size-10 place-items-center rounded-xl bg-[#153e72] text-white">
+                      {creating === item.id ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+                    </span>
+                    <strong className="text-base font-black leading-tight text-[#071527]">{item.label}</strong>
+                    <span className="text-xs text-slate-500">{item.description}</span>
+                  </button>
                 ))}
               </div>
-              <Button type="button" size="sm" variant="outline" className="mt-2" disabled={spec.rows.length >= MAX_ROWS} onClick={() => update({ rows: [...spec.rows, { label: '', value: 0 }] })}>
-                <Plus className="size-4" /> Añadir dato
+              {(creating !== null || opening) && <p className="text-sm font-bold text-slate-500">{creating !== null ? 'Generando la imagen…' : 'Abriendo la imagen…'}</p>}
+              {pickerError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{pickerError}</p>}
+            </CardContent>
+          </Card>
+        )}
+
+        {current && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-lg font-black text-[#071527]">{titleOf(spec)}</h3>
+                <p className="text-xs text-slate-400">
+                  Plantilla: {templateLabel} ·{' '}
+                  {saveState === 'saving' ? 'Guardando…' : saveState === 'error' ? 'No se pudo guardar; se reintentará con el próximo cambio' : saveState === 'saved' ? 'Guardada en el historial ✓' : 'Se guarda sola en el historial'}
+                </p>
+              </div>
+              <Button type="button" variant={editing ? 'default' : 'outline'} onClick={() => setEditing((value) => !value)} className={`font-black ${editing ? 'bg-[#153e72] text-white' : ''}`}>
+                <Pencil className="size-4" /> {editing ? 'Cerrar edición' : 'Editar imagen'}
               </Button>
             </div>
 
-            {spec.layout === 'barras' && (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field id="img-divider" label="Línea tras la columna (0 = ninguna)">
-                  <Input id="img-divider" type="number" min={0} max={spec.rows.length} value={spec.dividerAfter} onChange={(event) => update({ dividerAfter: Math.max(0, Math.round(Number(event.target.value) || 0)) })} className="h-10" />
-                </Field>
-                <Field id="img-div-left" label="Etiqueta izquierda">
-                  <Input id="img-div-left" value={spec.dividerLabels[0]} maxLength={20} onChange={(event) => update({ dividerLabels: [event.target.value, spec.dividerLabels[1]] })} className="h-10" />
-                </Field>
-                <Field id="img-div-right" label="Etiqueta derecha">
-                  <Input id="img-div-right" value={spec.dividerLabels[1]} maxLength={20} onChange={(event) => update({ dividerLabels: [spec.dividerLabels[0], event.target.value] })} className="h-10" />
-                </Field>
+            <div className={editing ? 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]' : ''}>
+              {editing && (
+                <div className="space-y-5">
+                  {current.template !== 'libre' && (
+                    <Card className="border-0 shadow-sm ring-slate-200">
+                      <CardContent className="space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm text-slate-500">Los datos vienen de la app. Si has cambiado resultados o goles, recárgalos.</span>
+                          <Button type="button" variant="outline" disabled={reloading} onClick={() => void reloadData()} className="font-black">
+                            {reloading ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} Recargar datos
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card className="border-0 shadow-sm ring-slate-200">
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field id="img-layout" label="Tipo de gráfico">
+                          <NativeSelect id="img-layout" value={spec.layout} onChange={(event) => update({ layout: event.target.value as ImageSpec['layout'] })} className="w-full">
+                            <NativeSelectOption value="barras">Barras verticales (tramos, jornadas…)</NativeSelectOption>
+                            <NativeSelectOption value="ranking">Ranking horizontal (jugadores, equipos…)</NativeSelectOption>
+                          </NativeSelect>
+                        </Field>
+                        <Field label="Porcentajes">
+                          <label className="flex h-9 items-center gap-2 text-sm font-bold text-slate-600">
+                            <input type="checkbox" checked={spec.showPercent} onChange={(event) => update({ showPercent: event.target.checked })} className="size-4" />
+                            Mostrar % sobre el total
+                          </label>
+                        </Field>
+                      </div>
+
+                      <div>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <span className={labelClass + ' mb-0'}>Datos ({spec.rows.length}/{MAX_ROWS})</span>
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => update({ rows: QUARTER_LABELS.map((label) => ({ label, value: 0 })), dividerAfter: 3 })}>Tramos de 15 min</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={() => update({ rows: [] })}>Vaciar</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {spec.rows.map((row, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input aria-label={`Etiqueta ${index + 1}`} value={row.label} maxLength={30} onChange={(event) => setRow(index, { label: event.target.value })} className="h-10 flex-1" />
+                              <Input aria-label={`Valor ${index + 1}`} type="number" min={0} step="any" value={Number.isFinite(row.value) ? row.value : 0} onChange={(event) => setRow(index, { value: Math.max(0, Number(event.target.value) || 0) })} className="h-10 w-24" />
+                              <Button type="button" size="icon" variant="outline" aria-label="Quitar fila" onClick={() => update({ rows: spec.rows.filter((_, position) => position !== index) })}><Minus className="size-4" /></Button>
+                            </div>
+                          ))}
+                        </div>
+                        <Button type="button" size="sm" variant="outline" className="mt-2" disabled={spec.rows.length >= MAX_ROWS} onClick={() => update({ rows: [...spec.rows, { label: '', value: 0 }] })}>
+                          <Plus className="size-4" /> Añadir dato
+                        </Button>
+                      </div>
+
+                      {spec.layout === 'barras' && (
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <Field id="img-divider" label="Línea tras la columna (0 = ninguna)">
+                            <Input id="img-divider" type="number" min={0} max={spec.rows.length} value={spec.dividerAfter} onChange={(event) => update({ dividerAfter: Math.max(0, Math.round(Number(event.target.value) || 0)) })} className="h-10" />
+                          </Field>
+                          <Field id="img-div-left" label="Etiqueta izquierda">
+                            <Input id="img-div-left" value={spec.dividerLabels[0]} maxLength={20} onChange={(event) => update({ dividerLabels: [event.target.value, spec.dividerLabels[1]] })} className="h-10" />
+                          </Field>
+                          <Field id="img-div-right" label="Etiqueta derecha">
+                            <Input id="img-div-right" value={spec.dividerLabels[1]} maxLength={20} onChange={(event) => update({ dividerLabels: [spec.dividerLabels[0], event.target.value] })} className="h-10" />
+                          </Field>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-sm ring-slate-200">
+                    <CardContent className="space-y-3">
+                      <Field id="img-kicker" label="Texto pequeño superior"><Input id="img-kicker" value={spec.kicker} maxLength={60} onChange={(event) => update({ kicker: event.target.value })} className="h-10" /></Field>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field id="img-title" label="Título (blanco)"><Input id="img-title" value={spec.title} maxLength={40} onChange={(event) => update({ title: event.target.value })} className="h-10" /></Field>
+                        <Field id="img-accent" label="Título (rojo)"><Input id="img-accent" value={spec.titleAccent} maxLength={40} onChange={(event) => update({ titleAccent: event.target.value })} className="h-10" /></Field>
+                      </div>
+                      <Field id="img-subtitle" label="Subtítulo"><Textarea id="img-subtitle" value={spec.subtitle} rows={2} maxLength={220} onChange={(event) => update({ subtitle: event.target.value })} /></Field>
+                      <Field id="img-footer" label="Pie (fuente)"><Textarea id="img-footer" value={spec.footer} rows={2} maxLength={240} onChange={(event) => update({ footer: event.target.value })} /></Field>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-sm ring-slate-200">
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={labelClass + ' mb-0'}>Tarjetas con datos clave (máx. 3)</span>
+                        <Button type="button" size="sm" variant="outline" onClick={() => update({ cards: suggestCards(spec.rows) })}>Calcular desde los datos</Button>
+                      </div>
+                      {[0, 1, 2].map((index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input aria-label={`Cifra de la tarjeta ${index + 1}`} placeholder="69%" value={spec.cards[index]?.value ?? ''} maxLength={10} onChange={(event) => setCard(index, { value: event.target.value })} className="h-10 w-28" />
+                          <Input aria-label={`Texto de la tarjeta ${index + 1}`} placeholder="de los goles llegan en la 2ª parte" value={spec.cards[index]?.text ?? ''} maxLength={80} onChange={(event) => setCard(index, { text: event.target.value })} className="h-10 flex-1" />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-sm ring-slate-200">
+                    <CardContent className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field id="img-bg" label="Fondo">
+                          <NativeSelect id="img-bg" value={spec.background} onChange={(event) => update({ background: event.target.value as ImageSpec['background'] })} className="w-full">
+                            {Object.entries(BACKGROUNDS).map(([key, item]) => <NativeSelectOption key={key} value={key}>{item.label}</NativeSelectOption>)}
+                            <NativeSelectOption value="ninguno">Sin foto (degradado)</NativeSelectOption>
+                          </NativeSelect>
+                        </Field>
+                        <Field id="img-player" label="Jugador destacado">
+                          <NativeSelect id="img-player" value={spec.playerId} onChange={(event) => choosePlayer(event.target.value)} className="w-full">
+                            <NativeSelectOption value="">Ninguno</NativeSelectOption>
+                            {sortedPlayers.map((item) => <NativeSelectOption key={item.id} value={item.id}>{item.number ? `${item.number} · ` : ''}{item.displayName}</NativeSelectOption>)}
+                          </NativeSelect>
+                        </Field>
+                      </div>
+                      {spec.playerId && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Field id="img-caption" label="Texto del jugador"><Input id="img-caption" value={spec.playerCaption} maxLength={40} onChange={(event) => update({ playerCaption: event.target.value })} className="h-10" /></Field>
+                          <Field id="img-playersub" label="Detalle"><Input id="img-playersub" value={spec.playerSub} maxLength={50} onChange={(event) => update({ playerSub: event.target.value })} className="h-10" /></Field>
+                        </div>
+                      )}
+                      {spec.background !== 'ninguno' && <p className="text-xs text-slate-400">Con foto de fondo, el pie incluye automáticamente el crédito del autor (licencia CC BY-SA).</p>}
+                      {assetError && <p role="alert" className="text-sm font-bold text-[#a91d43]">{assetError}</p>}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <div className={editing ? 'order-first xl:sticky xl:top-4 xl:order-last xl:self-start' : 'mx-auto w-full max-w-md'}>
+                <Card className="border-0 shadow-sm ring-slate-200">
+                  <CardContent className="space-y-3">
+                    <canvas ref={canvasRef} aria-label="Vista previa de la imagen" className="h-auto w-full rounded-xl bg-[#050b18]" style={{ aspectRatio: '1080 / 1350' }} />
+                    {warnings.map((warning) => <p key={warning} className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">{warning}</p>)}
+                    <Button onClick={download} disabled={!fontsReady} className="w-full bg-[#a91d43] font-black text-white">
+                      <Download className="size-4" /> Descargar PNG (1620×2025)
+                    </Button>
+                    <Button variant="outline" onClick={() => void onCopy()} disabled={!fontsReady} className="w-full font-black">
+                      <Copy className="size-4" /> Copiar imagen
+                    </Button>
+                    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <label htmlFor="img-tweet" className={labelClass + ' mb-0 flex items-center justify-between'}>
+                        <span>Publicación en X</span>
+                        <span className={tweetLeft < 0 ? 'text-[#a91d43]' : ''}>{tweetLeft}</span>
+                      </label>
+                      <Textarea id="img-tweet" value={tweet} rows={3} onChange={(event) => setTweetText(event.target.value)} />
+                      <p className="text-xs text-slate-500">Se añade el enlace {SHARE_URL.replace('https://', '')}.</p>
+                      <Button onClick={() => void onShareX()} disabled={!fontsReady || tweetLeft < 0} className="w-full bg-black font-black text-white hover:bg-slate-800">
+                        <span aria-hidden className="text-base leading-none">𝕏</span> Publicar en X
+                      </Button>
+                    </div>
+                    {shareMessage && (
+                      <p role="status" className={`flex items-start gap-2 rounded-xl p-3 text-xs font-bold ${shareMessage.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'}`}>
+                        {shareMessage.ok && <Check className="mt-0.5 size-4 shrink-0" />}{shareMessage.text}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <Field id="img-kicker" label="Texto pequeño superior"><Input id="img-kicker" value={spec.kicker} maxLength={60} onChange={(event) => update({ kicker: event.target.value })} className="h-10" /></Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="img-title" label="Título (blanco)"><Input id="img-title" value={spec.title} maxLength={40} onChange={(event) => update({ title: event.target.value })} className="h-10" /></Field>
-              <Field id="img-accent" label="Título (rojo)"><Input id="img-accent" value={spec.titleAccent} maxLength={40} onChange={(event) => update({ titleAccent: event.target.value })} className="h-10" /></Field>
             </div>
-            <Field id="img-subtitle" label="Subtítulo"><Textarea id="img-subtitle" value={spec.subtitle} rows={2} maxLength={220} onChange={(event) => update({ subtitle: event.target.value })} /></Field>
-            <Field id="img-footer" label="Pie (fuente)"><Textarea id="img-footer" value={spec.footer} rows={2} maxLength={240} onChange={(event) => update({ footer: event.target.value })} /></Field>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className={labelClass + ' mb-0'}>Tarjetas con datos clave (máx. 3)</span>
-              <Button type="button" size="sm" variant="outline" onClick={() => update({ cards: suggestCards(spec.rows) })}>Calcular desde los datos</Button>
-            </div>
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="flex gap-2">
-                <Input aria-label={`Cifra de la tarjeta ${index + 1}`} placeholder="69%" value={spec.cards[index]?.value ?? ''} maxLength={10} onChange={(event) => setCard(index, { value: event.target.value })} className="h-10 w-28" />
-                <Input aria-label={`Texto de la tarjeta ${index + 1}`} placeholder="de los goles llegan en la 2ª parte" value={spec.cards[index]?.text ?? ''} maxLength={80} onChange={(event) => setCard(index, { text: event.target.value })} className="h-10 flex-1" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="img-bg" label="Fondo">
-                <NativeSelect id="img-bg" value={spec.background} onChange={(event) => update({ background: event.target.value as ImageSpec['background'] })} className="w-full">
-                  {Object.entries(BACKGROUNDS).map(([key, item]) => <NativeSelectOption key={key} value={key}>{item.label}</NativeSelectOption>)}
-                  <NativeSelectOption value="ninguno">Sin foto (degradado)</NativeSelectOption>
-                </NativeSelect>
-              </Field>
-              <Field id="img-player" label="Jugador destacado">
-                <NativeSelect id="img-player" value={spec.playerId} onChange={(event) => choosePlayer(event.target.value)} className="w-full">
-                  <NativeSelectOption value="">Ninguno</NativeSelectOption>
-                  {sortedPlayers.map((item) => <NativeSelectOption key={item.id} value={item.id}>{item.number ? `${item.number} · ` : ''}{item.displayName}</NativeSelectOption>)}
-                </NativeSelect>
-              </Field>
-            </div>
-            {spec.playerId && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field id="img-caption" label="Texto del jugador"><Input id="img-caption" value={spec.playerCaption} maxLength={40} onChange={(event) => update({ playerCaption: event.target.value })} className="h-10" /></Field>
-                <Field id="img-playersub" label="Detalle"><Input id="img-playersub" value={spec.playerSub} maxLength={50} onChange={(event) => update({ playerSub: event.target.value })} className="h-10" /></Field>
-              </div>
-            )}
-            {spec.background !== 'ninguno' && <p className="text-xs text-slate-400">Con foto de fondo, el pie incluye automáticamente el crédito del autor (licencia CC BY-SA).</p>}
-            {assetError && <p role="alert" className="text-sm font-bold text-[#a91d43]">{assetError}</p>}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="lg:sticky lg:top-4 lg:self-start">
-        <Card className="border-0 shadow-sm ring-slate-200">
-          <CardContent className="space-y-3">
-            <canvas ref={canvasRef} aria-label="Vista previa de la imagen" className="h-auto w-full rounded-xl bg-[#050b18]" style={{ aspectRatio: '1080 / 1350' }} />
-            <Button onClick={download} disabled={!fontsReady} className="w-full bg-[#a91d43] font-black text-white">
-              <Download className="size-4" /> Descargar PNG (1620×2025)
-            </Button>
-            <Button variant="outline" onClick={() => void onCopy()} disabled={!fontsReady} className="w-full font-black">
-              <Copy className="size-4" /> Copiar imagen
-            </Button>
-            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <label htmlFor="img-tweet" className={labelClass + ' mb-0 flex items-center justify-between'}>
-                <span>Publicación en X</span>
-                <span className={tweetLeft < 0 ? 'text-[#a91d43]' : ''}>{tweetLeft}</span>
-              </label>
-              <Textarea id="img-tweet" value={tweet} rows={3} onChange={(event) => setTweetText(event.target.value)} />
-              <p className="text-xs text-slate-500">Se añade el enlace {SHARE_URL.replace('https://', '')}.</p>
-              <Button onClick={() => void onShareX()} disabled={!fontsReady || tweetLeft < 0} className="w-full bg-black font-black text-white hover:bg-slate-800">
-                <span aria-hidden className="text-base leading-none">𝕏</span> Publicar en X
-              </Button>
-            </div>
-            {shareMessage && (
-              <p role="status" className={`flex items-start gap-2 rounded-xl p-3 text-xs font-bold ${shareMessage.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'}`}>
-                {shareMessage.ok && <Check className="mt-0.5 size-4 shrink-0" />}{shareMessage.text}
-              </p>
-            )}
-            <p className="text-xs text-slate-400">Formato vertical, pensado para redes sociales. La imagen se crea en tu navegador y no se guarda en la app.</p>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </div>
   );

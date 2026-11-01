@@ -2193,7 +2193,7 @@ export default function AdminPage() {
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-8">
+      <main className={`mx-auto space-y-5 px-4 py-6 sm:px-8 ${activeTab === 'imagenes' ? 'max-w-7xl' : 'max-w-5xl'}`}>
         {isSuper && activeTab !== null && communityTabs.includes(activeTab) && (
           <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
             <label htmlFor="managed-community" className="text-xs font-black uppercase tracking-wider text-slate-400">
@@ -2277,7 +2277,7 @@ export default function AdminPage() {
           <section className="space-y-4" role="tabpanel">
             <SectionHeading
               title="Generador de imágenes"
-              description="Crea imágenes estadísticas (como la de los goles por minuto) con los datos de la app o con los que escribas aquí. Las imágenes no se guardan: descarga el PNG, cópialo o publícalo en X."
+              description="Elige una plantilla y se genera sola una imagen estadística con los datos de la app. Cada imagen queda guardada en tu historial para reabrirla y editarla; descárgala, cópiala o publícala en X."
             />
             <ImageGenerator key={managedSlug} communitySlug={managedSlug} />
           </section>
