@@ -12,6 +12,19 @@ export interface ImageRow {
   playerId?: string;
 }
 
+// Fila de la lista de partidos de la comparativa: el partido de cada temporada en una jornada.
+export type DuelOutcome = 'w' | 'd' | 'l';
+export interface ImageDuelSide {
+  rival: string;
+  score: string;
+  outcome: DuelOutcome;
+}
+export interface ImageDuel {
+  day: string;
+  left: ImageDuelSide | null;
+  right: ImageDuelSide | null;
+}
+
 export interface ImageCard {
   value: string;
   text: string;
@@ -38,6 +51,8 @@ export interface ImageSpec {
   unit: [string, string];
   // Sufijo del valor en la comparativa ("%" en los pronosticos, vacio al comparar cifras).
   compareSuffix: string;
+  // Lista de partidos bajo las columnas de la comparativa (vacia = comparativa normal).
+  duels: ImageDuel[];
   // Logo de la comunidad en la esquina superior derecha.
   logo: ImageLogo;
 }
@@ -46,6 +61,7 @@ export const IMAGE_WIDTH = 1080;
 export const IMAGE_HEIGHT = 1350;
 export const IMAGE_SCALE = 1.5;
 export const MAX_ROWS = 12;
+export const MAX_DUELS = 12;
 
 export const BACKGROUNDS: Record<Exclude<ImageBackground, 'ninguno'>, { src: string; label: string; credit: string }> = {
   nocturna: { src: '/ciutat-nocturna.jpg', label: 'Ciutat de València (de noche)', credit: 'Foto del estadio: TaronjaSatsuma, CC BY-SA 4.0 (Wikimedia Commons).' },
@@ -88,6 +104,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante UD en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
   unit: ['MVP', 'MVPs'],
   compareSuffix: '%',
+  duels: [],
   logo: 'ninguno',
 };
 
@@ -195,6 +212,69 @@ function fitFont(ctx: Ctx, text: string, weight: number, size: number, family: s
     ctx.font = `${weight} ${current}px ${family}`;
   }
   return current;
+}
+
+const OUTCOME_COLORS: Record<DuelOutcome, string> = { w: '#5ee08a', d: '#ffd36b', l: RED_LIGHT };
+
+// Lista de partidos bajo la comparativa: jornada, rival y resultado de cada temporada (azul = la pasada, rojo = la actual).
+function drawDuels(ctx: Ctx, spec: ImageSpec, duels: ImageDuel[], sideColors: string[], px: number, py: number, pw: number, ph: number) {
+  roundRect(ctx, px, py, pw, ph, 30);
+  ctx.fillStyle = 'rgba(8,18,40,.78)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(160,190,240,.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const left = px + 36;
+  const right = px + pw - 36;
+  const blockW = 340;
+  const starts = [left + 90, right - blockW];
+  const headY = py + 36;
+  ctx.font = `800 20px ${HEAD_FONT}`;
+  setSpacing(ctx, 2);
+  ctx.fillStyle = '#9db4d8';
+  ctx.fillText('J', left, headY);
+  [0, 1].forEach((side) => {
+    ctx.fillStyle = sideColors[side];
+    ctx.fillText((spec.dividerLabels[side] || (side === 0 ? 'Antes' : 'Ahora')).toUpperCase(), starts[side], headY);
+  });
+  setSpacing(ctx, 0);
+  ctx.strokeStyle = 'rgba(160,190,240,.25)';
+  ctx.beginPath();
+  ctx.moveTo(left, headY + 10);
+  ctx.lineTo(right, headY + 10);
+  ctx.stroke();
+  const top = headY + 14;
+  const rowH = Math.min(30, (py + ph - 12 - top) / duels.length);
+  const size = Math.min(21, rowH * 0.74);
+  ctx.textBaseline = 'middle';
+  duels.forEach((duel, index) => {
+    const cy = top + index * rowH + rowH / 2;
+    if (index % 2 === 0) {
+      roundRect(ctx, left - 12, cy - rowH / 2, right - left + 24, rowH, 8);
+      ctx.fillStyle = 'rgba(120,160,230,.08)';
+      ctx.fill();
+    }
+    ctx.fillStyle = '#dbe6f8';
+    ctx.font = `800 ${size}px ${HEAD_FONT}`;
+    ctx.fillText(duel.day, left, cy);
+    [duel.left, duel.right].forEach((side, sideIndex) => {
+      if (!side) {
+        ctx.fillStyle = '#6f86ad';
+        ctx.font = `700 ${size}px ${BODY_FONT}`;
+        ctx.fillText('—', starts[sideIndex], cy);
+        return;
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = `700 ${size * 0.9}px ${BODY_FONT}`;
+      ctx.fillText(side.rival, starts[sideIndex], cy, blockW - 90);
+      ctx.fillStyle = OUTCOME_COLORS[side.outcome];
+      ctx.font = `900 ${size * 1.15}px ${HEAD_FONT}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(side.score, starts[sideIndex] + blockW - 14, cy);
+      ctx.textAlign = 'left';
+    });
+  });
+  ctx.textBaseline = 'alphabetic';
 }
 
 export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, assets: ImageAssets) {
@@ -345,9 +425,10 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
 
   // Panel del grafico
   const px = 44;
-  const py = spec.layout === 'podio' ? 490 : 640;
+  const duels = spec.layout === 'comparar' ? spec.duels.slice(0, MAX_DUELS) : [];
+  const py = spec.layout === 'podio' || duels.length ? 490 : 640;
   const pw = W - 88;
-  const ph = spec.layout === 'podio' ? 620 : 470;
+  const ph = spec.layout === 'podio' ? 620 : duels.length ? 230 : 470;
   const panel = ctx.createLinearGradient(0, py, 0, py + ph);
   panel.addColorStop(0, 'rgba(10,22,48,.66)');
   panel.addColorStop(1, 'rgba(6,14,30,.84)');
@@ -520,8 +601,8 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
     const groupGap = groups > 3 ? 24 : 40;
     const groupW = (inner - groupGap * Math.max(groups - 1, 0)) / Math.max(groups, 1);
     const barW = Math.min((groupW - 16) / 2, 140);
-    const baseline = 980;
-    const barMax = 230;
+    const baseline = duels.length ? py + ph - 50 : 980;
+    const barMax = duels.length ? 85 : 230;
     const colors = [['#4b9bff', BLUE_DARK], [RED_LIGHT, '#a91d43']];
     ctx.textAlign = 'center';
     for (let group = 0; group < groups; group += 1) {
@@ -544,7 +625,7 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
         ctx.fill();
         ctx.restore();
         ctx.fillStyle = side === 1 ? RED_LIGHT : '#fff';
-        ctx.font = `900 ${barW < 90 ? 40 : 52}px ${HEAD_FONT}`;
+        ctx.font = `900 ${duels.length || barW < 90 ? 38 : 52}px ${HEAD_FONT}`;
         ctx.fillText(`${label(row.value)}${spec.compareSuffix}`, cx, top - 12, barW + 24);
       });
       ctx.fillStyle = '#dbe6f8';
@@ -570,6 +651,7 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
       ctx.fillText((spec.dividerLabels[side] || (side === 0 ? 'Usuarios' : 'Realidad')).toUpperCase(), lx + 32, py + 46);
     });
     setSpacing(ctx, 0);
+    if (duels.length) drawDuels(ctx, spec, duels, colors.map((color) => color[0]), px, py + ph + 12, pw, 1110 - (py + ph + 12));
   } else {
     // Ranking: una barra horizontal por fila.
     const top = py + 30;
@@ -664,6 +746,21 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (source.logo === 'ninguno' || source.logo === 'ismaelete') out.logo = source.logo;
   assign('compareSuffix', text(source.compareSuffix, 3));
+  if (Array.isArray(source.duels)) {
+    const side = (raw: unknown): ImageDuelSide | null => {
+      const item = (raw && typeof raw === 'object' ? raw : null) as Record<string, unknown> | null;
+      if (!item || typeof item.rival !== 'string' || typeof item.score !== 'string') return null;
+      const outcome = item.outcome === 'w' || item.outcome === 'd' || item.outcome === 'l' ? item.outcome : 'd';
+      return { rival: item.rival.trim().slice(0, 30), score: item.score.trim().slice(0, 8), outcome };
+    };
+    out.duels = source.duels
+      .map((raw) => {
+        const item = (raw ?? {}) as Record<string, unknown>;
+        return { day: String(item.day ?? '').trim().slice(0, 8), left: side(item.left), right: side(item.right) };
+      })
+      .filter((duel) => duel.day)
+      .slice(0, MAX_DUELS);
+  }
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {
     out.rows = source.rows

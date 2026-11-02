@@ -1,5 +1,5 @@
-import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches, rivalKey } from '@/lib/previous-season';
-import { DEFAULT_SPEC, QUARTER_LABELS, type ImageSpec } from '@/lib/image-generator';
+import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches } from '@/lib/previous-season';
+import { DEFAULT_SPEC, MAX_DUELS, QUARTER_LABELS, type DuelOutcome, type ImageDuelSide, type ImageSpec } from '@/lib/image-generator';
 
 // Datos de cada partido de LaLiga ya jugado que alimentan las plantillas del generador de imagenes.
 export interface MatchStats {
@@ -38,7 +38,7 @@ export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: 
   { id: 'mvp', label: 'Podio de MVP', name: 'Podio de MVP', description: 'Los jugadores con más MVP de la jornada hasta ahora, en un podio.' },
   { id: 'xi', label: 'Podio de titulares', name: 'Podio de titulares', description: 'Los futbolistas que más veces han estado en el once inicial, en un podio con su foto.' },
   { id: 'prono', label: 'Pronósticos vs realidad', name: 'Pronósticos vs realidad', description: 'Qué porcentaje de usuarios da victoria, empate o derrota al Levante UD, comparado con cómo han salido los partidos.' },
-  { id: 'temporada', label: 'Mismos rivales, esta temporada vs la pasada', name: 'Mismos rivales, esta temporada vs la pasada', description: 'Los partidos jugados este año contra cada rival, comparados con los de la temporada pasada contra ese mismo rival y en la misma sede: puntos, goles, victorias y porterías a cero.' },
+  { id: 'temporada', label: 'Esta temporada vs la pasada', name: 'Esta temporada vs la pasada', description: 'Las jornadas de LaLiga jugadas este año comparadas con las mismas de la pasada: puntos, goles, victorias y porterías a cero, y la lista de rivales con su resultado en cada temporada.' },
   { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
@@ -328,28 +328,32 @@ function seasonTotals(matches: Array<{ scored: number; conceded: number }>): Sea
 
 const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
 
-// "Mismos rivales": cada partido de este año frente al de la temporada pasada contra ese rival en la misma sede. Entran todas las
-// jornadas jugadas, asi que cada vez que avanza la liga la imagen incluye una mas. Los rivales que el año pasado no estaban en
-// Primera (o que aun no se han jugado) se dejan fuera de las dos temporadas para que la comparacion sea justa.
-function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
-  const played = [...stats].sort((a, b) => a.matchday - b.matchday);
-  if (played.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
-  const pairs = played.flatMap((item) => {
-    const key = rivalKey(item.rival);
-    const before = key ? previousSeasonMatches.find((old) => rivalKey(old.rival) === key && old.home === item.home) : undefined;
-    return before ? [{ now: item, before }] : [];
-  });
-  const skipped = played.filter((item) => !pairs.some((pair) => pair.now === item));
-  if (pairs.length === 0) return { spec: {}, warnings: ['Ningún rival de las jornadas jugadas estaba en Primera el año pasado.'] };
-  const warnings = skipped.length ? [`No se comparan por no haber jugado contra ellos en LaLiga ${PREVIOUS_SEASON_LABEL}: ${skipped.map((item) => `${item.rival} (J${item.matchday})`).join(', ')}.`] : [];
+const shortRival = (name: string) => name.replace(/^(FC|CA|RCD|CD) /, '').replace(/ (CF|FC)$/, '').replace(/^Deportivo (?=Alav)/, '');
+const outcomeOf = (scored: number, conceded: number): DuelOutcome => (scored > conceded ? 'w' : scored === conceded ? 'd' : 'l');
+const duelSide = (rival: string, home: boolean, scored: number, conceded: number): ImageDuelSide => ({
+  rival: `${shortRival(rival)} (${home ? 'C' : 'F'})`,
+  score: `${scored}-${conceded}`,
+  outcome: outcomeOf(scored, conceded),
+});
 
-  const now = seasonTotals(pairs.map((pair) => pair.now));
-  const before = seasonTotals(pairs.map((pair) => pair.before));
-  const last = Math.max(...pairs.map((pair) => pair.now.matchday));
-  const days = `J1–J${last}`;
+// "Esta temporada vs la pasada": todas las jornadas jugadas este año frente a las mismas de la temporada pasada, con el rival y el
+// resultado de cada una. Cada vez que avanza la liga, la imagen incluye una jornada mas.
+function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
+  const current = [...stats].sort((a, b) => a.matchday - b.matchday);
+  if (current.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
+  const days = new Set(current.map((item) => item.matchday));
+  const previous = previousSeasonMatches.filter((item) => days.has(item.matchday));
+  const last = current[current.length - 1].matchday;
+  const now = seasonTotals(current);
+  const before = seasonTotals(previous);
+  const warnings: string[] = [];
+  if (previous.length !== current.length) warnings.push('Faltan datos de alguna jornada de la temporada pasada: la comparación no es exacta.');
+  if (current.length > MAX_DUELS) warnings.push(`La lista de rivales muestra solo las últimas ${MAX_DUELS} jornadas; las columnas suman las ${current.length}.`);
+  const range = `J1–J${last}`;
   const diffPoints = now.points - before.points;
-  const rivals = pairs.length;
-  const subtitle = `Frente a ${rivals} ${plural(rivals, 'rival', 'rivales')} (${days}) en la misma sede, el Levante UD suma ${now.points} puntos${diffPoints === 0 ? ', igual que el año pasado' : `: ${Math.abs(diffPoints)} ${diffPoints > 0 ? 'más' : 'menos'} que el año pasado (${before.points})`}.`;
+  const subtitle = diffPoints === 0
+    ? `Tras ${range}, el Levante UD suma los mismos puntos que el año pasado (${now.points}).`
+    : `Tras ${range}, el Levante UD suma ${now.points} puntos: ${Math.abs(diffPoints)} ${diffPoints > 0 ? 'más' : 'menos'} que el año pasado (${before.points}).`;
   const groups: Array<[string, number, number]> = [
     ['Puntos', before.points, now.points],
     ['Goles a favor', before.scored, now.scored],
@@ -357,31 +361,38 @@ function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
     ['Victorias', before.wins, now.wins],
     ['Porterías a cero', before.cleanSheets, now.cleanSheets],
   ];
-  const names = pairs.map((pair) => pair.now.rival).join(', ');
-  const base = `${SOURCE} · Levante UD en LaLiga ${days}: ${CURRENT_SEASON_LABEL} (rojo) frente a ${PREVIOUS_SEASON_LABEL} (azul) contra los mismos rivales y en la misma sede.`;
+  const duels = current.slice(-MAX_DUELS).map((item) => {
+    const old = previous.find((entry) => entry.matchday === item.matchday);
+    return {
+      day: `J${item.matchday}`,
+      left: old ? duelSide(old.rival, old.home, old.scored, old.conceded) : null,
+      right: duelSide(item.rival, item.home, item.scored, item.conceded),
+    };
+  });
 
   return {
     warnings,
     spec: {
       kicker: DEFAULT_SPEC.kicker,
-      title: 'Mismos rivales,',
-      titleAccent: 'esta temporada vs la pasada',
-      subtitle: subtitle.slice(0, 220),
+      title: 'Esta temporada',
+      titleAccent: 'contra la pasada',
+      subtitle,
       layout: 'comparar',
       compareSuffix: '',
       rows: groups.flatMap(([label, beforeValue, nowValue]) => [{ label, value: beforeValue }, { label, value: nowValue }]),
       showPercent: false,
       dividerAfter: 0,
       dividerLabels: [PREVIOUS_SEASON_LABEL, CURRENT_SEASON_LABEL],
+      duels,
       cards: [
-        { value: signed(diffPoints), text: `${plural(Math.abs(diffPoints), 'punto', 'puntos')} frente al año pasado contra los mismos rivales` },
+        { value: signed(diffPoints), text: `${plural(Math.abs(diffPoints), 'punto', 'puntos')} frente al año pasado en las mismas jornadas` },
         { value: signed(now.scored - before.scored), text: `${plural(Math.abs(now.scored - before.scored), 'gol', 'goles')} a favor respecto al año pasado (${now.scored} frente a ${before.scored})` },
         { value: signed(now.conceded - before.conceded), text: `${plural(Math.abs(now.conceded - before.conceded), 'gol', 'goles')} en contra respecto al año pasado (${now.conceded} frente a ${before.conceded})` },
       ],
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${base} Rivales: ${names}.`.length <= 240 ? `${base} Rivales: ${names}.` : base,
+      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) frente a ${CURRENT_SEASON_LABEL} (rojo). C = en casa, F = fuera.`,
     },
   };
 }

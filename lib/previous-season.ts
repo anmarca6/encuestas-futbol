@@ -1,5 +1,5 @@
 // Resultados del Levante UD en LaLiga 2025/26, jornada a jornada (resumen de datasets/levante_2025_26_jornadas_1_38.json).
-// Sirven de referencia para la plantilla que compara esta temporada con la pasada frente a los mismos rivales.
+// Sirven de referencia para la plantilla que compara esta temporada con la pasada con rival y resultado de cada jornada.
 export const PREVIOUS_SEASON_LABEL = '2025/26';
 export const CURRENT_SEASON_LABEL = '2026/27';
 
@@ -52,12 +52,3 @@ export const previousSeasonMatches: PreviousMatch[] = [
   { matchday: 37, rival: "Mallorca", home: true, scored: 2, conceded: 0 },
   { matchday: 38, rival: "Betis", home: false, scored: 1, conceded: 2 },
 ];
-
-const RIVAL_KEYS = ['alaves', 'athletic', 'atletico', 'barcelona', 'betis', 'celta', 'elche', 'espanyol', 'getafe', 'girona', 'mallorca', 'osasuna', 'oviedo', 'rayo', 'real madrid', 'real sociedad', 'sevilla', 'valencia', 'villarreal'];
-
-// Identificador comun de un rival, porque el calendario y el dataset lo escriben distinto ("Villarreal CF" / "Villarreal").
-// Los equipos que el año pasado no estaban en Primera (Racing, Deportivo, Málaga...) no tienen identificador.
-export function rivalKey(name: string): string | null {
-  const plain = name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  return RIVAL_KEYS.find((key) => plain.includes(key)) ?? null;
-}
