@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     matches.push({
       matchday: match.matchday,
       rival: levanteIsHome ? match.awayTeam : match.homeTeam,
+      home: levanteIsHome,
       scored: levanteIsHome ? homeScore : awayScore,
       conceded: levanteIsHome ? awayScore : homeScore,
       scoredMinutes,
