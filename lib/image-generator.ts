@@ -36,6 +36,8 @@ export interface ImageSpec {
   footer: string;
   // Unidad del valor en el podio: singular y plural ("MVP", "MVPs").
   unit: [string, string];
+  // Sufijo del valor en la comparativa ("%" en los pronosticos, vacio al comparar cifras).
+  compareSuffix: string;
   // Logo de la comunidad en la esquina superior derecha.
   logo: ImageLogo;
 }
@@ -85,6 +87,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   playerSub: 'Máximo goleador del equipo',
   footer: 'Fuente: https://encuestas-futbol.vercel.app/ismaelete · Goles del Levante UD en LaLiga (J1–J11); el tramo 90+ incluye el descuento.',
   unit: ['MVP', 'MVPs'],
+  compareSuffix: '%',
   logo: 'ninguno',
 };
 
@@ -514,7 +517,7 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
     const left = px + 36;
     const inner = pw - 72;
     const groups = Math.floor(rows.length / 2);
-    const groupGap = 40;
+    const groupGap = groups > 3 ? 24 : 40;
     const groupW = (inner - groupGap * Math.max(groups - 1, 0)) / Math.max(groups, 1);
     const barW = Math.min((groupW - 16) / 2, 140);
     const baseline = 980;
@@ -542,11 +545,11 @@ export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, as
         ctx.restore();
         ctx.fillStyle = side === 1 ? RED_LIGHT : '#fff';
         ctx.font = `900 ${barW < 90 ? 40 : 52}px ${HEAD_FONT}`;
-        ctx.fillText(`${label(row.value)}%`, cx, top - 12, barW + 24);
+        ctx.fillText(`${label(row.value)}${spec.compareSuffix}`, cx, top - 12, barW + 24);
       });
       ctx.fillStyle = '#dbe6f8';
-      ctx.font = `800 28px ${HEAD_FONT}`;
-      ctx.fillText(rows[group * 2].label.toUpperCase(), gx, baseline + 44, groupW);
+      ctx.font = `800 ${groups > 3 ? 22 : 28}px ${HEAD_FONT}`;
+      ctx.fillText(rows[group * 2].label.toUpperCase(), gx, baseline + 44, groupW + groupGap - 4);
     }
     ctx.strokeStyle = 'rgba(160,190,240,.3)';
     ctx.lineWidth = 2;
@@ -660,6 +663,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio' || source.layout === 'comparar') out.layout = source.layout;
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (source.logo === 'ninguno' || source.logo === 'ismaelete') out.logo = source.logo;
+  assign('compareSuffix', text(source.compareSuffix, 3));
   if (typeof source.showPercent === 'boolean') out.showPercent = source.showPercent;
   if (Array.isArray(source.rows)) {
     out.rows = source.rows

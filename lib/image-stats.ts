@@ -1,3 +1,4 @@
+import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches } from '@/lib/previous-season';
 import { DEFAULT_SPEC, QUARTER_LABELS, type ImageSpec } from '@/lib/image-generator';
 
 // Datos de cada partido de LaLiga ya jugado que alimentan las plantillas del generador de imagenes.
@@ -27,7 +28,7 @@ export interface ImageData {
 
 export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [] };
 
-export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'libre';
+export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'temporada' | 'libre';
 
 export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: string; description: string }> = [
   { id: 'marca', label: '¿Cuándo marca el Levante UD?', name: '¿Cuándo marca el Levante UD?', description: 'Goles a favor por tramos de 15 minutos, con el máximo goleador como protagonista.' },
@@ -35,6 +36,7 @@ export const IMAGE_TEMPLATES: Array<{ id: ImageTemplateId; label: string; name: 
   { id: 'mvp', label: 'Podio de MVP', name: 'Podio de MVP', description: 'Los jugadores con más MVP de la jornada hasta ahora, en un podio.' },
   { id: 'xi', label: 'Podio de titulares', name: 'Podio de titulares', description: 'Los futbolistas que más veces han estado en el once inicial, en un podio con su foto.' },
   { id: 'prono', label: 'Pronósticos vs realidad', name: 'Pronósticos vs realidad', description: 'Qué porcentaje de usuarios da victoria, empate o derrota al Levante UD, comparado con cómo han salido los partidos.' },
+  { id: 'temporada', label: 'Esta temporada vs la pasada', name: 'Esta temporada vs la pasada', description: 'Las primeras jornadas de LaLiga de este año comparadas con las mismas del año pasado: puntos, goles, victorias y porterías a cero.' },
   { id: 'libre', label: 'Añadir plantilla', name: 'Personalizada', description: 'Crea una plantilla nueva desde cero: escribe tú los datos, los títulos y las tarjetas.' },
 ];
 
@@ -298,6 +300,82 @@ function buildPredictions(data: ImageData): TemplateResult {
   };
 }
 
+interface SeasonTotals {
+  points: number;
+  scored: number;
+  conceded: number;
+  wins: number;
+  cleanSheets: number;
+}
+
+function seasonTotals(matches: Array<{ scored: number; conceded: number }>): SeasonTotals {
+  const totals: SeasonTotals = { points: 0, scored: 0, conceded: 0, wins: 0, cleanSheets: 0 };
+  for (const item of matches) {
+    totals.scored += item.scored;
+    totals.conceded += item.conceded;
+    if (item.scored > item.conceded) {
+      totals.wins += 1;
+      totals.points += 3;
+    } else if (item.scored === item.conceded) {
+      totals.points += 1;
+    }
+    if (item.conceded === 0) totals.cleanSheets += 1;
+  }
+  return totals;
+}
+
+const SEASON_JORNADAS = 11;
+const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
+
+// "Esta temporada vs la pasada": las primeras jornadas de este año frente a las mismas del anterior (hasta 11).
+function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
+  const current = stats.filter((item) => item.matchday <= SEASON_JORNADAS);
+  if (current.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
+  const last = Math.max(...current.map((item) => item.matchday));
+  const previous = previousSeasonMatches.filter((item) => item.matchday <= last);
+  const now = seasonTotals(current);
+  const before = seasonTotals(previous);
+  const warnings: string[] = [];
+  if (current.length !== previous.length) warnings.push(`Esta temporada hay ${current.length} partidos con datos hasta la J${last} y la pasada ${previous.length}: la comparación no es exacta.`);
+  const days = `J1–J${last}`;
+  const diffPoints = now.points - before.points;
+  const subtitle = diffPoints === 0
+    ? `Tras ${days}, el Levante UD suma los mismos puntos que el año pasado (${now.points}).`
+    : `Tras ${days}, el Levante UD suma ${now.points} puntos: ${Math.abs(diffPoints)} ${diffPoints > 0 ? 'más' : 'menos'} que el año pasado (${before.points}).`;
+  const pairs: Array<[string, number, number]> = [
+    ['Puntos', before.points, now.points],
+    ['Goles a favor', before.scored, now.scored],
+    ['Goles en contra', before.conceded, now.conceded],
+    ['Victorias', before.wins, now.wins],
+    ['Porterías a cero', before.cleanSheets, now.cleanSheets],
+  ];
+
+  return {
+    warnings,
+    spec: {
+      kicker: DEFAULT_SPEC.kicker,
+      title: 'Esta temporada',
+      titleAccent: 'contra la pasada',
+      subtitle,
+      layout: 'comparar',
+      compareSuffix: '',
+      rows: pairs.flatMap(([label, beforeValue, nowValue]) => [{ label, value: beforeValue }, { label, value: nowValue }]),
+      showPercent: false,
+      dividerAfter: 0,
+      dividerLabels: [PREVIOUS_SEASON_LABEL, CURRENT_SEASON_LABEL],
+      cards: [
+        { value: signed(diffPoints), text: `${plural(Math.abs(diffPoints), 'punto', 'puntos')} frente al año pasado en las mismas jornadas` },
+        { value: signed(now.scored - before.scored), text: `${plural(Math.abs(now.scored - before.scored), 'gol', 'goles')} a favor respecto al año pasado (${now.scored} frente a ${before.scored})` },
+        { value: signed(now.conceded - before.conceded), text: `${plural(Math.abs(now.conceded - before.conceded), 'gol', 'goles')} en contra respecto al año pasado (${now.conceded} frente a ${before.conceded})` },
+      ],
+      playerId: '',
+      playerCaption: '',
+      playerSub: '',
+      footer: `${SOURCE} · Levante UD en LaLiga, ${days}: temporada ${PREVIOUS_SEASON_LABEL} (azul) frente a la actual (rojo).`,
+    },
+  };
+}
+
 // Plantilla en blanco: ranking de ejemplo para sustituir por los datos propios.
 function buildBlank(): TemplateResult {
   return {
@@ -332,5 +410,6 @@ export function buildTemplate(id: ImageTemplateId, data: ImageData, playerName: 
   if (id === 'xi') return buildStarters(data.lineups, playerName);
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   if (id === 'prono') return buildPredictions(data);
+  if (id === 'temporada') return buildSeasonComparison(stats);
   return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
 }

@@ -1,0 +1,3100 @@
+{
+  "equipo": "Levante UD",
+  "temporada": "2025/26",
+  "competicion": "LaLiga EA Sports",
+  "criterio_acumulados": "fecha_real_de_disputa",
+  "fuente_principal_goles": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025",
+  "advertencias": [
+    "Los minutos de descuentos (p.ej., 90+4) requieren contraste con actas, pues la fuente principal a veces indica solo 90.",
+    "Los puestos en la clasificación y los onces quedan nulos al no estar verificados.",
+    "Los acumulados de la jornada 16 corresponden al 18 de febrero de 2026, no a la secuencia numérica de las jornadas."
+  ],
+  "partidos": [
+    {
+      "jornada": 1,
+      "fecha": "2025-08-16",
+      "local": "Alavés",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 1,
+      "rival": "Alavés",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "36",
+          "minute_base": 36,
+          "scorer": "Toni Martínez",
+          "scorer_team": "Alavés",
+          "beneficiary_team": "Alavés",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "68",
+          "minute_base": 68,
+          "scorer": "Jeremy Toljan",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90",
+          "minute_base": 90,
+          "scorer": "Tenaglia",
+          "scorer_team": "Alavés",
+          "beneficiary_team": "Alavés",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 1,
+        "puntos": 0,
+        "victorias": 0,
+        "empates": 0,
+        "derrotas": 1,
+        "goles_favor": 1,
+        "goles_contra": 2,
+        "diferencia": -1,
+        "porterias_cero": 0,
+        "goles_por_tramo_favor": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 0,
+          "46-60": 0,
+          "61-75": 1,
+          "76-90+": 0
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 0,
+          "61-75": 0,
+          "76-90+": 1
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Jeremy Toljan",
+            "goles": 1
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 2,
+      "fecha": "2025-08-23",
+      "local": "Levante UD",
+      "visitante": "Barcelona",
+      "marcador_local": 2,
+      "marcador_visitante": 3,
+      "rival": "Barcelona",
+      "condicion": "local",
+      "goles_levante": 2,
+      "goles_rival": 3,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "15",
+          "minute_base": 15,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "45+7",
+          "minute_base": 45,
+          "scorer": "José Luis Morales",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "49",
+          "minute_base": 49,
+          "scorer": "Pedri",
+          "scorer_team": "Barcelona",
+          "beneficiary_team": "Barcelona",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "52",
+          "minute_base": 52,
+          "scorer": "Ferran Torres",
+          "scorer_team": "Barcelona",
+          "beneficiary_team": "Barcelona",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+1",
+          "minute_base": 90,
+          "scorer": "Unai Elgezabal",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Barcelona",
+          "own_goal": true,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 2,
+        "puntos": 0,
+        "victorias": 0,
+        "empates": 0,
+        "derrotas": 2,
+        "goles_favor": 3,
+        "goles_contra": 5,
+        "diferencia": -2,
+        "porterias_cero": 0,
+        "goles_por_tramo_favor": {
+          "0-15": 1,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 0,
+          "61-75": 1,
+          "76-90+": 0
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 2,
+          "61-75": 0,
+          "76-90+": 2
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Jeremy Toljan",
+            "goles": 1
+          },
+          {
+            "nombre": "Iván Romero",
+            "goles": 1
+          },
+          {
+            "nombre": "José Luis Morales",
+            "goles": 1
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 3,
+      "fecha": "2025-08-29",
+      "local": "Elche",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Elche",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "46",
+          "minute_base": 46,
+          "scorer": "Rafa Mir",
+          "scorer_team": "Elche",
+          "beneficiary_team": "Elche",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "51",
+          "minute_base": 51,
+          "scorer": "Mendoza",
+          "scorer_team": "Elche",
+          "beneficiary_team": "Elche",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 3,
+        "puntos": 0,
+        "victorias": 0,
+        "empates": 0,
+        "derrotas": 3,
+        "goles_favor": 3,
+        "goles_contra": 7,
+        "diferencia": -4,
+        "porterias_cero": 0,
+        "goles_por_tramo_favor": {
+          "0-15": 1,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 0,
+          "61-75": 1,
+          "76-90+": 0
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 4,
+          "61-75": 0,
+          "76-90+": 2
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Jeremy Toljan",
+            "goles": 1
+          },
+          {
+            "nombre": "Iván Romero",
+            "goles": 1
+          },
+          {
+            "nombre": "José Luis Morales",
+            "goles": 1
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 4,
+      "fecha": "2025-09-14",
+      "local": "Levante UD",
+      "visitante": "Betis",
+      "marcador_local": 2,
+      "marcador_visitante": 2,
+      "rival": "Betis",
+      "condicion": "local",
+      "goles_levante": 2,
+      "goles_rival": 2,
+      "resultado": "empate",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "2",
+          "minute_base": 2,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "10",
+          "minute_base": 10,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "45",
+          "minute_base": 45,
+          "scorer": "Cucho Hernández",
+          "scorer_team": "Betis",
+          "beneficiary_team": "Betis",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "81",
+          "minute_base": 81,
+          "scorer": "Pablo Fornals",
+          "scorer_team": "Betis",
+          "beneficiary_team": "Betis",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 4,
+        "puntos": 1,
+        "victorias": 0,
+        "empates": 1,
+        "derrotas": 3,
+        "goles_favor": 5,
+        "goles_contra": 9,
+        "diferencia": -4,
+        "porterias_cero": 0,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 0,
+          "31-45+": 1,
+          "46-60": 0,
+          "61-75": 1,
+          "76-90+": 0
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 2,
+          "46-60": 4,
+          "61-75": 0,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 2
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 5,
+      "fecha": "2025-09-20",
+      "local": "Girona",
+      "visitante": "Levante UD",
+      "marcador_local": 0,
+      "marcador_visitante": 4,
+      "rival": "Girona",
+      "condicion": "visitante",
+      "goles_levante": 4,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "43",
+          "minute_base": 43,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "49",
+          "minute_base": 49,
+          "scorer": "Carlos Álvarez",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "70",
+          "minute_base": 70,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+2",
+          "minute_base": 90,
+          "scorer": "Goduine Koyalipou",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 5,
+        "puntos": 4,
+        "victorias": 1,
+        "empates": 1,
+        "derrotas": 3,
+        "goles_favor": 9,
+        "goles_contra": 9,
+        "diferencia": 0,
+        "porterias_cero": 1,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 0,
+          "31-45+": 2,
+          "46-60": 1,
+          "61-75": 2,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 0,
+          "31-45+": 2,
+          "46-60": 4,
+          "61-75": 0,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 3
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 6,
+      "fecha": "2025-09-23",
+      "local": "Levante UD",
+      "visitante": "Real Madrid",
+      "marcador_local": 1,
+      "marcador_visitante": 4,
+      "rival": "Real Madrid",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 4,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "28",
+          "minute_base": 28,
+          "scorer": "Vinícius Júnior",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "38",
+          "minute_base": 38,
+          "scorer": "Franco Mastantuono",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "54",
+          "minute_base": 54,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "64",
+          "minute_base": 64,
+          "scorer": "Kylian Mbappé",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "66",
+          "minute_base": 66,
+          "scorer": "Kylian Mbappé",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 6,
+        "puntos": 4,
+        "victorias": 1,
+        "empates": 1,
+        "derrotas": 4,
+        "goles_favor": 10,
+        "goles_contra": 13,
+        "diferencia": -3,
+        "porterias_cero": 1,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 0,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 2,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 1,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 2,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 3
+          },
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 3
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 7,
+      "fecha": "2025-09-27",
+      "local": "Getafe",
+      "visitante": "Levante UD",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Getafe",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "26",
+          "minute_base": 26,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "57",
+          "minute_base": 57,
+          "scorer": "Borja Iglesias",
+          "scorer_team": "Getafe",
+          "beneficiary_team": "Getafe",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 7,
+        "puntos": 5,
+        "victorias": 1,
+        "empates": 2,
+        "derrotas": 4,
+        "goles_favor": 11,
+        "goles_contra": 14,
+        "diferencia": -3,
+        "porterias_cero": 1,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 1,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 2,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 1,
+          "31-45+": 3,
+          "46-60": 5,
+          "61-75": 2,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 4
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 8,
+      "fecha": "2025-10-04",
+      "local": "Oviedo",
+      "visitante": "Levante UD",
+      "marcador_local": 0,
+      "marcador_visitante": 2,
+      "rival": "Oviedo",
+      "condicion": "visitante",
+      "goles_levante": 2,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "30",
+          "minute_base": 30,
+          "scorer": "Carlos Álvarez",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "72",
+          "minute_base": 72,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 8,
+        "puntos": 8,
+        "victorias": 2,
+        "empates": 2,
+        "derrotas": 4,
+        "goles_favor": 13,
+        "goles_contra": 14,
+        "diferencia": -1,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 2,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 3,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 0,
+          "16-30": 1,
+          "31-45+": 3,
+          "46-60": 5,
+          "61-75": 2,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 4
+          },
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 4
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 9,
+      "fecha": "2025-10-19",
+      "local": "Levante UD",
+      "visitante": "Rayo Vallecano",
+      "marcador_local": 0,
+      "marcador_visitante": 3,
+      "rival": "Rayo Vallecano",
+      "condicion": "local",
+      "goles_levante": 0,
+      "goles_rival": 3,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "12",
+          "minute_base": 12,
+          "scorer": "Jorge de Frutos",
+          "scorer_team": "Rayo Vallecano",
+          "beneficiary_team": "Rayo Vallecano",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "25",
+          "minute_base": 25,
+          "scorer": "Jorge de Frutos",
+          "scorer_team": "Rayo Vallecano",
+          "beneficiary_team": "Rayo Vallecano",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "65",
+          "minute_base": 65,
+          "scorer": "Álvaro García",
+          "scorer_team": "Rayo Vallecano",
+          "beneficiary_team": "Rayo Vallecano",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 9,
+        "puntos": 8,
+        "victorias": 2,
+        "empates": 2,
+        "derrotas": 5,
+        "goles_favor": 13,
+        "goles_contra": 17,
+        "diferencia": -4,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 2,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 3,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 1,
+          "16-30": 2,
+          "31-45+": 3,
+          "46-60": 5,
+          "61-75": 3,
+          "76-90+": 3
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Iván Romero",
+            "goles": 4
+          },
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 4
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 10,
+      "fecha": "2025-10-26",
+      "local": "Mallorca",
+      "visitante": "Levante UD",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Mallorca",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "22",
+          "minute_base": 22,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "79",
+          "minute_base": 79,
+          "scorer": "Pablo Maffeo",
+          "scorer_team": "Mallorca",
+          "beneficiary_team": "Mallorca",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 10,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 5,
+        "goles_favor": 14,
+        "goles_contra": 18,
+        "diferencia": -4,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 3,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 3,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 1,
+          "16-30": 2,
+          "31-45+": 3,
+          "46-60": 5,
+          "61-75": 3,
+          "76-90+": 4
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 11,
+      "fecha": "2025-11-02",
+      "local": "Levante UD",
+      "visitante": "Celta",
+      "marcador_local": 1,
+      "marcador_visitante": 2,
+      "rival": "Celta",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "40",
+          "minute_base": 40,
+          "scorer": "Óscar Mingueza",
+          "scorer_team": "Celta",
+          "beneficiary_team": "Celta",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "66",
+          "minute_base": 66,
+          "scorer": "Kervin Arriaga",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+1",
+          "minute_base": 90,
+          "scorer": "Miguel Román",
+          "scorer_team": "Celta",
+          "beneficiary_team": "Celta",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 11,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 6,
+        "goles_favor": 15,
+        "goles_contra": 20,
+        "diferencia": -5,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 3,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 1,
+          "16-30": 2,
+          "31-45+": 4,
+          "46-60": 5,
+          "61-75": 3,
+          "76-90+": 5
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 12,
+      "fecha": "2025-11-08",
+      "local": "Atlético de Madrid",
+      "visitante": "Levante UD",
+      "marcador_local": 3,
+      "marcador_visitante": 1,
+      "rival": "Atlético de Madrid",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 3,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "12",
+          "minute_base": 12,
+          "scorer": "Adrián de la Fuente",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Atlético de Madrid",
+          "own_goal": true,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "21",
+          "minute_base": 21,
+          "scorer": "Manu Sánchez",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "61",
+          "minute_base": 61,
+          "scorer": "Antoine Griezmann",
+          "scorer_team": "Atlético de Madrid",
+          "beneficiary_team": "Atlético de Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "80",
+          "minute_base": 80,
+          "scorer": "Antoine Griezmann",
+          "scorer_team": "Atlético de Madrid",
+          "beneficiary_team": "Atlético de Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 12,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 7,
+        "goles_favor": 16,
+        "goles_contra": 23,
+        "diferencia": -7,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 2,
+          "16-30": 2,
+          "31-45+": 4,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 6
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 13,
+      "fecha": "2025-11-21",
+      "local": "Valencia",
+      "visitante": "Levante UD",
+      "marcador_local": 1,
+      "marcador_visitante": 0,
+      "rival": "Valencia",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 1,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "79",
+          "minute_base": 79,
+          "scorer": "Hugo Duro",
+          "scorer_team": "Valencia",
+          "beneficiary_team": "Valencia",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 13,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 8,
+        "goles_favor": 16,
+        "goles_contra": 24,
+        "diferencia": -8,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 2,
+          "16-30": 2,
+          "31-45+": 4,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 14,
+      "fecha": "2025-11-29",
+      "local": "Levante UD",
+      "visitante": "Athletic Club",
+      "marcador_local": 0,
+      "marcador_visitante": 2,
+      "rival": "Athletic Club",
+      "condicion": "local",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Julián Calero",
+      "goles": [
+        {
+          "minute": "3",
+          "minute_base": 3,
+          "scorer": "Robert Navarro",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "44",
+          "minute_base": 44,
+          "scorer": "Nico Williams",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 14,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 9,
+        "goles_favor": 16,
+        "goles_contra": 26,
+        "diferencia": -10,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 3,
+          "16-30": 2,
+          "31-45+": 5,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 15,
+      "fecha": "2025-12-08",
+      "local": "Osasuna",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Osasuna",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Álvaro del Moral",
+      "goles": [
+        {
+          "minute": "13",
+          "minute_base": 13,
+          "scorer": "Victor Muñoz",
+          "scorer_team": "Osasuna",
+          "beneficiary_team": "Osasuna",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "36",
+          "minute_base": 36,
+          "scorer": "Rubén García",
+          "scorer_team": "Osasuna",
+          "beneficiary_team": "Osasuna",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 15,
+        "puntos": 9,
+        "victorias": 2,
+        "empates": 3,
+        "derrotas": 10,
+        "goles_favor": 16,
+        "goles_contra": 28,
+        "diferencia": -12,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 1
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 4,
+          "16-30": 2,
+          "31-45+": 6,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 16,
+      "fecha": "2026-02-18",
+      "local": "Levante UD",
+      "visitante": "Villarreal",
+      "marcador_local": 0,
+      "marcador_visitante": 1,
+      "rival": "Villarreal",
+      "condicion": "local",
+      "goles_levante": 0,
+      "goles_rival": 1,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "57",
+          "minute_base": 57,
+          "scorer": "Georges Mikautadze",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 24,
+        "puntos": 18,
+        "victorias": 4,
+        "empates": 6,
+        "derrotas": 14,
+        "goles_favor": 26,
+        "goles_contra": 41,
+        "diferencia": -15,
+        "porterias_cero": 4,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 7
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 5,
+          "16-30": 3,
+          "31-45+": 8,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 11
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 17,
+      "fecha": "2025-12-20",
+      "local": "Levante UD",
+      "visitante": "Real Sociedad",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Real Sociedad",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Álvaro del Moral",
+      "goles": [
+        {
+          "minute": "45",
+          "minute_base": 45,
+          "scorer": "Takefusa Kubo",
+          "scorer_team": "Real Sociedad",
+          "beneficiary_team": "Real Sociedad",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+3",
+          "minute_base": 90,
+          "scorer": "Adrián de la Fuente",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 16,
+        "puntos": 10,
+        "victorias": 2,
+        "empates": 4,
+        "derrotas": 10,
+        "goles_favor": 17,
+        "goles_contra": 29,
+        "diferencia": -12,
+        "porterias_cero": 2,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 2,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 2
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 4,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 18,
+      "fecha": "2026-01-04",
+      "local": "Sevilla",
+      "visitante": "Levante UD",
+      "marcador_local": 0,
+      "marcador_visitante": 3,
+      "rival": "Sevilla",
+      "condicion": "visitante",
+      "goles_levante": 3,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "45",
+          "minute_base": 45,
+          "scorer": "Iker Losada",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "77",
+          "minute_base": 77,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Carlos Álvarez",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 17,
+        "puntos": 13,
+        "victorias": 3,
+        "empates": 4,
+        "derrotas": 10,
+        "goles_favor": 20,
+        "goles_contra": 29,
+        "diferencia": -9,
+        "porterias_cero": 3,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 2,
+          "61-75": 4,
+          "76-90+": 4
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 4,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 5,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 19,
+      "fecha": "2026-01-11",
+      "local": "Levante UD",
+      "visitante": "Espanyol",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Espanyol",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "53",
+          "minute_base": 53,
+          "scorer": "Carlos Romero",
+          "scorer_team": "Espanyol",
+          "beneficiary_team": "Espanyol",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "55",
+          "minute_base": 55,
+          "scorer": "Iker Losada",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 18,
+        "puntos": 14,
+        "victorias": 3,
+        "empates": 5,
+        "derrotas": 10,
+        "goles_favor": 21,
+        "goles_contra": 30,
+        "diferencia": -9,
+        "porterias_cero": 3,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 3,
+          "61-75": 4,
+          "76-90+": 4
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 4,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 6,
+          "61-75": 4,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 20,
+      "fecha": "2026-01-17",
+      "local": "Real Madrid",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Real Madrid",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "58",
+          "minute_base": 58,
+          "scorer": "Kylian Mbappé",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "65",
+          "minute_base": 65,
+          "scorer": "Raúl Asencio",
+          "scorer_team": "Real Madrid",
+          "beneficiary_team": "Real Madrid",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 19,
+        "puntos": 14,
+        "victorias": 3,
+        "empates": 5,
+        "derrotas": 11,
+        "goles_favor": 21,
+        "goles_contra": 32,
+        "diferencia": -11,
+        "porterias_cero": 3,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 3,
+          "61-75": 4,
+          "76-90+": 4
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 4,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 7
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 21,
+      "fecha": "2026-01-23",
+      "local": "Levante UD",
+      "visitante": "Elche",
+      "marcador_local": 3,
+      "marcador_visitante": 2,
+      "rival": "Elche",
+      "condicion": "local",
+      "goles_levante": 3,
+      "goles_rival": 2,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "11",
+          "minute_base": 11,
+          "scorer": "Álvaro Rodríguez",
+          "scorer_team": "Elche",
+          "beneficiary_team": "Elche",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "50",
+          "minute_base": 50,
+          "scorer": "Pablo Martínez",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "68",
+          "minute_base": 68,
+          "scorer": "Adrián de la Fuente",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+1",
+          "minute_base": 90,
+          "scorer": "Alan Matturro",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+3",
+          "minute_base": 90,
+          "scorer": "Adam Boayar",
+          "scorer_team": "Elche",
+          "beneficiary_team": "Elche",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 20,
+        "puntos": 17,
+        "victorias": 4,
+        "empates": 5,
+        "derrotas": 11,
+        "goles_favor": 24,
+        "goles_contra": 34,
+        "diferencia": -10,
+        "porterias_cero": 3,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 5
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 5,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 8
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 22,
+      "fecha": "2026-01-31",
+      "local": "Levante UD",
+      "visitante": "Atlético de Madrid",
+      "marcador_local": 0,
+      "marcador_visitante": 0,
+      "rival": "Atlético de Madrid",
+      "condicion": "local",
+      "goles_levante": 0,
+      "goles_rival": 0,
+      "resultado": "empate",
+      "entrenador": "Luís Castro",
+      "goles": [],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 21,
+        "puntos": 18,
+        "victorias": 4,
+        "empates": 6,
+        "derrotas": 11,
+        "goles_favor": 24,
+        "goles_contra": 34,
+        "diferencia": -10,
+        "porterias_cero": 4,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 5
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 5,
+          "16-30": 2,
+          "31-45+": 7,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 8
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 23,
+      "fecha": "2026-02-08",
+      "local": "Athletic Club",
+      "visitante": "Levante UD",
+      "marcador_local": 4,
+      "marcador_visitante": 2,
+      "rival": "Athletic Club",
+      "condicion": "visitante",
+      "goles_levante": 2,
+      "goles_rival": 4,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "29",
+          "minute_base": 29,
+          "scorer": "Gorka Guruzeta",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "34",
+          "minute_base": 34,
+          "scorer": "Gorka Guruzeta",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "81",
+          "minute_base": 81,
+          "scorer": "Unai Elgezabal",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "86",
+          "minute_base": 86,
+          "scorer": "Nico Serrano",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+1",
+          "minute_base": 90,
+          "scorer": "Robert Navarro",
+          "scorer_team": "Athletic Club",
+          "beneficiary_team": "Athletic Club",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Jon Ander Olasagasti",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 22,
+        "puntos": 18,
+        "victorias": 4,
+        "empates": 6,
+        "derrotas": 12,
+        "goles_favor": 26,
+        "goles_contra": 38,
+        "diferencia": -12,
+        "porterias_cero": 4,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 7
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 5,
+          "16-30": 3,
+          "31-45+": 8,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 10
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 24,
+      "fecha": "2026-02-15",
+      "local": "Levante UD",
+      "visitante": "Valencia",
+      "marcador_local": 0,
+      "marcador_visitante": 2,
+      "rival": "Valencia",
+      "condicion": "local",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "64",
+          "minute_base": 64,
+          "scorer": "Largie Ramazani",
+          "scorer_team": "Valencia",
+          "beneficiary_team": "Valencia",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "84",
+          "minute_base": 84,
+          "scorer": "Umar Sadiq",
+          "scorer_team": "Valencia",
+          "beneficiary_team": "Valencia",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 23,
+        "puntos": 18,
+        "victorias": 4,
+        "empates": 6,
+        "derrotas": 13,
+        "goles_favor": 26,
+        "goles_contra": 40,
+        "diferencia": -14,
+        "porterias_cero": 4,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 7
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 5,
+          "16-30": 3,
+          "31-45+": 8,
+          "46-60": 7,
+          "61-75": 6,
+          "76-90+": 11
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 25,
+      "fecha": "2026-02-22",
+      "local": "Barcelona",
+      "visitante": "Levante UD",
+      "marcador_local": 3,
+      "marcador_visitante": 0,
+      "rival": "Barcelona",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 3,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "4",
+          "minute_base": 4,
+          "scorer": "Marc Bernal",
+          "scorer_team": "Barcelona",
+          "beneficiary_team": "Barcelona",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "32",
+          "minute_base": 32,
+          "scorer": "Frenkie de Jong",
+          "scorer_team": "Barcelona",
+          "beneficiary_team": "Barcelona",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "81",
+          "minute_base": 81,
+          "scorer": "Fermín López",
+          "scorer_team": "Barcelona",
+          "beneficiary_team": "Barcelona",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 25,
+        "puntos": 18,
+        "victorias": 4,
+        "empates": 6,
+        "derrotas": 15,
+        "goles_favor": 26,
+        "goles_contra": 44,
+        "diferencia": -18,
+        "porterias_cero": 4,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 7
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 3,
+          "31-45+": 9,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 12
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 26,
+      "fecha": "2026-02-27",
+      "local": "Levante UD",
+      "visitante": "Alavés",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Alavés",
+      "condicion": "local",
+      "goles_levante": 2,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "88",
+          "minute_base": 88,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 26,
+        "puntos": 21,
+        "victorias": 5,
+        "empates": 6,
+        "derrotas": 15,
+        "goles_favor": 28,
+        "goles_contra": 44,
+        "diferencia": -16,
+        "porterias_cero": 5,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 4,
+          "61-75": 5,
+          "76-90+": 9
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 3,
+          "31-45+": 9,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 12
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 27,
+      "fecha": "2026-03-07",
+      "local": "Levante UD",
+      "visitante": "Girona",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Girona",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "50",
+          "minute_base": 50,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Joel Roca",
+          "scorer_team": "Girona",
+          "beneficiary_team": "Girona",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 27,
+        "puntos": 22,
+        "victorias": 5,
+        "empates": 7,
+        "derrotas": 15,
+        "goles_favor": 29,
+        "goles_contra": 45,
+        "diferencia": -16,
+        "porterias_cero": 5,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 3,
+          "46-60": 5,
+          "61-75": 5,
+          "76-90+": 9
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 3,
+          "31-45+": 9,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 13
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 28,
+      "fecha": "2026-03-16",
+      "local": "Rayo Vallecano",
+      "visitante": "Levante UD",
+      "marcador_local": 1,
+      "marcador_visitante": 1,
+      "rival": "Rayo Vallecano",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 1,
+      "resultado": "empate",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "41",
+          "minute_base": 41,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Pathé Ciss",
+          "scorer_team": "Rayo Vallecano",
+          "beneficiary_team": "Rayo Vallecano",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 28,
+        "puntos": 23,
+        "victorias": 5,
+        "empates": 8,
+        "derrotas": 15,
+        "goles_favor": 30,
+        "goles_contra": 46,
+        "diferencia": -16,
+        "porterias_cero": 5,
+        "goles_por_tramo_favor": {
+          "0-15": 3,
+          "16-30": 4,
+          "31-45+": 4,
+          "46-60": 5,
+          "61-75": 5,
+          "76-90+": 9
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 3,
+          "31-45+": 9,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 14
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Karl Etta Eyong",
+            "goles": 5
+          },
+          {
+            "nombre": "Carlos Espí",
+            "goles": 5
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 29,
+      "fecha": "2026-03-21",
+      "local": "Levante UD",
+      "visitante": "Oviedo",
+      "marcador_local": 4,
+      "marcador_visitante": 2,
+      "rival": "Oviedo",
+      "condicion": "local",
+      "goles_levante": 4,
+      "goles_rival": 2,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "4",
+          "minute_base": 4,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "25",
+          "minute_base": 25,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "44",
+          "minute_base": 44,
+          "scorer": "Ilyas Chaira",
+          "scorer_team": "Oviedo",
+          "beneficiary_team": "Oviedo",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "45+2",
+          "minute_base": 45,
+          "scorer": "Federico Viñas",
+          "scorer_team": "Oviedo",
+          "beneficiary_team": "Oviedo",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "52",
+          "minute_base": 52,
+          "scorer": "Iker Losada",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+2",
+          "minute_base": 90,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 29,
+        "puntos": 26,
+        "victorias": 6,
+        "empates": 8,
+        "derrotas": 15,
+        "goles_favor": 34,
+        "goles_contra": 48,
+        "diferencia": -14,
+        "porterias_cero": 5,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 4,
+          "46-60": 6,
+          "61-75": 5,
+          "76-90+": 10
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 3,
+          "31-45+": 11,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 14
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 7
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 30,
+      "fecha": "2026-04-04",
+      "local": "Real Sociedad",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Real Sociedad",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "30",
+          "minute_base": 30,
+          "scorer": "Jon Martín",
+          "scorer_team": "Real Sociedad",
+          "beneficiary_team": "Real Sociedad",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "83",
+          "minute_base": 83,
+          "scorer": "Brais Méndez",
+          "scorer_team": "Real Sociedad",
+          "beneficiary_team": "Real Sociedad",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 30,
+        "puntos": 26,
+        "victorias": 6,
+        "empates": 8,
+        "derrotas": 16,
+        "goles_favor": 34,
+        "goles_contra": 50,
+        "diferencia": -16,
+        "porterias_cero": 5,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 4,
+          "46-60": 6,
+          "61-75": 5,
+          "76-90+": 10
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 4,
+          "31-45+": 11,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 15
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 7
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 31,
+      "fecha": "2026-04-13",
+      "local": "Levante UD",
+      "visitante": "Getafe",
+      "marcador_local": 1,
+      "marcador_visitante": 0,
+      "rival": "Getafe",
+      "condicion": "local",
+      "goles_levante": 1,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "83",
+          "minute_base": 83,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 31,
+        "puntos": 29,
+        "victorias": 7,
+        "empates": 8,
+        "derrotas": 16,
+        "goles_favor": 35,
+        "goles_contra": 50,
+        "diferencia": -15,
+        "porterias_cero": 6,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 4,
+          "46-60": 6,
+          "61-75": 5,
+          "76-90+": 11
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 4,
+          "31-45+": 11,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 15
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 8
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 32,
+      "fecha": "2026-04-27",
+      "local": "Espanyol",
+      "visitante": "Levante UD",
+      "marcador_local": 0,
+      "marcador_visitante": 0,
+      "rival": "Espanyol",
+      "condicion": "visitante",
+      "goles_levante": 0,
+      "goles_rival": 0,
+      "resultado": "empate",
+      "entrenador": "Luís Castro",
+      "goles": [],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 33,
+        "puntos": 33,
+        "victorias": 8,
+        "empates": 9,
+        "derrotas": 16,
+        "goles_favor": 37,
+        "goles_contra": 50,
+        "diferencia": -13,
+        "porterias_cero": 8,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 5,
+          "46-60": 6,
+          "61-75": 5,
+          "76-90+": 12
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 4,
+          "31-45+": 11,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 15
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 8
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 33,
+      "fecha": "2026-04-23",
+      "local": "Levante UD",
+      "visitante": "Sevilla",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Sevilla",
+      "condicion": "local",
+      "goles_levante": 2,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "38",
+          "minute_base": 38,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+4",
+          "minute_base": 90,
+          "scorer": "Iván Romero",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 32,
+        "puntos": 32,
+        "victorias": 8,
+        "empates": 8,
+        "derrotas": 16,
+        "goles_favor": 37,
+        "goles_contra": 50,
+        "diferencia": -13,
+        "porterias_cero": 7,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 5,
+          "46-60": 6,
+          "61-75": 5,
+          "76-90+": 12
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 4,
+          "31-45+": 11,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 15
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 8
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 34,
+      "fecha": "2026-05-02",
+      "local": "Villarreal",
+      "visitante": "Levante UD",
+      "marcador_local": 5,
+      "marcador_visitante": 1,
+      "rival": "Villarreal",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 5,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "38",
+          "minute_base": 38,
+          "scorer": "Georges Mikautadze",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "51",
+          "minute_base": 51,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "62",
+          "minute_base": 62,
+          "scorer": "Alberto Moleiro",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "68",
+          "minute_base": 68,
+          "scorer": "Georges Mikautadze",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "87",
+          "minute_base": 87,
+          "scorer": "Tajon Buchanan",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+2",
+          "minute_base": 90,
+          "scorer": "Nicolas Pépé",
+          "scorer_team": "Villarreal",
+          "beneficiary_team": "Villarreal",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 34,
+        "puntos": 33,
+        "victorias": 8,
+        "empates": 9,
+        "derrotas": 17,
+        "goles_favor": 38,
+        "goles_contra": 55,
+        "diferencia": -17,
+        "porterias_cero": 8,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 5,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 12
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 6,
+          "16-30": 4,
+          "31-45+": 12,
+          "46-60": 8,
+          "61-75": 8,
+          "76-90+": 17
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 9
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 35,
+      "fecha": "2026-05-08",
+      "local": "Levante UD",
+      "visitante": "Osasuna",
+      "marcador_local": 3,
+      "marcador_visitante": 2,
+      "rival": "Osasuna",
+      "condicion": "local",
+      "goles_levante": 3,
+      "goles_rival": 2,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "3",
+          "minute_base": 3,
+          "scorer": "Jeremy Toljan",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Osasuna",
+          "own_goal": true,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "11",
+          "minute_base": 11,
+          "scorer": "Ante Budimir",
+          "scorer_team": "Osasuna",
+          "beneficiary_team": "Osasuna",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "35",
+          "minute_base": 35,
+          "scorer": "Víctor García",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "37",
+          "minute_base": 37,
+          "scorer": "Víctor García",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "90+2",
+          "minute_base": 90,
+          "scorer": "Karl Etta Eyong",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "supplementary_time_to_verify",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 35,
+        "puntos": 36,
+        "victorias": 9,
+        "empates": 9,
+        "derrotas": 17,
+        "goles_favor": 41,
+        "goles_contra": 57,
+        "diferencia": -16,
+        "porterias_cero": 8,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 7,
+          "46-60": 7,
+          "61-75": 5,
+          "76-90+": 13
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 8,
+          "16-30": 4,
+          "31-45+": 12,
+          "46-60": 8,
+          "61-75": 8,
+          "76-90+": 17
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 9
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 36,
+      "fecha": "2026-05-12",
+      "local": "Celta",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 3,
+      "rival": "Celta",
+      "condicion": "visitante",
+      "goles_levante": 3,
+      "goles_rival": 2,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "4",
+          "minute_base": 4,
+          "scorer": "Ferran Jutglà",
+          "scorer_team": "Celta",
+          "beneficiary_team": "Celta",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "43",
+          "minute_base": 43,
+          "scorer": "Kervin Arriaga",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "48",
+          "minute_base": 48,
+          "scorer": "Ferran Jutglà",
+          "scorer_team": "Celta",
+          "beneficiary_team": "Celta",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "57",
+          "minute_base": 57,
+          "scorer": "Adrián de la Fuente",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "63",
+          "minute_base": 63,
+          "scorer": "Roger Brugué",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 36,
+        "puntos": 39,
+        "victorias": 10,
+        "empates": 9,
+        "derrotas": 17,
+        "goles_favor": 44,
+        "goles_contra": 59,
+        "diferencia": -15,
+        "porterias_cero": 8,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 8,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 13
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 9,
+          "16-30": 4,
+          "31-45+": 12,
+          "46-60": 9,
+          "61-75": 8,
+          "76-90+": 17
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 9
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 37,
+      "fecha": "2026-05-17",
+      "local": "Levante UD",
+      "visitante": "Mallorca",
+      "marcador_local": 2,
+      "marcador_visitante": 0,
+      "rival": "Mallorca",
+      "condicion": "local",
+      "goles_levante": 2,
+      "goles_rival": 0,
+      "resultado": "victoria",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "32",
+          "minute_base": 32,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "87",
+          "minute_base": 87,
+          "scorer": "Kervin Arriaga",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 37,
+        "puntos": 42,
+        "victorias": 11,
+        "empates": 9,
+        "derrotas": 17,
+        "goles_favor": 46,
+        "goles_contra": 59,
+        "diferencia": -13,
+        "porterias_cero": 9,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 9,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 14
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 9,
+          "16-30": 4,
+          "31-45+": 12,
+          "46-60": 9,
+          "61-75": 8,
+          "76-90+": 17
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 10
+          }
+        ]
+      }
+    },
+    {
+      "jornada": 38,
+      "fecha": "2026-05-23",
+      "local": "Betis",
+      "visitante": "Levante UD",
+      "marcador_local": 2,
+      "marcador_visitante": 1,
+      "rival": "Betis",
+      "condicion": "visitante",
+      "goles_levante": 1,
+      "goles_rival": 2,
+      "resultado": "derrota",
+      "entrenador": "Luís Castro",
+      "goles": [
+        {
+          "minute": "5",
+          "minute_base": 5,
+          "scorer": "Abde Ezzalzouli",
+          "scorer_team": "Betis",
+          "beneficiary_team": "Betis",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "45",
+          "minute_base": 45,
+          "scorer": "Carlos Espí",
+          "scorer_team": "Levante UD",
+          "beneficiary_team": "Levante UD",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        },
+        {
+          "minute": "68",
+          "minute_base": 68,
+          "scorer": "Pablo Fornals",
+          "scorer_team": "Betis",
+          "beneficiary_team": "Betis",
+          "own_goal": false,
+          "minute_precision": "source_rounded_minute",
+          "source": "https://www.calciotel.it/rosa-squadra/levante/810-00010/2025"
+        }
+      ],
+      "clasificacion_puesto": null,
+      "once_titular": null,
+      "sistema_tactico": null,
+      "acumulado_fecha_real": {
+        "partidos_disputados": 38,
+        "puntos": 42,
+        "victorias": 11,
+        "empates": 9,
+        "derrotas": 18,
+        "goles_favor": 47,
+        "goles_contra": 61,
+        "diferencia": -14,
+        "porterias_cero": 9,
+        "goles_por_tramo_favor": {
+          "0-15": 4,
+          "16-30": 5,
+          "31-45+": 10,
+          "46-60": 8,
+          "61-75": 6,
+          "76-90+": 14
+        },
+        "goles_por_tramo_contra": {
+          "0-15": 10,
+          "16-30": 4,
+          "31-45+": 12,
+          "46-60": 9,
+          "61-75": 9,
+          "76-90+": 17
+        },
+        "maximos_goleadores": [
+          {
+            "nombre": "Carlos Espí",
+            "goles": 11
+          }
+        ]
+      }
+    }
+  ]
+}
