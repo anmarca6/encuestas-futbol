@@ -4,7 +4,8 @@ import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { CUP_MATCHDAY_OFFSET, LEVANTE_TEAM, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { loadMvpOverrides, loadOfficialReports } from '@/lib/official-data';
 import { loadRivalGoals } from '@/lib/rival-goals';
-import { footballData, type ApiStanding } from '@/lib/football-schedule';
+import { footballData, type ApiMatch } from '@/lib/football-schedule';
+import { standingsByMatchday } from '@/lib/standings-by-matchday';
 import type { ImageData, MatchStats, StandingRow } from '@/lib/image-stats';
 
 const parseList = <T,>(value: string | undefined): T[] => {
@@ -16,17 +17,17 @@ const parseList = <T,>(value: string | undefined): T[] => {
   }
 };
 
-// Clasificacion de LaLiga de una temporada (por el ano en que empieza; sin ano, la actual). Sin clave o si la API falla, queda vacia y la plantilla
-// simplemente no marca la dificultad de los rivales.
-async function loadStandings(season?: number): Promise<StandingRow[]> {
+// Clasificacion de LaLiga tras cada jornada de una temporada (por el ano en que empieza; sin ano, la actual), calculada con sus resultados. Sin clave o
+// si la API falla, queda vacia y la plantilla simplemente no marca la dificultad de los rivales.
+async function loadStandings(season?: number): Promise<Record<number, StandingRow[]>> {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) return {};
   try {
-    const data = await footballData<{ standings: Array<{ type: string; table: ApiStanding[] }> }>(`/competitions/PD/standings${season ? `?season=${season}` : ''}`, apiKey);
-    return (data.standings.find((item) => item.type === 'TOTAL')?.table ?? []).map((row) => ({ team: row.team.name, position: row.position }));
+    const data = await footballData<{ matches: ApiMatch[] }>(`/competitions/PD/matches${season ? `?season=${season}` : ''}`, apiKey);
+    return standingsByMatchday(data.matches);
   } catch (error) {
     console.error('No se pudo leer la clasificacion para el generador de imagenes', error);
-    return [];
+    return {};
   }
 }
 

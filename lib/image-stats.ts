@@ -26,8 +26,8 @@ export interface ImageData {
   lineups: Array<{ matchday: number; players: string[] }>;
   // Pronosticos de los usuarios de la comunidad por partido jugado, segun el resultado que dan al Levante.
   predictions: Array<{ matchday: number; win: number; draw: number; loss: number }>;
-  // Clasificacion de LaLiga de la temporada actual y la final de la pasada (puesto de cada equipo), para medir la dificultad de los rivales.
-  standings: { current: StandingRow[]; previous: StandingRow[] };
+  // Clasificacion de LaLiga tras cada jornada (jornada -> puestos) de la temporada actual y de la pasada, para medir la dificultad de los rivales.
+  standings: { current: Record<number, StandingRow[]>; previous: Record<number, StandingRow[]> };
 }
 
 export interface StandingRow {
@@ -35,7 +35,7 @@ export interface StandingRow {
   position: number;
 }
 
-export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [], standings: { current: [], previous: [] } };
+export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [], standings: { current: {}, previous: {} } };
 
 export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'temporada' | 'libre';
 
@@ -345,9 +345,9 @@ const duelSide = (rival: string, home: boolean, scored: number, conceded: number
   ...(rank ? { rank } : {}),
 });
 
-const rankOf = (table: StandingRow[], rival: string) => {
+const rankOf = (tables: Record<number, StandingRow[]>, matchday: number, rival: string) => {
   const key = teamKey(rival);
-  return key ? table.find((row) => teamKey(row.team) === key)?.position : undefined;
+  return key ? tables[matchday]?.find((row) => teamKey(row.team) === key)?.position : undefined;
 };
 const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 const decimal = (value: number) => value.toFixed(1).replace('.', ',');
@@ -379,23 +379,23 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
   ];
   const duels = current.slice(-MAX_DUELS).map((item) => {
     const old = previous.find((entry) => entry.matchday === item.matchday);
-    const left = old ? duelSide(old.rival, old.home, old.scored, old.conceded, rankOf(standings.previous, old.rival)) : null;
-    const right = duelSide(item.rival, item.home, item.scored, item.conceded, rankOf(standings.current, item.rival));
+    const left = old ? duelSide(old.rival, old.home, old.scored, old.conceded, rankOf(standings.previous, old.matchday, old.rival)) : null;
+    const right = duelSide(item.rival, item.home, item.scored, item.conceded, rankOf(standings.current, item.matchday, item.rival));
     // El rival mas dificil de la jornada es el mejor clasificado (puesto mas bajo); si empatan, ninguno.
     if (left?.rank && right.rank && left.rank !== right.rank) (left.rank < right.rank ? left : right).harder = true;
     return { day: `J${item.matchday}`, left, right };
   });
 
   // Dificultad global: puesto medio de los rivales de cada temporada en las jornadas jugadas.
-  const ranksNow = current.map((item) => rankOf(standings.current, item.rival));
-  const ranksBefore = previous.map((item) => rankOf(standings.previous, item.rival));
+  const ranksNow = current.map((item) => rankOf(standings.current, item.matchday, item.rival));
+  const ranksBefore = previous.map((item) => rankOf(standings.previous, item.matchday, item.rival));
   let difficulty = '';
   if (ranksNow.every(Boolean) && ranksBefore.every(Boolean) && ranksBefore.length > 0) {
     const meanNow = average(ranksNow as number[]);
     const meanBefore = average(ranksBefore as number[]);
     difficulty = meanNow === meanBefore
       ? ' Rivales igual de difíciles que el año pasado.'
-      : ` Rivales más difíciles: los de ${meanNow < meanBefore ? 'este año' : 'el año pasado'} (puesto medio ${decimal(meanNow)} frente a ${decimal(meanBefore)}).`;
+      : ` Rivales más difíciles: los de ${meanNow < meanBefore ? 'este año' : 'el año pasado'} (puesto medio en su jornada ${decimal(meanNow)} frente a ${decimal(meanBefore)}).`;
   } else {
     warnings.push('No hay clasificación disponible de alguna temporada (football-data.org): no se puede marcar qué rivales eran más difíciles.');
   }
@@ -422,7 +422,7 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) frente a ${CURRENT_SEASON_LABEL} (rojo). C = en casa, F = fuera. ★ = rival mejor clasificado (puesto final 25/26 y actual).`,
+      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) vs ${CURRENT_SEASON_LABEL} (rojo). C = casa, F = fuera. Puesto = clasificación tras esa jornada; ★ = rival mejor clasificado.`,
     },
   };
 }

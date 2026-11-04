@@ -241,6 +241,14 @@ function drawDuels(ctx: Ctx, spec: ImageSpec, duels: ImageDuel[], sideColors: st
     ctx.fillText((spec.dividerLabels[side] || (side === 0 ? 'Antes' : 'Ahora')).toUpperCase(), starts[side], headY);
   });
   setSpacing(ctx, 0);
+  if (duels.some((duel) => duel.left?.rank || duel.right?.rank)) {
+    // Aclara que el puesto es el de la clasificacion tras esa jornada, no el actual ni el final.
+    ctx.fillStyle = MUTE;
+    ctx.font = `700 14px ${BODY_FONT}`;
+    ctx.textAlign = 'right';
+    starts.forEach((start) => ctx.fillText('PUESTO TRAS ESA JORNADA', start + blockW - 62, headY - 1));
+    ctx.textAlign = 'left';
+  }
   ctx.strokeStyle = 'rgba(160,190,240,.25)';
   ctx.beginPath();
   ctx.moveTo(left, headY + 10);
