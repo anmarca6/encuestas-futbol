@@ -351,7 +351,7 @@ const rankOf = (tables: Record<number, StandingRow[]>, matchday: number, rival: 
 };
 
 // Puestos de Champions: los equipos que acabaron ahi la temporada pasada o que estan ahi ahora (ultima jornada con clasificacion).
-const CHAMPIONS_PLACES = 5;
+const CHAMPIONS_PLACES = 4;
 function championTeams(standings: ImageData['standings']): Set<string> {
   const keys = new Set<string>();
   for (const tables of [standings.previous, standings.current]) {
