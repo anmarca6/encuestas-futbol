@@ -56,6 +56,8 @@ export interface ImageSpec {
   compareSuffix: string;
   // Lista de partidos bajo las columnas de la comparativa (vacia = comparativa normal).
   duels: ImageDuel[];
+  // Aclaracion bajo la lista de partidos (por que se destacan algunos rivales).
+  duelsNote: string;
   // Logo de la comunidad en la esquina superior derecha.
   logo: ImageLogo;
 }
@@ -108,6 +110,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   unit: ['MVP', 'MVPs'],
   compareSuffix: '%',
   duels: [],
+  duelsNote: '',
   logo: 'ninguno',
 };
 
@@ -255,7 +258,8 @@ function drawDuels(ctx: Ctx, spec: ImageSpec, duels: ImageDuel[], sideColors: st
   ctx.lineTo(right, headY + 10);
   ctx.stroke();
   const top = headY + 14;
-  const rowH = Math.min(30, (py + ph - 12 - top) / duels.length);
+  const noteH = spec.duelsNote ? 26 : 0;
+  const rowH = Math.min(30, (py + ph - 12 - noteH - top) / duels.length);
   const size = Math.min(21, rowH * 0.74);
   ctx.textBaseline = 'middle';
   duels.forEach((duel, index) => {
@@ -298,6 +302,11 @@ function drawDuels(ctx: Ctx, spec: ImageSpec, duels: ImageDuel[], sideColors: st
     });
   });
   ctx.textBaseline = 'alphabetic';
+  if (spec.duelsNote) {
+    ctx.fillStyle = '#ffd36b';
+    ctx.font = `700 15px ${BODY_FONT}`;
+    ctx.fillText(spec.duelsNote, left, py + ph - 14, right - left);
+  }
 }
 
 export function renderInfographic(canvas: HTMLCanvasElement, spec: ImageSpec, assets: ImageAssets) {
@@ -769,6 +778,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (source.logo === 'ninguno' || source.logo === 'ismaelete') out.logo = source.logo;
   assign('compareSuffix', text(source.compareSuffix, 3));
+  assign('duelsNote', text(source.duelsNote, 120));
   if (Array.isArray(source.duels)) {
     const side = (raw: unknown): ImageDuelSide | null => {
       const item = (raw && typeof raw === 'object' ? raw : null) as Record<string, unknown> | null;

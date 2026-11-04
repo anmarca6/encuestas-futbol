@@ -349,8 +349,21 @@ const rankOf = (tables: Record<number, StandingRow[]>, matchday: number, rival: 
   const key = teamKey(rival);
   return key ? tables[matchday]?.find((row) => teamKey(row.team) === key)?.position : undefined;
 };
-const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
-const decimal = (value: number) => value.toFixed(1).replace('.', ',');
+
+// Puestos de Champions: los equipos que acabaron ahi la temporada pasada o que estan ahi ahora (ultima jornada con clasificacion).
+const CHAMPIONS_PLACES = 5;
+function championTeams(standings: ImageData['standings']): Set<string> {
+  const keys = new Set<string>();
+  for (const tables of [standings.previous, standings.current]) {
+    const days = Object.keys(tables).map(Number);
+    if (days.length === 0) continue;
+    for (const row of tables[Math.max(...days)]) {
+      const key = teamKey(row.team);
+      if (key && row.position <= CHAMPIONS_PLACES) keys.add(key);
+    }
+  }
+  return keys;
+}
 
 // "Esta temporada vs la pasada": todas las jornadas jugadas este año frente a las mismas de la temporada pasada, con el rival y el
 // resultado de cada una. Cada vez que avanza la liga, la imagen incluye una jornada mas.
@@ -377,27 +390,25 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
     ['Victorias', before.wins, now.wins],
     ['Porterías a cero', before.cleanSheets, now.cleanSheets],
   ];
+  const champions = championTeams(standings);
+  const isChampions = (rival: string) => champions.has(teamKey(rival) ?? '');
   const duels = current.slice(-MAX_DUELS).map((item) => {
     const old = previous.find((entry) => entry.matchday === item.matchday);
     const left = old ? duelSide(old.rival, old.home, old.scored, old.conceded, rankOf(standings.previous, old.matchday, old.rival)) : null;
     const right = duelSide(item.rival, item.home, item.scored, item.conceded, rankOf(standings.current, item.matchday, item.rival));
-    // El rival mas dificil de la jornada es el mejor clasificado (puesto mas bajo); si empatan, ninguno.
-    if (left?.rank && right.rank && left.rank !== right.rank) (left.rank < right.rank ? left : right).harder = true;
+    // Rival destacado: equipo de Champions la temporada pasada o esta.
+    if (left && isChampions(old!.rival)) left.harder = true;
+    if (isChampions(item.rival)) right.harder = true;
     return { day: `J${item.matchday}`, left, right };
   });
 
-  // Dificultad global: puesto medio de los rivales de cada temporada en las jornadas jugadas.
-  const ranksNow = current.map((item) => rankOf(standings.current, item.matchday, item.rival));
-  const ranksBefore = previous.map((item) => rankOf(standings.previous, item.matchday, item.rival));
   let difficulty = '';
-  if (ranksNow.every(Boolean) && ranksBefore.every(Boolean) && ranksBefore.length > 0) {
-    const meanNow = average(ranksNow as number[]);
-    const meanBefore = average(ranksBefore as number[]);
-    difficulty = meanNow === meanBefore
-      ? ' Rivales igual de difíciles que el año pasado.'
-      : ` Rivales más difíciles: los de ${meanNow < meanBefore ? 'este año' : 'el año pasado'} (puesto medio en su jornada ${decimal(meanNow)} frente a ${decimal(meanBefore)}).`;
+  if (champions.size > 0) {
+    const nowCount = current.filter((item) => isChampions(item.rival)).length;
+    const beforeCount = previous.filter((item) => isChampions(item.rival)).length;
+    difficulty = ` Rivales de Champions: ${nowCount} este año y ${beforeCount} el año pasado.`;
   } else {
-    warnings.push('No hay clasificación disponible de alguna temporada (football-data.org): no se puede marcar qué rivales eran más difíciles.');
+    warnings.push('No hay clasificación disponible (football-data.org): no se pueden destacar los rivales de Champions.');
   }
 
   return {
@@ -414,6 +425,7 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
       dividerAfter: 0,
       dividerLabels: [PREVIOUS_SEASON_LABEL, CURRENT_SEASON_LABEL],
       duels,
+      duelsNote: champions.size ? `★ Rival de Champions: acabó entre los ${CHAMPIONS_PLACES} primeros en ${PREVIOUS_SEASON_LABEL} o está ahí en ${CURRENT_SEASON_LABEL}` : '',
       cards: [
         { value: signed(diffPoints), text: `${plural(Math.abs(diffPoints), 'punto', 'puntos')} frente al año pasado en las mismas jornadas` },
         { value: signed(now.scored - before.scored), text: `${plural(Math.abs(now.scored - before.scored), 'gol', 'goles')} a favor respecto al año pasado (${now.scored} frente a ${before.scored})` },
@@ -422,7 +434,7 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) vs ${CURRENT_SEASON_LABEL} (rojo). C = casa, F = fuera. Puesto = clasificación tras esa jornada; ★ = rival mejor clasificado.`,
+      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) vs ${CURRENT_SEASON_LABEL} (rojo). C = casa, F = fuera. Puesto = tras esa jornada. ★ = equipo de Champions (top ${CHAMPIONS_PLACES}) en ${PREVIOUS_SEASON_LABEL} o ahora.`,
     },
   };
 }
