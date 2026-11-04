@@ -245,8 +245,9 @@ const leagueMatches: LevanteMatch[] = matchSeeds.map(
 // Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora, fecha original si se aplazo]
 type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null, string?];
 const cupSeeds: CupSeed[] = [
-  // Aplazado: se iba a jugar el 28/10 y se juega el jueves 5/11 a las 19:00. Los pronosticos ya hechos se conservan (se guardan por partido).
-  [1, '2026-11-05', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', '19:00', '2026-10-28'],
+  // Aplazado dos veces (28/10 y 5/11) y aun sin fecha: queda como "Fecha por confirmar" en su posicion original y el siguiente partido pasa a ser
+  // el proximo. Los pronosticos ya hechos se conservan (se guardan por partido) y siguen ocultos hasta que se juegue o cierre el plazo.
+  [1, '2026-10-28', 'CD Tarancón', LEVANTE_TEAM, null, null, 'POSTPONED', null],
 ];
 const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime, originalDate]) => ({
   id: `copa-2026-27-r${round}`,
