@@ -52,3 +52,12 @@ export const previousSeasonMatches: PreviousMatch[] = [
   { matchday: 37, rival: "Mallorca", home: true, scored: 2, conceded: 0 },
   { matchday: 38, rival: "Betis", home: false, scored: 1, conceded: 2 },
 ];
+
+// Identificador comun de un equipo porque el calendario, el dataset y la API lo escriben distinto ("Villarreal CF" / "Villarreal" / "Real Betis Balompié").
+// El orden importa: "Espanyol de Barcelona" y "Deportivo Alavés" no deben caer en Barcelona ni en Deportivo.
+const TEAM_KEYS = ['real madrid', 'atletico', 'real sociedad', 'athletic', 'alaves', 'espanyol', 'barcelona', 'betis', 'celta', 'elche', 'getafe', 'girona', 'mallorca', 'osasuna', 'oviedo', 'rayo', 'sevilla', 'valencia', 'villarreal', 'levante', 'malaga', 'racing', 'deportivo', 'tarancon'];
+
+export function teamKey(name: string): string | null {
+  const plain = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return TEAM_KEYS.find((key) => plain.includes(key)) ?? null;
+}

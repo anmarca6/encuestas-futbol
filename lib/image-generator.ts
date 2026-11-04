@@ -18,6 +18,9 @@ export interface ImageDuelSide {
   rival: string;
   score: string;
   outcome: DuelOutcome;
+  // Puesto del rival en la clasificacion de esa temporada y si es el mas dificil (mejor clasificado) de la jornada.
+  rank?: number;
+  harder?: boolean;
 }
 export interface ImageDuel {
   day: string;
@@ -264,9 +267,21 @@ function drawDuels(ctx: Ctx, spec: ImageSpec, duels: ImageDuel[], sideColors: st
         ctx.fillText('—', starts[sideIndex], cy);
         return;
       }
-      ctx.fillStyle = '#fff';
+      if (side.harder) {
+        ctx.fillStyle = '#ffd36b';
+        ctx.font = `900 ${size}px ${HEAD_FONT}`;
+        ctx.fillText('★', starts[sideIndex] - size - 6, cy);
+      }
+      ctx.fillStyle = side.harder ? '#ffd36b' : '#fff';
       ctx.font = `700 ${size * 0.9}px ${BODY_FONT}`;
-      ctx.fillText(side.rival, starts[sideIndex], cy, blockW - 90);
+      ctx.fillText(side.rival, starts[sideIndex], cy, blockW - 130);
+      if (side.rank) {
+        ctx.fillStyle = MUTE;
+        ctx.font = `700 ${size * 0.8}px ${BODY_FONT}`;
+        ctx.textAlign = 'right';
+        ctx.fillText(`${side.rank}º`, starts[sideIndex] + blockW - 72, cy);
+        ctx.textAlign = 'left';
+      }
       ctx.fillStyle = OUTCOME_COLORS[side.outcome];
       ctx.font = `900 ${size * 1.15}px ${HEAD_FONT}`;
       ctx.textAlign = 'right';
@@ -751,7 +766,14 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
       const item = (raw && typeof raw === 'object' ? raw : null) as Record<string, unknown> | null;
       if (!item || typeof item.rival !== 'string' || typeof item.score !== 'string') return null;
       const outcome = item.outcome === 'w' || item.outcome === 'd' || item.outcome === 'l' ? item.outcome : 'd';
-      return { rival: item.rival.trim().slice(0, 30), score: item.score.trim().slice(0, 8), outcome };
+      const rank = Number(item.rank);
+      return {
+        rival: item.rival.trim().slice(0, 30),
+        score: item.score.trim().slice(0, 8),
+        outcome,
+        ...(Number.isInteger(rank) && rank > 0 && rank < 100 ? { rank } : {}),
+        ...(item.harder === true ? { harder: true } : {}),
+      };
     };
     out.duels = source.duels
       .map((raw) => {

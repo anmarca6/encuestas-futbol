@@ -1,4 +1,4 @@
-import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches } from '@/lib/previous-season';
+import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches, teamKey } from '@/lib/previous-season';
 import { DEFAULT_SPEC, MAX_DUELS, QUARTER_LABELS, type DuelOutcome, type ImageDuelSide, type ImageSpec } from '@/lib/image-generator';
 
 // Datos de cada partido de LaLiga ya jugado que alimentan las plantillas del generador de imagenes.
@@ -26,9 +26,16 @@ export interface ImageData {
   lineups: Array<{ matchday: number; players: string[] }>;
   // Pronosticos de los usuarios de la comunidad por partido jugado, segun el resultado que dan al Levante.
   predictions: Array<{ matchday: number; win: number; draw: number; loss: number }>;
+  // Clasificacion de LaLiga de la temporada actual y la final de la pasada (puesto de cada equipo), para medir la dificultad de los rivales.
+  standings: { current: StandingRow[]; previous: StandingRow[] };
 }
 
-export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [] };
+export interface StandingRow {
+  team: string;
+  position: number;
+}
+
+export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [], standings: { current: [], previous: [] } };
 
 export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'temporada' | 'libre';
 
@@ -330,15 +337,24 @@ const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
 
 const shortRival = (name: string) => name.replace(/^(FC|CA|RCD|CD) /, '').replace(/ (CF|FC)$/, '').replace(/^Deportivo (?=Alav)/, '');
 const outcomeOf = (scored: number, conceded: number): DuelOutcome => (scored > conceded ? 'w' : scored === conceded ? 'd' : 'l');
-const duelSide = (rival: string, home: boolean, scored: number, conceded: number): ImageDuelSide => ({
+// El marcador se escribe como en el partido: primero el equipo local. El color sigue siendo el del resultado del Levante UD.
+const duelSide = (rival: string, home: boolean, scored: number, conceded: number, rank?: number): ImageDuelSide => ({
   rival: `${shortRival(rival)} (${home ? 'C' : 'F'})`,
-  score: `${scored}-${conceded}`,
+  score: home ? `${scored}-${conceded}` : `${conceded}-${scored}`,
   outcome: outcomeOf(scored, conceded),
+  ...(rank ? { rank } : {}),
 });
+
+const rankOf = (table: StandingRow[], rival: string) => {
+  const key = teamKey(rival);
+  return key ? table.find((row) => teamKey(row.team) === key)?.position : undefined;
+};
+const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+const decimal = (value: number) => value.toFixed(1).replace('.', ',');
 
 // "Esta temporada vs la pasada": todas las jornadas jugadas este año frente a las mismas de la temporada pasada, con el rival y el
 // resultado de cada una. Cada vez que avanza la liga, la imagen incluye una jornada mas.
-function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
+function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standings']): TemplateResult {
   const current = [...stats].sort((a, b) => a.matchday - b.matchday);
   if (current.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   const days = new Set(current.map((item) => item.matchday));
@@ -351,7 +367,7 @@ function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
   if (current.length > MAX_DUELS) warnings.push(`La lista de rivales muestra solo las últimas ${MAX_DUELS} jornadas; las columnas suman las ${current.length}.`);
   const range = `J1–J${last}`;
   const diffPoints = now.points - before.points;
-  const subtitle = diffPoints === 0
+  const baseSubtitle = diffPoints === 0
     ? `Tras ${range}, el Levante UD suma los mismos puntos que el año pasado (${now.points}).`
     : `Tras ${range}, el Levante UD suma ${now.points} puntos: ${Math.abs(diffPoints)} ${diffPoints > 0 ? 'más' : 'menos'} que el año pasado (${before.points}).`;
   const groups: Array<[string, number, number]> = [
@@ -363,12 +379,26 @@ function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
   ];
   const duels = current.slice(-MAX_DUELS).map((item) => {
     const old = previous.find((entry) => entry.matchday === item.matchday);
-    return {
-      day: `J${item.matchday}`,
-      left: old ? duelSide(old.rival, old.home, old.scored, old.conceded) : null,
-      right: duelSide(item.rival, item.home, item.scored, item.conceded),
-    };
+    const left = old ? duelSide(old.rival, old.home, old.scored, old.conceded, rankOf(standings.previous, old.rival)) : null;
+    const right = duelSide(item.rival, item.home, item.scored, item.conceded, rankOf(standings.current, item.rival));
+    // El rival mas dificil de la jornada es el mejor clasificado (puesto mas bajo); si empatan, ninguno.
+    if (left?.rank && right.rank && left.rank !== right.rank) (left.rank < right.rank ? left : right).harder = true;
+    return { day: `J${item.matchday}`, left, right };
   });
+
+  // Dificultad global: puesto medio de los rivales de cada temporada en las jornadas jugadas.
+  const ranksNow = current.map((item) => rankOf(standings.current, item.rival));
+  const ranksBefore = previous.map((item) => rankOf(standings.previous, item.rival));
+  let difficulty = '';
+  if (ranksNow.every(Boolean) && ranksBefore.every(Boolean) && ranksBefore.length > 0) {
+    const meanNow = average(ranksNow as number[]);
+    const meanBefore = average(ranksBefore as number[]);
+    difficulty = meanNow === meanBefore
+      ? ' Rivales igual de difíciles que el año pasado.'
+      : ` Rivales más difíciles: los de ${meanNow < meanBefore ? 'este año' : 'el año pasado'} (puesto medio ${decimal(meanNow)} frente a ${decimal(meanBefore)}).`;
+  } else {
+    warnings.push('No hay clasificación disponible de alguna temporada (football-data.org): no se puede marcar qué rivales eran más difíciles.');
+  }
 
   return {
     warnings,
@@ -376,7 +406,7 @@ function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
       kicker: DEFAULT_SPEC.kicker,
       title: 'Esta temporada',
       titleAccent: 'contra la pasada',
-      subtitle,
+      subtitle: `${baseSubtitle}${difficulty}`.slice(0, 220),
       layout: 'comparar',
       compareSuffix: '',
       rows: groups.flatMap(([label, beforeValue, nowValue]) => [{ label, value: beforeValue }, { label, value: nowValue }]),
@@ -392,7 +422,7 @@ function buildSeasonComparison(stats: MatchStats[]): TemplateResult {
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) frente a ${CURRENT_SEASON_LABEL} (rojo). C = en casa, F = fuera.`,
+      footer: `${SOURCE} · Levante UD en LaLiga, ${range}: ${PREVIOUS_SEASON_LABEL} (azul) frente a ${CURRENT_SEASON_LABEL} (rojo). C = en casa, F = fuera. ★ = rival mejor clasificado (puesto final 25/26 y actual).`,
     },
   };
 }
@@ -431,6 +461,6 @@ export function buildTemplate(id: ImageTemplateId, data: ImageData, playerName: 
   if (id === 'xi') return buildStarters(data.lineups, playerName);
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   if (id === 'prono') return buildPredictions(data);
-  if (id === 'temporada') return buildSeasonComparison(stats);
+  if (id === 'temporada') return buildSeasonComparison(stats, data.standings ?? EMPTY_IMAGE_DATA.standings);
   return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
 }

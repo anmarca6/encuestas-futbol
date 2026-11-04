@@ -4,7 +4,8 @@ import { ensureCommunitySchema, getDatabase } from '@/lib/db';
 import { CUP_MATCHDAY_OFFSET, LEVANTE_TEAM, levanteMatchReports, levanteMatches, levantePlayers } from '@/lib/levante-data';
 import { loadMvpOverrides, loadOfficialReports } from '@/lib/official-data';
 import { loadRivalGoals } from '@/lib/rival-goals';
-import type { ImageData, MatchStats } from '@/lib/image-stats';
+import { footballData, type ApiStanding } from '@/lib/football-schedule';
+import type { ImageData, MatchStats, StandingRow } from '@/lib/image-stats';
 
 const parseList = <T,>(value: string | undefined): T[] => {
   try {
@@ -14,6 +15,20 @@ const parseList = <T,>(value: string | undefined): T[] => {
     return [];
   }
 };
+
+// Clasificacion de LaLiga de una temporada (por el ano en que empieza; sin ano, la actual). Sin clave o si la API falla, queda vacia y la plantilla
+// simplemente no marca la dificultad de los rivales.
+async function loadStandings(season?: number): Promise<StandingRow[]> {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const data = await footballData<{ standings: Array<{ type: string; table: ApiStanding[] }> }>(`/competitions/PD/standings${season ? `?season=${season}` : ''}`, apiKey);
+    return (data.standings.find((item) => item.type === 'TOTAL')?.table ?? []).map((row) => ({ team: row.team.name, position: row.position }));
+  } catch (error) {
+    console.error('No se pudo leer la clasificacion para el generador de imagenes', error);
+    return [];
+  }
+}
 
 // Datos de la app para las plantillas del generador de imagenes. Se leen de nuevo cada vez, asi que una imagen creada (o recargada)
 // despues de una jornada nueva ya la incluye: resultado oficial de la comunidad (o el del calendario local), goles y minutos del
@@ -111,6 +126,7 @@ export async function GET(request: NextRequest) {
     tally.set(matchday, entry);
   }
 
-  const data: ImageData = { matches, mvps, lineups, predictions: [...tally.values()] };
+  const [current, previous] = await Promise.all([loadStandings(), loadStandings(2025)]);
+  const data: ImageData = { matches, mvps, lineups, predictions: [...tally.values()], standings: { current, previous } };
   return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
 }
