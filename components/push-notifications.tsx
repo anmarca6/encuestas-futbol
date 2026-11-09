@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing } from 'lucide-react';
+import { Bell, BellOff, BellRing, Download, Share, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { CommunityUser } from '@/lib/community-types';
 import { communityFetch } from '@/lib/community-client';
@@ -152,6 +152,90 @@ function usePushReminders(userId: string | undefined, auto = false) {
 export function PushAutoEnable({ user }: { user: CommunityUser | null }) {
   usePushReminders(user?.id, true);
   return null;
+}
+
+const PROMPT_KEY = 'granota_push_prompt';
+const PROMPT_DELAY_MS = 8000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Aviso discreto para quien entra desde el movil con sesion y no tiene los avisos activos: aparece una sola vez por visita, pasados unos segundos,
+// y si se cierra no vuelve en 7 dias (30 a partir de la segunda vez). En iPhone explica como anadir la web a la pantalla de inicio (sin eso no hay
+// avisos); en Android ofrece activarlos con un toque (el permiso lo pide el navegador) y, si el navegador lo permite, instalar la app.
+export function PushInstallPrompt({ user }: { user: CommunityUser | null }) {
+  const { status, busy, error, enable } = usePushReminders(user?.id);
+  const [visible, setVisible] = useState(false);
+  const [installEvent, setInstallEvent] = useState<{ prompt: () => Promise<void> } | null>(null);
+
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallEvent(event as unknown as { prompt: () => Promise<void> });
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, []);
+
+  const needsInstall = status === 'needs-install';
+  const canEnable = status === 'off' && Notification.permission !== 'denied';
+  const eligible = Boolean(user) && (needsInstall || canEnable) && isMobile();
+  useEffect(() => {
+    if (!eligible) {
+      setVisible(false);
+      return;
+    }
+    let snoozedUntil = 0;
+    try { snoozedUntil = Number((JSON.parse(window.localStorage.getItem(PROMPT_KEY) ?? '{}') as { until?: number }).until ?? 0); } catch { /* sin almacenamiento: se muestra */ }
+    if (Date.now() < snoozedUntil) return;
+    const timer = window.setTimeout(() => setVisible(true), PROMPT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [eligible]);
+
+  const dismiss = () => {
+    setVisible(false);
+    try {
+      const count = Number((JSON.parse(window.localStorage.getItem(PROMPT_KEY) ?? '{}') as { count?: number }).count ?? 0) + 1;
+      window.localStorage.setItem(PROMPT_KEY, JSON.stringify({ count, until: Date.now() + (count >= 2 ? 30 : 7) * DAY_MS }));
+    } catch { /* sin almacenamiento: no se recuerda */ }
+  };
+  // Si los avisos se activan desde aqui o desde Ajustes, el aviso desaparece solo (eligible pasa a false).
+  if (!visible || !eligible) return null;
+
+  return (
+    <div role="dialog" aria-label="Activar los avisos" className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-md rounded-2xl border border-sky-200 bg-white p-4 shadow-[0_12px_40px_rgba(7,21,39,.22)] md:hidden">
+      <button type="button" onClick={dismiss} aria-label="Cerrar" className="absolute right-2 top-2 grid size-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100">
+        <X className="size-4" />
+      </button>
+      <div className="flex items-start gap-3 pr-6">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-[#153e72]"><BellRing className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <strong className="block font-black text-[#071527]">No te pierdas el cierre de la porra</strong>
+          {needsInstall ? (
+            <p className="mt-1 text-sm text-slate-600">
+              Te avisamos antes de que acabe el plazo, pero en iPhone hace falta tener la web en tu pantalla de inicio: pulsa <Share className="inline size-4 -translate-y-px text-[#153e72]" /> <strong>Compartir</strong>, elige <strong>Añadir a pantalla de inicio</strong> y ábrela desde su icono.
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-slate-600">Activa los avisos y te recordamos que se acaba el plazo si aún no has publicado tu previa. Sin spam: solo cuando hace falta.</p>
+          )}
+          {canEnable && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button onClick={() => void enable()} disabled={busy} size="sm" className="bg-[#153e72] font-black text-white">
+                <Bell className="size-4" /> {busy ? 'Un momento…' : 'Activar avisos'}
+              </Button>
+              {installEvent && (
+                <Button onClick={() => void installEvent.prompt()} size="sm" variant="outline">
+                  <Download className="size-4" /> Instalar app
+                </Button>
+              )}
+              <button type="button" onClick={dismiss} className="px-1 text-xs font-bold text-slate-500 underline-offset-2 hover:underline">Ahora no</button>
+            </div>
+          )}
+          {needsInstall && <button type="button" onClick={dismiss} className="mt-2 px-1 text-xs font-bold text-slate-500 underline-offset-2 hover:underline">Entendido, ahora no</button>}
+          {error && <p role="alert" className="mt-2 text-xs font-bold text-[#a91d43]">{error}</p>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // hideWhenOn: en pantallas de paso (Inicio) solo se muestra mientras el aviso no esta activado.
