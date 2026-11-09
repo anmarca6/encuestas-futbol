@@ -14,11 +14,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(await communityPushAudience(community), { headers: { 'Cache-Control': 'no-store' } });
 }
 
-// Envia un aviso a los usuarios de la comunidad que aun no han hecho su previa del proximo partido.
+// Envia un aviso a los usuarios de la comunidad que aun no han hecho su previa del proximo partido (o a todos los que tienen los avisos, con everyone).
 export async function POST(request: NextRequest) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
-  const body = (await request.json().catch(() => null)) as { community?: string; title?: string; message?: string } | null;
+  const body = (await request.json().catch(() => null)) as { community?: string; title?: string; message?: string; everyone?: boolean } | null;
   const community = await resolveAdminCommunity(admin, body?.community);
   if (community instanceof NextResponse) return community;
   const title = (body?.title ?? '').trim() || 'Granota App';
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   if (!message) return NextResponse.json({ error: 'Escribe el mensaje del aviso.' }, { status: 400 });
   if (title.length > MAX_TITLE) return NextResponse.json({ error: `El título no puede pasar de ${MAX_TITLE} caracteres.` }, { status: 400 });
   if (message.length > MAX_BODY) return NextResponse.json({ error: `El mensaje no puede pasar de ${MAX_BODY} caracteres.` }, { status: 400 });
-  const result = await sendPushToCommunity(community, { title, body: message });
+  const result = await sendPushToCommunity(community, { title, body: message }, body?.everyone === true);
   if (!result.configured) {
     return NextResponse.json({ error: 'Los avisos no están configurados en el servidor (faltan las claves VAPID).' }, { status: 503 });
   }

@@ -81,8 +81,9 @@ const serviceName = (endpoint: string) => {
   }
 };
 
-// Envia un aviso manual a los dispositivos de la comunidad cuyo usuario aun no ha publicado su previa del proximo partido.
-export async function sendPushToCommunity(communitySlug: string, message: { title: string; body: string }): Promise<PushSendResult> {
+// Envia un aviso manual a los dispositivos de la comunidad: por defecto, solo a los usuarios que aun no han publicado su previa del proximo partido;
+// con everyone, a todos los que tienen los avisos activados.
+export async function sendPushToCommunity(communitySlug: string, message: { title: string; body: string }, everyone = false): Promise<PushSendResult> {
   const result: PushSendResult = { configured: false, match: null, devices: 0, sent: 0, failed: 0, removed: 0, errors: [] };
   if (!configureWebPush()) return result;
   result.configured = true;
@@ -90,7 +91,7 @@ export async function sendPushToCommunity(communitySlug: string, message: { titl
   const db = getDatabase();
   const target = await openMatchTarget(communitySlug);
   result.match = target?.label ?? null;
-  const rows = target
+  const rows = target && !everyone
     ? await db.prepare(`SELECT s.endpoint, s.p256dh, s.auth FROM push_subscriptions s WHERE s.community_slug = ? ${PENDING_FILTER}`).bind(communitySlug, target.id).all<SubscriptionRow>()
     : await db.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE community_slug = ?').bind(communitySlug).all<SubscriptionRow>();
   result.devices = rows.results.length;

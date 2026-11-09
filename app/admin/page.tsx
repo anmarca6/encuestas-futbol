@@ -1947,6 +1947,7 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
   const [audience, setAudience] = useState<Audience | null>(null);
   const [title, setTitle] = useState('Granota App');
   const [message, setMessage] = useState('');
+  const [everyone, setEveryone] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<SendResult | null>(null);
@@ -1969,7 +1970,7 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
       const response = await fetch('/api/admin/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ community: communitySlug, title, message }),
+        body: JSON.stringify({ community: communitySlug, title, message, everyone }),
       });
       const body = (await response.json().catch(() => ({}))) as SendResult & { error?: string };
       if (!response.ok) throw new Error(body.error ?? 'No se pudo enviar el aviso.');
@@ -1984,7 +1985,8 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
     }
   };
 
-  const devices = audience?.pendingDevices ?? 0;
+  const devices = (everyone ? audience?.devices : audience?.pendingDevices) ?? 0;
+  const users = (everyone ? audience?.users : audience?.pendingUsers) ?? 0;
   const canSend = Boolean(message.trim()) && devices > 0 && !sending && audience?.configured !== false;
   return (
     <Card className="border-0 shadow-sm ring-slate-200">
@@ -1996,11 +1998,18 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
             <span className="font-bold text-[#a91d43]">Los avisos no están configurados en el servidor (faltan las claves VAPID).</span>
           ) : (
             <>
-              <strong className="text-[#071527]">{audience.pendingUsers} {audience.pendingUsers === 1 ? 'usuario' : 'usuarios'}</strong> de {communityName} {audience.pendingUsers === 1 ? 'recibiría' : 'recibirían'} el aviso ({audience.pendingDevices} {audience.pendingDevices === 1 ? 'dispositivo' : 'dispositivos'}): los que aún no han publicado su previa{audience.match ? ` de ${audience.match}` : ''}.
+              <strong className="text-[#071527]">{users} {users === 1 ? 'usuario' : 'usuarios'}</strong> de {communityName} {users === 1 ? 'recibiría' : 'recibirían'} el aviso ({devices} {devices === 1 ? 'dispositivo' : 'dispositivos'}): {everyone ? 'todos los que tienen los avisos activados' : `los que aún no han publicado su previa${audience.match ? ` de ${audience.match}` : ''}`}.
               {' '}En total hay {audience.users} {audience.users === 1 ? 'usuario' : 'usuarios'} con los avisos activados ({audience.devices} {audience.devices === 1 ? 'dispositivo' : 'dispositivos'}). Los avisos vienen activados por defecto: cada usuario solo tiene que aceptar el permiso del navegador; en iPhone, además, con la web añadida a la pantalla de inicio.
             </>
           )}
         </div>
+        <label htmlFor="push-everyone" className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700">
+          <input id="push-everyone" type="checkbox" checked={everyone} onChange={(event) => { setEveryone(event.target.checked); setConfirming(false); }} className="mt-0.5 size-4 accent-[#153e72]" />
+          <span>
+            <strong className="block text-[#071527]">Enviar a todos los usuarios con avisos activados</strong>
+            Sin marcar, el aviso solo llega a quienes aún no han publicado su previa{audience?.match ? ` de ${audience.match}` : ''}.
+          </span>
+        </label>
         <div>
           <label htmlFor="push-title" className="mb-1 block text-xs font-black uppercase text-slate-400">Título</label>
           <Input id="push-title" value={title} maxLength={MAX_TITLE} onChange={(event) => { setTitle(event.target.value); setConfirming(false); }} className="h-11" />
@@ -2032,12 +2041,12 @@ function PushSender({ communitySlug, communityName }: { communitySlug: string; c
               <Bell className="size-4" /> Enviar aviso
             </Button>
           )}
-          {devices === 0 && audience?.configured !== false && audience !== null && <span className="text-xs font-bold text-amber-700">{audience.devices === 0 ? 'Nadie tiene los avisos activados todavía.' : 'Todos los que tienen los avisos ya han publicado su previa.'}</span>}
+          {devices === 0 && audience?.configured !== false && audience !== null && <span className="text-xs font-bold text-amber-700">{audience.devices === 0 ? 'Nadie tiene los avisos activados todavía.' : 'Todos los que tienen los avisos ya han publicado su previa: marca la casilla para enviarlo a todos.'}</span>}
         </div>
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-[#a91d43]">{error}</p>}
         {result && (
           <div role="status" className={`rounded-xl p-3 text-sm ${result.failed ? 'bg-amber-50 text-amber-900' : 'bg-emerald-50 text-emerald-900'}`}>
-            <strong className="block">Enviado a {result.sent} de {result.devices} {result.devices === 1 ? 'dispositivo' : 'dispositivos'} (usuarios sin previa{result.match ? ` de ${result.match}` : ''}).</strong>
+            <strong className="block">Enviado a {result.sent} de {result.devices} {result.devices === 1 ? 'dispositivo' : 'dispositivos'} ({everyone ? 'todos los usuarios con avisos' : `usuarios sin previa${result.match ? ` de ${result.match}` : ''}`}).</strong>
             <span className="block text-xs">Que el servicio de Apple o Google lo acepte no garantiza que se muestre: depende de que el móvil lo reciba.</span>
             {result.removed > 0 && <span className="mt-1 block text-xs">{result.removed} {result.removed === 1 ? 'dispositivo ya no existía' : 'dispositivos ya no existían'} (app desinstalada o permiso retirado) y se {result.removed === 1 ? 'ha borrado' : 'han borrado'} de la lista.</span>}
             {result.errors.map((item) => (
