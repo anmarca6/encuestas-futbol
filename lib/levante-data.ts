@@ -31,6 +31,7 @@ import aldiNurgaliImage from '@/JugadoresDelLevante2627/nurgali.webp';
 import luismiPerezImage from '@/JugadoresDelLevante2627/LuismiPérez.webp';
 import pabloRosonImage from '@/JugadoresDelLevante2627/PabloRosón.webp';
 import aitorManzanedoImage from '@/JugadoresDelLevante2627/AitorManzanedo.webp';
+import moyaImage from '@/JugadoresDelLevante2627/Moya.webp';
 
 export const LEVANTE_TEAM = 'Levante UD' as const;
 export const LEVANTE_SEASON = '2026/2027' as const;
@@ -571,6 +572,14 @@ export const levantePlayers: LevantePlayer[] = [
     displayName: 'Calatrava',
     position: 'MIDFIELDER',
     image: calatravaImage.src,
+    possibleDeparture: false,
+  },
+  {
+    id: 'moya',
+    number: 39,
+    displayName: 'Moya',
+    position: 'DEFENDER',
+    image: moyaImage.src,
     possibleDeparture: false,
   },
   {
