@@ -730,6 +730,52 @@ function CalendarMatch({
   );
 }
 
+// Copa del Rey: los partidos del Levante UD en el torneo (jugados y por jugar), de ronda en ronda. Si gana, pasa; si pierde, queda eliminado.
+function CupTable({ matches }: { matches: LevanteMatch[] }) {
+  const cup = matches.filter((match) => isCupMatch(match)).sort((a, b) => a.matchday - b.matchday);
+  if (cup.length === 0) return null;
+  const outcome = (match: LevanteMatch) => {
+    if (match.status !== 'FINISHED' || match.homeScore === null || match.awayScore === null) return null;
+    const levanteIsHome = match.homeTeam === LEVANTE_TEAM;
+    const own = levanteIsHome ? match.homeScore : match.awayScore;
+    const other = levanteIsHome ? match.awayScore : match.homeScore;
+    return own > other ? 'pasa' : own < other ? 'eliminado' : 'empate';
+  };
+  return (
+    <Card className="mt-6 overflow-hidden border-0 shadow-sm ring-slate-200">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 border-b bg-amber-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-amber-800">
+          <Trophy className="size-3.5" /> Copa del Rey · Levante UD
+        </div>
+        <div className="divide-y">
+          {cup.map((match) => {
+            const result = outcome(match);
+            const postponed = match.status === 'POSTPONED';
+            return (
+              <div key={match.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:gap-4">
+                <div className="w-14 text-center">
+                  <span className="block text-xs font-black text-amber-600">{matchdayLongLabel(match.matchday).replace('Copa del Rey · ', '')}</span>
+                  <small className="whitespace-nowrap text-[10px] font-bold text-slate-400">{postponed ? 'Fecha por confirmar' : formatDate(match.date, true)}</small>
+                </div>
+                <div className="grid min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm">
+                  <TeamIdentity teamName={match.homeTeam} size="sm" shortOnMobile />
+                  <span className={`rounded-lg px-2 py-1.5 text-center text-xs font-black ${result ? 'bg-[#071527] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {result ? `${match.homeScore} — ${match.awayScore}` : 'vs'}
+                  </span>
+                  <TeamIdentity teamName={match.awayTeam} size="sm" shortOnMobile />
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${result === 'pasa' ? 'bg-emerald-100 text-emerald-800' : result === 'eliminado' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-500'}`}>
+                  {result === 'pasa' ? 'Pasa de ronda' : result === 'eliminado' ? 'Eliminado' : postponed ? 'Aplazado' : 'Pendiente'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function StandingsTable({ standings }: { standings: ReadonlyArray<LeagueStanding> }) {
   return (
     <Card className="overflow-hidden border-0 shadow-sm ring-slate-200">
@@ -917,7 +963,10 @@ export function MatchdaySection({
           </div>
         </>
       ) : (
-        <StandingsTable standings={standings} />
+        <>
+          <StandingsTable standings={standings} />
+          <CupTable matches={matches} />
+        </>
       )}
     </>
   );

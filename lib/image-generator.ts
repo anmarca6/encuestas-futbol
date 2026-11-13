@@ -4,6 +4,8 @@
 export type ImageLayout = 'barras' | 'ranking' | 'podio' | 'comparar';
 export type ImageBackground = 'nocturna' | 'interior' | 'ninguno';
 export type ImageLogo = 'ninguno' | 'ismaelete';
+// Partidos que alimentan la imagen: solo LaLiga o LaLiga y Copa del Rey.
+export type ImageScope = 'liga' | 'ligaCopa';
 
 export interface ImageRow {
   label: string;
@@ -60,6 +62,8 @@ export interface ImageSpec {
   duelsNote: string;
   // Logo de la comunidad en la esquina superior derecha.
   logo: ImageLogo;
+  // Competiciones incluidas en los datos (se recuerda para recargar la imagen con el mismo criterio).
+  competition: ImageScope;
 }
 
 export const IMAGE_WIDTH = 1080;
@@ -112,6 +116,7 @@ export const DEFAULT_SPEC: ImageSpec = {
   duels: [],
   duelsNote: '',
   logo: 'ninguno',
+  competition: 'liga',
 };
 
 // Tarjetas sugeridas a partir de los datos: el tramo mas alto, el total y los tramos sin ninguno.
@@ -777,6 +782,7 @@ export function sanitizeSpec(raw: unknown): ImageSpec {
   if (source.layout === 'barras' || source.layout === 'ranking' || source.layout === 'podio' || source.layout === 'comparar') out.layout = source.layout;
   if (source.background === 'nocturna' || source.background === 'interior' || source.background === 'ninguno') out.background = source.background;
   if (source.logo === 'ninguno' || source.logo === 'ismaelete') out.logo = source.logo;
+  if (source.competition === 'liga' || source.competition === 'ligaCopa') out.competition = source.competition;
   assign('compareSuffix', text(source.compareSuffix, 3));
   assign('duelsNote', text(source.duelsNote, 120));
   if (Array.isArray(source.duels)) {

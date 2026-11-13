@@ -20,6 +20,7 @@ import {
   sanitizeSpec,
   suggestCards,
   type ImageAssets,
+  type ImageScope,
   type ImageSpec,
 } from '@/lib/image-generator';
 import { EMPTY_IMAGE_DATA, IMAGE_TEMPLATES, buildTemplate, isTemplateId, type ImageData, type ImageTemplateId, type TemplateResult } from '@/lib/image-stats';
@@ -56,7 +57,7 @@ function Field({ id, label, children }: { id?: string; label: string; children: 
   );
 }
 
-const titleOf = (spec: ImageSpec) => `${spec.title} ${spec.titleAccent}`.trim() || 'Imagen sin título';
+const titleOf = (spec: ImageSpec) => `${`${spec.title} ${spec.titleAccent}`.trim() || 'Imagen sin título'}${spec.competition === 'ligaCopa' ? ' · LaLiga + Copa' : ''}`;
 const playerName = (id: string) => levantePlayers.find((item) => item.id === id)?.displayName ?? null;
 
 // Fotos de los jugadores del podio (solo hay en ese tipo de grafico).
@@ -99,6 +100,8 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   const [current, setCurrent] = useState<CurrentImage | null>(null);
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<ImageTemplateId | null>(null);
+  // Partidos que entran en la imagen que se va a crear: solo LaLiga o tambien la Copa del Rey.
+  const [scope, setScope] = useState<ImageScope>('liga');
   const [opening, setOpening] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [pickerError, setPickerError] = useState('');
@@ -223,9 +226,9 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
   }, [spec, assets, fontsReady, assetsReady, current]);
 
   // Datos reales de la app (resultados, goles y minutos) convertidos en la ficha de la plantilla.
-  const buildFor = async (id: ImageTemplateId): Promise<TemplateResult> => {
+  const buildFor = async (id: ImageTemplateId, dataScope: ImageScope): Promise<TemplateResult> => {
     if (id === 'libre') return buildTemplate(id, EMPTY_IMAGE_DATA, playerName);
-    const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}`, { cache: 'no-store' });
+    const response = await fetch(`/api/admin/image-data?community=${encodeURIComponent(communitySlug)}&scope=${dataScope}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('No se pudieron cargar los datos de la app.');
     return buildTemplate(id, (await response.json()) as ImageData, playerName);
   };
@@ -235,7 +238,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     setCreating(id);
     setPickerError('');
     try {
-      const result = await buildFor(id);
+      const result = await buildFor(id, scope);
       const next = { ...DEFAULT_SPEC, ...result.spec };
       const response = await fetch('/api/admin/images', {
         method: 'POST',
@@ -285,7 +288,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
       openedRef.current = body.image.id;
       if (template !== 'libre') {
         const openedId = body.image.id;
-        void buildFor(template)
+        void buildFor(template, saved.competition)
           .then((result) => {
             if (openedRef.current === openedId && result.spec.rows && dataSignature(sanitizeSpec(result.spec)) !== dataSignature(saved)) setOutdated(true);
           })
@@ -324,7 +327,7 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
     if (!window.confirm('Se sustituirán los datos y los textos por los actuales de la app. ¿Continuar?')) return;
     setReloading(true);
     try {
-      const result = await buildFor(current.template);
+      const result = await buildFor(current.template, spec.competition);
       update(result.spec);
       setWarnings(result.warnings);
       setOutdated(false);
@@ -459,6 +462,26 @@ export function ImageGenerator({ communitySlug }: { communitySlug: string }) {
               <div>
                 <h3 className="text-lg font-black text-[#071527]">Crea una imagen</h3>
                 <p className="text-sm text-slate-500">Elige una plantilla y la imagen se genera sola con los datos de la app. Se guarda en tu historial y podrás editarla cuando quieras.</p>
+              </div>
+              <div>
+                <span className={labelClass}>Partidos que incluye</span>
+                <div className="grid max-w-md grid-cols-2 rounded-2xl bg-slate-200/70 p-1" role="radiogroup" aria-label="Partidos que incluye la imagen">
+                  {([['liga', 'Solo LaLiga'], ['ligaCopa', 'LaLiga + Copa del Rey']] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={scope === value}
+                      onClick={() => setScope(value)}
+                      className={`rounded-xl px-3 py-2 text-xs font-black transition ${scope === value ? 'bg-white text-[#071527] shadow-sm' : 'text-slate-500'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {scope === 'liga' ? 'Las plantillas usan solo los partidos de LaLiga.' : 'Las plantillas suman también los partidos de Copa del Rey (goles, MVP, onces y pronósticos). «Esta temporada vs la pasada» sigue comparando solo LaLiga.'}
+                </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {IMAGE_TEMPLATES.map((item) => (

@@ -6,6 +6,7 @@ import { loadMvpOverrides, loadOfficialReports } from '@/lib/official-data';
 import { loadRivalGoals } from '@/lib/rival-goals';
 import { footballData, type ApiMatch } from '@/lib/football-schedule';
 import { standingsByMatchday } from '@/lib/standings-by-matchday';
+import type { ImageScope } from '@/lib/image-generator';
 import type { ImageData, MatchStats, StandingRow } from '@/lib/image-stats';
 
 const parseList = <T,>(value: string | undefined): T[] => {
@@ -31,6 +32,7 @@ async function loadStandings(season?: number): Promise<Record<number, StandingRo
   }
 }
 
+// Con scope=ligaCopa tambien entran los partidos de Copa del Rey del Levante (jornadas 101 en adelante).
 // Datos de la app para las plantillas del generador de imagenes. Se leen de nuevo cada vez, asi que una imagen creada (o recargada)
 // despues de una jornada nueva ya la incluye: resultado oficial de la comunidad (o el del calendario local), goles y minutos del
 // Levante, goles del rival (los que ha anotado el admin o, si no, los del calendario), MVP, onces y pronosticos de los usuarios.
@@ -40,14 +42,16 @@ export async function GET(request: NextRequest) {
   const community = await resolveAdminCommunity(admin, request.nextUrl.searchParams.get('community'));
   if (community instanceof NextResponse) return community;
 
+  const scope: ImageScope = request.nextUrl.searchParams.get('scope') === 'ligaCopa' ? 'ligaCopa' : 'liga';
   const reports = await loadOfficialReports(community);
   const rivalGoals = await loadRivalGoals();
   const idByName = new Map(levantePlayers.map((player) => [player.displayName, player.id]));
-  const isLeague = (matchday: number) => matchday >= 1 && matchday <= CUP_MATCHDAY_OFFSET;
+  const included = (matchday: number) => matchday >= 1 && (scope === 'ligaCopa' || matchday <= CUP_MATCHDAY_OFFSET);
+  const includedMatchId = (id: string) => id.startsWith('laliga-') || (scope === 'ligaCopa' && id.startsWith('copa-'));
 
   const matches: MatchStats[] = [];
   const levanteIsHomeByMatchday = new Map<number, boolean>();
-  for (const match of levanteMatches.filter((item) => item.id.startsWith('laliga-'))) {
+  for (const match of levanteMatches.filter((item) => includedMatchId(item.id))) {
     const report = reports.find((item) => item.matchday === match.matchday);
     if (!report && match.status !== 'FINISHED') continue;
     const levanteIsHome = match.homeTeam === LEVANTE_TEAM;
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
   }
   for (const report of reports) if (report.mvp) mvpByMatchday.set(report.matchday, report.mvp);
   for (const override of await loadMvpOverrides(community)) if (override.playerId) mvpByMatchday.set(override.matchday, override.playerId);
-  const mvps = [...mvpByMatchday.entries()].filter(([matchday]) => isLeague(matchday)).map(([matchday, playerId]) => ({ matchday, playerId }));
+  const mvps = [...mvpByMatchday.entries()].filter(([matchday]) => included(matchday)).map(([matchday, playerId]) => ({ matchday, playerId }));
 
   // Onces: los oficiales de la comunidad mandan sobre los del calendario local.
   const lineupByMatchday = new Map<number, string[]>();
@@ -103,7 +107,7 @@ export async function GET(request: NextRequest) {
       // Un once mal guardado simplemente no cuenta.
     }
   }
-  const lineups = [...lineupByMatchday.entries()].filter(([matchday]) => isLeague(matchday)).map(([matchday, players]) => ({ matchday, players }));
+  const lineups = [...lineupByMatchday.entries()].filter(([matchday]) => included(matchday)).map(([matchday, players]) => ({ matchday, players }));
 
   // Pronosticos de los usuarios de la comunidad en partidos de Liga ya jugados, segun el resultado que dan al Levante.
   await ensureCommunitySchema();
@@ -111,11 +115,13 @@ export async function GET(request: NextRequest) {
     SELECT p.match_id AS matchId, p.home_score AS homeScore, p.away_score AS awayScore
     FROM predictions p
     JOIN users u ON u.id = p.user_id
-    WHERE u.community_slug = ? AND p.match_id LIKE 'laliga-%'
+    WHERE u.community_slug = ? AND (p.match_id LIKE 'laliga-%' OR p.match_id LIKE 'copa-%')
   `).bind(community).all<{ matchId: string; homeScore: number; awayScore: number }>();
   const tally = new Map<number, { matchday: number; win: number; draw: number; loss: number }>();
   for (const row of rows.results) {
-    const matchday = Number(/-j(\d+)$/.exec(row.matchId)?.[1]);
+    // Liga: ...-j12; Copa: ...-r1 (ronda 1 = jornada 101).
+    const parsed = /-([jr])(\d+)$/.exec(row.matchId);
+    const matchday = parsed ? Number(parsed[2]) + (parsed[1] === 'r' ? CUP_MATCHDAY_OFFSET : 0) : NaN;
     const levanteIsHome = levanteIsHomeByMatchday.get(matchday);
     if (levanteIsHome === undefined) continue;
     const entry = tally.get(matchday) ?? { matchday, win: 0, draw: 0, loss: 0 };
@@ -128,6 +134,6 @@ export async function GET(request: NextRequest) {
   }
 
   const [current, previous] = await Promise.all([loadStandings(), loadStandings(2025)]);
-  const data: ImageData = { matches, mvps, lineups, predictions: [...tally.values()], standings: { current, previous } };
+  const data: ImageData = { scope, matches, mvps, lineups, predictions: [...tally.values()], standings: { current, previous } };
   return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
 }

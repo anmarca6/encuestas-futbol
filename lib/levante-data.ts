@@ -243,13 +243,28 @@ const leagueMatches: LevanteMatch[] = matchSeeds.map(
   }),
 );
 
-// Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora, fecha original si se aplazo]
-type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null, string?];
+// Copa del Rey: [ronda, fecha, local, visitante, goles local, goles visitante, estado, hora, fecha original si se aplazo, goles]
+type CupSeed = [number, string, string, string, number | null, number | null, MatchStatus, string | null, string | undefined, MatchGoal[]?];
 const cupSeeds: CupSeed[] = [
-  // Aplazado dos veces (28/10 y 5/11); ahora se juega el jueves 12/11 a las 19:00. Los pronosticos ya hechos se conservan (se guardan por partido).
-  [1, '2026-11-12', 'CD Tarancón', LEVANTE_TEAM, null, null, 'SCHEDULED', '19:00', '2026-10-28'],
+  // Aplazado dos veces (28/10 y 5/11) y jugado el 12/11 a las 19:00: 1-2 tras la prorroga (el minuto 123 es de la prorroga).
+  [
+    1,
+    '2026-11-12',
+    'CD Tarancón',
+    LEVANTE_TEAM,
+    1,
+    2,
+    'FINISHED',
+    '19:00',
+    undefined,
+    [
+      { playerName: 'Nieto', team: 'CD Tarancón', minute: 53 },
+      { playerName: 'Petar Ratkov', team: LEVANTE_TEAM, minute: 79 },
+      { playerName: 'Dela', team: LEVANTE_TEAM, minute: 123 },
+    ],
+  ],
 ];
-const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime, originalDate]) => ({
+const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTeam, homeScore, awayScore, status, kickoffTime, originalDate, goals = []]) => ({
   id: `copa-2026-27-r${round}`,
   season: LEVANTE_SEASON,
   competition: COPA_DEL_REY,
@@ -261,7 +276,7 @@ const cupMatches: LevanteMatch[] = cupSeeds.map(([round, date, homeTeam, awayTea
   homeScore,
   awayScore,
   status,
-  goals: [],
+  goals,
   tags: [],
   ...(originalDate ? { originalDate } : {}),
 }));

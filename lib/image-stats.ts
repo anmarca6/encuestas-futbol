@@ -1,5 +1,5 @@
 import { CURRENT_SEASON_LABEL, PREVIOUS_SEASON_LABEL, previousSeasonMatches, teamKey } from '@/lib/previous-season';
-import { DEFAULT_SPEC, MAX_DUELS, QUARTER_LABELS, type DuelOutcome, type ImageDuelSide, type ImageSpec } from '@/lib/image-generator';
+import { DEFAULT_SPEC, MAX_DUELS, QUARTER_LABELS, type DuelOutcome, type ImageDuelSide, type ImageScope, type ImageSpec } from '@/lib/image-generator';
 
 // Datos de cada partido de LaLiga ya jugado que alimentan las plantillas del generador de imagenes.
 export interface MatchStats {
@@ -19,6 +19,8 @@ export interface MatchStats {
 // Todo lo que la app sabe y que alimenta las plantillas; se pide de nuevo cada vez que se crea o se recarga una imagen,
 // asi cada jornada nueva queda reflejada.
 export interface ImageData {
+  // Competiciones incluidas en estos datos.
+  scope: ImageScope;
   matches: MatchStats[];
   // MVP de cada jornada de Liga con MVP elegido (aunque su informe oficial aun no este completo).
   mvps: Array<{ matchday: number; playerId: string }>;
@@ -35,7 +37,7 @@ export interface StandingRow {
   position: number;
 }
 
-export const EMPTY_IMAGE_DATA: ImageData = { matches: [], mvps: [], lineups: [], predictions: [], standings: { current: {}, previous: {} } };
+export const EMPTY_IMAGE_DATA: ImageData = { scope: 'liga', matches: [], mvps: [], lineups: [], predictions: [], standings: { current: {}, previous: {} } };
 
 export type ImageTemplateId = 'marca' | 'encaja' | 'mvp' | 'xi' | 'prono' | 'temporada' | 'libre';
 
@@ -74,15 +76,33 @@ function peakLabels(counts: number[]) {
   return max === 0 ? [] : QUARTER_LABELS.filter((_, index) => counts[index] === max);
 }
 
-function range(stats: MatchStats[]) {
-  const days = stats.map((item) => item.matchday);
-  return `J${Math.min(...days)}–J${Math.max(...days)}`;
+// Partidos de Copa: comparten numeracion con la Liga sumando 100 (ronda 1 = 101).
+const isCupDay = (matchday: number) => matchday > 100;
+const dayName = (matchday: number) => (isCupDay(matchday) ? 'Copa' : `J${matchday}`);
+
+// "J1–J12" o "J1–J12 + Copa" segun los partidos incluidos.
+function dayRange(days: number[]) {
+  const league = days.filter((day) => !isCupDay(day));
+  const first = Math.min(...league);
+  const last = Math.max(...league);
+  return [league.length ? (first === last ? `J${first}` : `J${first}–J${last}`) : '', days.some(isCupDay) ? 'Copa' : ''].filter(Boolean).join(' + ');
 }
+
+function range(stats: MatchStats[]) {
+  return dayRange(stats.map((item) => item.matchday));
+}
+
+const withCup = (scope: ImageScope) => scope === 'ligaCopa';
+// "LaLiga" o "LaLiga y Copa" en los textos de la imagen.
+const competitionName = (scope: ImageScope) => (withCup(scope) ? 'LaLiga y Copa' : 'LaLiga');
+const kickerOf = (scope: ImageScope) => (withCup(scope) ? DEFAULT_SPEC.kicker.replace('LaLiga', 'LaLiga y Copa') : DEFAULT_SPEC.kicker);
+// Jornada en LaLiga, partido si tambien entra la Copa.
+const matchesWord = (scope: ImageScope, count: number) => (withCup(scope) ? plural(count, 'partido', 'partidos') : plural(count, 'jornada', 'jornadas'));
 
 const SOURCE = 'Fuente: https://encuestas-futbol.vercel.app/ismaelete';
 
 // "¿Cuándo marca el Levante UD?": goles del Levante por tramo, con el maximo goleador como protagonista.
-function buildScored(stats: MatchStats[], playerName: (id: string) => string | null): TemplateResult {
+function buildScored(stats: MatchStats[], playerName: (id: string) => string | null, scope: ImageScope): TemplateResult {
   const counts = histogram(stats.flatMap((item) => item.scoredMinutes));
   const known = counts.reduce((sum, count) => sum + count, 0);
   const totalGoals = stats.reduce((sum, item) => sum + item.scored, 0);
@@ -101,10 +121,11 @@ function buildScored(stats: MatchStats[], playerName: (id: string) => string | n
   return {
     warnings,
     spec: {
-      kicker: DEFAULT_SPEC.kicker,
+      kicker: kickerOf(scope),
+      competition: scope,
       title: '¿Cuándo',
       titleAccent: 'marca el Levante UD?',
-      subtitle: `${known} ${plural(known, 'gol', 'goles')} en ${stats.length} jornadas, por tramos de 15 minutos.${tops.length && tops.length <= 3 ? ` Más goles: ${joinLabels(tops)}.` : ''}`,
+      subtitle: `${known} ${plural(known, 'gol', 'goles')} en ${stats.length} ${matchesWord(scope, stats.length)}, por tramos de 15 minutos.${tops.length && tops.length <= 3 ? ` Más goles: ${joinLabels(tops)}.` : ''}`,
       layout: 'barras',
       rows: QUARTER_LABELS.map((label, index) => ({ label, value: counts[index] })),
       showPercent: true,
@@ -118,13 +139,13 @@ function buildScored(stats: MatchStats[], playerName: (id: string) => string | n
       playerId: best && bestName ? best[0] : '',
       playerCaption: best && bestName ? `${bestName} · ${best[1]} ${plural(best[1], 'gol', 'goles')}` : '',
       playerSub: tied ? 'Uno de los máximos goleadores' : 'Máximo goleador del equipo',
-      footer: `${SOURCE} · Goles del Levante UD en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.`,
+      footer: `${SOURCE} · Goles del Levante UD en ${competitionName(scope)} (${range(stats)}); el tramo 90+ incluye el descuento${withCup(scope) ? ' y la prórroga' : ''}.`,
     },
   };
 }
 
 // "¿Cuándo encaja el Levante UD?": goles del rival por tramo y porterias a cero.
-function buildConceded(stats: MatchStats[]): TemplateResult {
+function buildConceded(stats: MatchStats[], scope: ImageScope): TemplateResult {
   const counts = histogram(stats.flatMap((item) => item.concededMinutes));
   const known = counts.reduce((sum, count) => sum + count, 0);
   const totalConceded = stats.reduce((sum, item) => sum + item.conceded, 0);
@@ -133,18 +154,19 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
   const warnings: string[] = [];
   if (missing.length) {
     warnings.push(
-      `Faltan los minutos de goles del rival en ${missing.map((item) => `J${item.matchday} (${item.conceded - item.concededMinutes.length})`).join(', ')}: añádelos en "Formación, resultado y goles" (Goles del rival) y vuelve a cargar los datos.`,
+      `Faltan los minutos de goles del rival en ${missing.map((item) => `${dayName(item.matchday)} (${item.conceded - item.concededMinutes.length})`).join(', ')}: añádelos en "Formación, resultado y goles" (Goles del rival) y vuelve a cargar los datos.`,
     );
   }
   const second = counts.slice(3).reduce((sum, count) => sum + count, 0);
   const late = counts[5] + counts[6];
   const tops = peakLabels(counts);
-  const subtitle = `${known} ${plural(known, 'gol encajado', 'goles encajados')} en ${stats.length} jornadas, por tramos de 15 minutos.${tops.length && tops.length <= 3 ? ` Más peligro: ${joinLabels(tops)}.` : ''} Porterías a cero: ${cleanSheets} de ${stats.length}.`;
+  const subtitle = `${known} ${plural(known, 'gol encajado', 'goles encajados')} en ${stats.length} ${matchesWord(scope, stats.length)}, por tramos de 15 minutos.${tops.length && tops.length <= 3 ? ` Más peligro: ${joinLabels(tops)}.` : ''} Porterías a cero: ${cleanSheets} de ${stats.length}.`;
 
   return {
     warnings,
     spec: {
-      kicker: DEFAULT_SPEC.kicker,
+      kicker: kickerOf(scope),
+      competition: scope,
       title: '¿Cuándo',
       titleAccent: 'encaja el Levante UD?',
       subtitle: subtitle.slice(0, 220),
@@ -161,7 +183,7 @@ function buildConceded(stats: MatchStats[]): TemplateResult {
       playerId: 'mathew-ryan',
       playerCaption: 'Mathew Ryan',
       playerSub: 'Portero del Levante UD',
-      footer: `${SOURCE} · Goles encajados por el Levante UD en LaLiga (${range(stats)}); el tramo 90+ incluye el descuento.${totalConceded > known ? ` Hay ${totalConceded - known} sin minuto.` : ''}`,
+      footer: `${SOURCE} · Goles encajados por el Levante UD en ${competitionName(scope)} (${range(stats)}); el tramo 90+ incluye el descuento${withCup(scope) ? ' y la prórroga' : ''}.${totalConceded > known ? ` Hay ${totalConceded - known} sin minuto.` : ''}`,
     },
   };
 }
@@ -177,22 +199,30 @@ const podiumRows = (ranked: Array<[string, number]>, playerName: (id: string) =>
   ranked.slice(0, 8).map(([id, count]) => ({ label: playerName(id) ?? id, value: count, playerId: id }));
 
 // "Podio de MVP": quien ha sido MVP mas veces. El MVP de la ultima jornada puede cambiar, asi que se avisa.
-function buildMvp(mvps: ImageData['mvps'], playerName: (id: string) => string | null): TemplateResult {
+function buildMvp(mvps: ImageData['mvps'], playerName: (id: string) => string | null, scope: ImageScope, matches: MatchStats[]): TemplateResult {
   const valid = mvps.filter((item) => playerName(item.playerId)).sort((a, b) => a.matchday - b.matchday);
   const ranked = rankCounts(valid.map((item) => item.playerId));
   if (ranked.length === 0) return { spec: {}, warnings: ['Todavía no hay ningún MVP elegido.'] };
-  const last = valid[valid.length - 1];
+  // El MVP de la ultima jornada de Liga puede cambiar; en la Copa, ademas, puede faltar el del partido ya jugado.
+  const lastLeague = valid.filter((item) => !isCupDay(item.matchday)).pop();
   const [topId, topCount] = ranked[0];
   const tiedTop = ranked.filter(([, count]) => count === topCount).length;
-  const days = `J${valid[0].matchday}–J${last.matchday}`;
+  const days = dayRange(valid.map((item) => item.matchday));
+  const warnings: string[] = [];
+  if (lastLeague) warnings.push(`El MVP de la J${lastLeague.matchday} (${playerName(lastLeague.playerId)}) puede no ser el definitivo: revisa el podio antes de publicar.`);
+  const chosen = new Set(valid.map((item) => item.matchday));
+  for (const match of matches.filter((item) => isCupDay(item.matchday) && !chosen.has(item.matchday))) {
+    warnings.push(`Aún no se ha elegido el MVP del partido de Copa contra ${match.rival}: no cuenta en el podio hasta que se elija.`);
+  }
 
   return {
-    warnings: [`El MVP de la J${last.matchday} (${playerName(last.playerId)}) puede no ser el definitivo: revisa el podio antes de publicar.`],
+    warnings,
     spec: {
-      kicker: DEFAULT_SPEC.kicker,
+      kicker: kickerOf(scope),
+      competition: scope,
       title: 'Podio de',
       titleAccent: 'MVP del Levante UD',
-      subtitle: `${valid.length} ${plural(valid.length, 'jornada', 'jornadas')} con MVP (${days}) y ${ranked.length} ${plural(ranked.length, 'jugador distinto', 'jugadores distintos')}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
+      subtitle: `${valid.length} ${matchesWord(scope, valid.length)} con MVP (${days}) y ${ranked.length} ${plural(ranked.length, 'jugador distinto', 'jugadores distintos')}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
       layout: 'podio',
       unit: ['MVP', 'MVPs'],
       rows: podiumRows(ranked, playerName),
@@ -200,34 +230,35 @@ function buildMvp(mvps: ImageData['mvps'], playerName: (id: string) => string | 
       dividerAfter: 0,
       cards: [
         { value: String(topCount), text: `${plural(topCount, 'MVP', 'MVPs')} para ${playerName(topId) ?? topId}${tiedTop > 1 ? ' (y empata)' : ''}` },
-        { value: String(valid.length), text: `${plural(valid.length, 'jornada', 'jornadas')} con MVP elegido` },
+        { value: String(valid.length), text: `${matchesWord(scope, valid.length)} con MVP elegido` },
         { value: String(ranked.length), text: `${plural(ranked.length, 'jugador ha sido', 'jugadores han sido')} MVP` },
       ],
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · MVP de cada jornada de LaLiga elegido en la comunidad (${days}).`,
+      footer: `${SOURCE} · MVP de cada ${withCup(scope) ? 'partido' : 'jornada'} de ${competitionName(scope)} elegido en la comunidad (${days}).`,
     },
   };
 }
 
 // "Podio de titulares": quien ha estado mas veces en el once inicial oficial.
-function buildStarters(lineups: ImageData['lineups'], playerName: (id: string) => string | null): TemplateResult {
+function buildStarters(lineups: ImageData['lineups'], playerName: (id: string) => string | null, scope: ImageScope): TemplateResult {
   const valid = lineups.filter((item) => item.players.length > 0).sort((a, b) => a.matchday - b.matchday);
   const ranked = rankCounts(valid.flatMap((item) => item.players.filter((id) => playerName(id))));
   if (ranked.length === 0) return { spec: {}, warnings: ['Todavía no hay ningún once oficial guardado.'] };
   const [topId, topCount] = ranked[0];
   const tiedTop = ranked.filter(([, count]) => count === topCount).length;
   const everPresent = ranked.filter(([, count]) => count === valid.length).length;
-  const days = `J${valid[0].matchday}–J${valid[valid.length - 1].matchday}`;
+  const days = dayRange(valid.map((item) => item.matchday));
 
   return {
     warnings: [],
     spec: {
-      kicker: DEFAULT_SPEC.kicker,
+      kicker: kickerOf(scope),
+      competition: scope,
       title: 'Podio de',
       titleAccent: 'titulares del Levante UD',
-      subtitle: `Quién ha estado más veces en el once inicial en ${valid.length} ${plural(valid.length, 'jornada', 'jornadas')} de LaLiga.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
+      subtitle: `Quién ha estado más veces en el once inicial en ${valid.length} ${matchesWord(scope, valid.length)} de ${competitionName(scope)}.${tiedTop > 1 ? ' Hay empate en lo más alto.' : ''}`,
       layout: 'podio',
       unit: ['vez en el XI', 'veces en el XI'],
       rows: podiumRows(ranked, playerName),
@@ -241,7 +272,7 @@ function buildStarters(lineups: ImageData['lineups'], playerName: (id: string) =
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · Once inicial oficial de cada jornada de LaLiga (${days}).`,
+      footer: `${SOURCE} · Once inicial oficial de cada ${withCup(scope) ? 'partido' : 'jornada'} de ${competitionName(scope)} (${days}).`,
     },
   };
 }
@@ -264,6 +295,7 @@ function percents(parts: number[]) {
 
 // "Pronosticos vs realidad": resultado que dan los usuarios al Levante frente a como han salido los partidos.
 function buildPredictions(data: ImageData): TemplateResult {
+  const scope = data.scope;
   const played = new Map(data.matches.map((item) => [item.matchday, item]));
   const rated = data.predictions.filter((item) => played.has(item.matchday) && item.win + item.draw + item.loss > 0);
   if (rated.length === 0) return { spec: {}, warnings: ['Todavía no hay pronósticos de partidos ya jugados.'] };
@@ -280,12 +312,13 @@ function buildPredictions(data: ImageData): TemplateResult {
   const short = ['victoria', 'empate', 'derrota'];
   const topUser = userPct.indexOf(Math.max(...userPct));
   const topReal = realPct.indexOf(Math.max(...realPct));
-  const days = `J${Math.min(...rated.map((item) => item.matchday))}–J${Math.max(...rated.map((item) => item.matchday))}`;
+  const days = dayRange(rated.map((item) => item.matchday));
 
   return {
     warnings: [],
     spec: {
-      kicker: DEFAULT_SPEC.kicker,
+      kicker: kickerOf(scope),
+      competition: scope,
       title: 'Pronósticos',
       titleAccent: 'contra la realidad',
       subtitle: `${total} pronósticos en ${rated.length} ${plural(rated.length, 'partido jugado', 'partidos jugados')}: ${userPct[0]}% da victoria al Levante UD, ${userPct[1]}% empate y ${userPct[2]}% derrota.`,
@@ -304,7 +337,7 @@ function buildPredictions(data: ImageData): TemplateResult {
       playerId: '',
       playerCaption: '',
       playerSub: '',
-      footer: `${SOURCE} · Pronósticos de la comunidad en partidos de LaLiga ya jugados (${days}) frente a su resultado real.`,
+      footer: `${SOURCE} · Pronósticos de la comunidad en partidos de ${competitionName(scope)} ya jugados (${days}) frente a su resultado real.`,
     },
   };
 }
@@ -368,7 +401,8 @@ function championTeams(standings: ImageData['standings']): Set<string> {
 // "Esta temporada vs la pasada": todas las jornadas jugadas este año frente a las mismas de la temporada pasada, con el rival y el
 // resultado de cada una. Cada vez que avanza la liga, la imagen incluye una jornada mas.
 function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standings']): TemplateResult {
-  const current = [...stats].sort((a, b) => a.matchday - b.matchday);
+  // Solo LaLiga: el año pasado no hay Copa con la que comparar.
+  const current = stats.filter((item) => !isCupDay(item.matchday)).sort((a, b) => a.matchday - b.matchday);
   if (current.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   const days = new Set(current.map((item) => item.matchday));
   const previous = previousSeasonMatches.filter((item) => days.has(item.matchday));
@@ -376,6 +410,7 @@ function buildSeasonComparison(stats: MatchStats[], standings: ImageData['standi
   const now = seasonTotals(current);
   const before = seasonTotals(previous);
   const warnings: string[] = [];
+  if (current.length !== stats.length) warnings.push('Esta plantilla compara solo LaLiga: el partido de Copa no entra porque el año pasado no hay Copa con la que compararlo.');
   if (previous.length !== current.length) warnings.push('Faltan datos de alguna jornada de la temporada pasada: la comparación no es exacta.');
   if (current.length > MAX_DUELS) warnings.push(`La lista de rivales muestra solo las últimas ${MAX_DUELS} jornadas; las columnas suman las ${current.length}.`);
   const range = `J1–J${last}`;
@@ -469,10 +504,11 @@ function buildBlank(): TemplateResult {
 export function buildTemplate(id: ImageTemplateId, data: ImageData, playerName: (id: string) => string | null): TemplateResult {
   const stats = data.matches;
   if (id === 'libre') return buildBlank();
-  if (id === 'mvp') return buildMvp(data.mvps, playerName);
-  if (id === 'xi') return buildStarters(data.lineups, playerName);
+  if (id === 'mvp') return buildMvp(data.mvps, playerName, data.scope ?? 'liga', stats);
+  if (id === 'xi') return buildStarters(data.lineups, playerName, data.scope ?? 'liga');
   if (stats.length === 0) return { spec: {}, warnings: ['Todavía no hay partidos jugados con datos.'] };
   if (id === 'prono') return buildPredictions(data);
   if (id === 'temporada') return buildSeasonComparison(stats, data.standings ?? EMPTY_IMAGE_DATA.standings);
-  return id === 'marca' ? buildScored(stats, playerName) : buildConceded(stats);
+  const scope = data.scope ?? 'liga';
+  return id === 'marca' ? buildScored(stats, playerName, scope) : buildConceded(stats, scope);
 }
