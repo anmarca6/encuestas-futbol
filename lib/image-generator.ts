@@ -143,12 +143,12 @@ export interface ImageAssets {
   logo: HTMLImageElement | null;
 }
 
-const HEAD_FONT = '"Barlow Condensed", Impact, "Arial Narrow", sans-serif';
-const BODY_FONT = '"Barlow", "Segoe UI", Arial, sans-serif';
-const RED = '#e11d48';
-const RED_LIGHT = '#ff5a7a';
-const BLUE_DARK = '#0b3d82';
-const MUTE = '#b6c6e0';
+export const HEAD_FONT = '"Barlow Condensed", Impact, "Arial Narrow", sans-serif';
+export const BODY_FONT = '"Barlow", "Segoe UI", Arial, sans-serif';
+export const RED = '#e11d48';
+export const RED_LIGHT = '#ff5a7a';
+export const BLUE_DARK = '#0b3d82';
+export const MUTE = '#b6c6e0';
 
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -182,9 +182,9 @@ export function ensureImageFonts(): Promise<void> {
   return fontsPromise;
 }
 
-type Ctx = CanvasRenderingContext2D;
+export type Ctx = CanvasRenderingContext2D;
 
-function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -194,11 +194,11 @@ function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: numb
   ctx.closePath();
 }
 
-function setSpacing(ctx: Ctx, px: number) {
+export function setSpacing(ctx: Ctx, px: number) {
   if ('letterSpacing' in ctx) (ctx as Ctx & { letterSpacing: string }).letterSpacing = `${px}px`;
 }
 
-function wrap(ctx: Ctx, text: string, maxWidth: number): string[] {
+export function wrap(ctx: Ctx, text: string, maxWidth: number): string[] {
   const lines: string[] = [];
   let line = '';
   for (const word of text.split(/\s+/).filter(Boolean)) {
@@ -215,7 +215,7 @@ function wrap(ctx: Ctx, text: string, maxWidth: number): string[] {
 }
 
 // Reduce el tamano de la fuente hasta que el texto cabe en el ancho.
-function fitFont(ctx: Ctx, text: string, weight: number, size: number, family: string, maxWidth: number, min = 28) {
+export function fitFont(ctx: Ctx, text: string, weight: number, size: number, family: string, maxWidth: number, min = 28) {
   let current = size;
   ctx.font = `${weight} ${current}px ${family}`;
   while (current > min && ctx.measureText(text).width > maxWidth) {

@@ -42,6 +42,7 @@ import {
   PlayerPhoto,
 } from '@/components/lineup-builder';
 import { PushToggle } from '@/components/push-notifications';
+import { DiplomaButton } from '@/components/diploma';
 import {
   Drawer,
   DrawerContent,
@@ -1677,9 +1678,12 @@ export function CommunityRankingSection({ user }: { user: CommunityUser | null }
           <p className="text-sm text-[#071527]">
             Tu posición: <strong className="text-lg font-black text-[#153e72]">{myIndex + 1}.º</strong> de {ranking.length} · <strong className="font-black text-[#a91d43]">{me.points} pts</strong>
           </p>
-          <button type="button" onClick={goToMe} className="rounded-lg bg-[#153e72] px-3 py-1.5 text-xs font-black text-white hover:bg-[#0f2f58]">
-            Ver mi posición
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={goToMe} className="rounded-lg bg-[#153e72] px-3 py-1.5 text-xs font-black text-white hover:bg-[#0f2f58]">
+              Ver mi posición
+            </button>
+            {user && <DiplomaButton ranking={ranking} user={user} />}
+          </div>
         </div>
       )}
       <Card className="overflow-hidden border-0 shadow-lg ring-slate-200">
